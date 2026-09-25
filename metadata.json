@@ -1,0 +1,10 @@
+{
+  "name": "The Grocery Hub",
+  "description": "The Grocery Hub - Fresh Organic Groceries Delivered in 15 Mins. Shop vegetables, dairy, atta, snacks & household essentials.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
