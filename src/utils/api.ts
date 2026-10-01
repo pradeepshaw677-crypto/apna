@@ -105,7 +105,7 @@ export const api = {
   async createOrder(orderPayload: {
     items: CartItem[];
     address: DeliveryAddress;
-    paymentMethod: 'cod' | 'upi' | 'card';
+    paymentMethod: 'cod' | 'upi' | 'card' | 'ab_coins' | string;
     appliedCoupon?: Coupon | null;
     tipAmount?: number;
     userId?: string;

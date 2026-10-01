@@ -365,41 +365,33 @@ app.post("/api/check-pincode", (req, res) => {
   }
 
   const pin = String(pincode).trim();
-  // Jharkhand postal circles strictly start with 81, 82, or 83
-  const isJharkhand = pin.startsWith("81") || pin.startsWith("82") || pin.startsWith("83");
+  // Valid 6-digit Indian postal code
+  const isIndianPincode = /^[1-9][0-9]{5}$/.test(pin);
 
-  if (!isJharkhand) {
+  if (!isIndianPincode) {
     return res.json({
       eligible: false,
-      isJharkhand: false,
       pincode: pin,
-      message: `Delivery temporarily unavailable for PIN ${pin}. Apna Bazar currently delivers exclusively across Jharkhand state (Baharagora Hub, Ranchi, Jamshedpur, Dhanbad, Bokaro).`,
+      message: `Invalid Indian PIN code ${pin}. Please enter a valid 6-digit PIN code.`,
     });
   }
 
-  const isBaharagora = pin === "832101";
-  const estimatedDays = isBaharagora ? 0 : 1;
-
-  const deliveryDate = new Date(Date.now() + (isBaharagora ? 15 * 60 * 1000 : 24 * 60 * 60 * 1000));
-  const dateFormatted = isBaharagora
-    ? "Today within 15 - 30 mins"
-    : deliveryDate.toLocaleDateString("en-IN", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      }) + " by 7:00 PM";
+  const estimatedDays = 3;
+  const deliveryDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+  const dateFormatted = deliveryDate.toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }) + " by 7:00 PM (In 3 Days)";
 
   return res.json({
     eligible: true,
-    isJharkhand: true,
     pincode: pin,
     estimatedDays,
     deliveryDate: dateFormatted,
     freeDelivery: true,
     cashOnDelivery: true,
-    message: isBaharagora
-      ? "15-Minute Doorstep Express Delivery Active in Baharagora (PIN: 832101)!"
-      : `Express Jharkhand Delivery available. Delivery expected ${dateFormatted}. 100% Cash on Delivery & 5-Day Returns.`,
+    message: `⚡ Fast 3-Day Doorstep Express Delivery Active for PIN ${pin}! Delivery expected by ${dateFormatted}. 100% Cash on Delivery & 5-Day Returns.`,
   });
 });
 

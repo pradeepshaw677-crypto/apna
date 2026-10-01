@@ -109,9 +109,9 @@ export const VoiceSearchModal: React.FC<VoiceSearchModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn overflow-y-auto">
       <div 
-        className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-center p-6 space-y-5 relative"
+        className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-y-auto text-center p-6 space-y-5 relative my-auto max-h-[90dvh]"
         onClick={(e) => e.stopPropagation()}
       >
         <button

@@ -31,7 +31,8 @@ import {
   Coupon, 
   DeliveryAddress, 
   Order, 
-  UserProfile 
+  UserProfile,
+  WalletTransaction 
 } from './types';
 import { CATEGORIES, PRODUCTS, AVAILABLE_COUPONS } from './data/products';
 import { api } from './utils/api';
@@ -71,11 +72,12 @@ import { SupportView } from './components/SupportView';
 import { PolicyView } from './components/PolicyView';
 import { WhyShopSection } from './components/WhyShopSection';
 import { CustomerReviewsSection } from './components/CustomerReviewsSection';
-import { MobileBottomNav } from './components/MobileBottomNav';
+import { MobileBottomNav, MobileTab } from './components/MobileBottomNav';
 import { DashboardOptionsModal } from './components/DashboardOptionsModal';
 import { DeliveryRadiusModal } from './components/DeliveryRadiusModal';
 import { InvoiceModal } from './components/InvoiceModal';
 import { VoiceSearchModal } from './components/VoiceSearchModal';
+import { ReturnRequestModal } from './components/ReturnRequestModal';
 import { FloatingActions } from './components/FloatingActions';
 import { Footer } from './components/Footer';
 
@@ -102,22 +104,14 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
       const saved = localStorage.getItem('ab_user');
-      return saved ? JSON.parse(saved) : {
-        id: 'usr-bhabani-2026',
-        name: 'Bhabani Shit',
-        email: 'apnabazar.support@gmail.com',
-        phone: '6207462800',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-        isLoggedIn: true,
-        membership: 'Apna Bazar VIP Plus',
-        referralCode: 'BHABANI2026',
-        totalOrders: 6,
-        totalSpent: 2203,
-      };
+      return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
   });
+
+  // Bottom Navigation tab state
+  const [activeBottomTab, setActiveBottomTab] = useState<MobileTab>('home');
 
   // Delivery Location & Verification State
   const [deliveryLocation, setDeliveryLocation] = useState(() => {
@@ -138,6 +132,8 @@ export default function App() {
   const [isVoiceSearchOpen, setIsVoiceSearchOpen] = useState(false);
   const [isDeliveryRadiusOpen, setIsDeliveryRadiusOpen] = useState(false);
   const [isDashboardOptionsOpen, setIsDashboardOptionsOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [selectedReturnOrder, setSelectedReturnOrder] = useState<Order | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -163,8 +159,10 @@ export default function App() {
   
   // 8 Products per batch pagination & infinite scroll
   const [visibleCount, setVisibleCount] = useState(8);
+  const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>('home');
 
   const productSectionRef = useRef<HTMLDivElement>(null);
+  const categorySectionRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Auto-clear cart toast after 3.5s
@@ -180,7 +178,7 @@ export default function App() {
   // Test Firebase connection on boot (Mandatory Skill requirement)
   useEffect(() => {
     testConnection().then(() => {
-      console.log("Firebase connection verified for The Grocery Hub.");
+      console.log("Firebase connection verified for Apna Bazar.");
     });
   }, []);
 
@@ -338,6 +336,56 @@ export default function App() {
     setIsCartOpen(true);
   };
 
+  // Return Request & AB Coin Wallet Credit Flow
+  const handleOpenReturnModal = (order: Order) => {
+    setSelectedReturnOrder(order);
+    setIsReturnModalOpen(true);
+  };
+
+  const handleReturnProcessed = (updatedOrder: Order, refundedCoins: number) => {
+    setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o)));
+    if (currentUser) {
+      const newBalance = (currentUser.walletBalance || 0) + refundedCoins;
+      const newTx: WalletTransaction = {
+        id: `tx-return-${Date.now()}`,
+        type: 'credit',
+        amount: refundedCoins,
+        title: `Return Refund - Order #${updatedOrder.id}`,
+        description: `Full product value credited in AB Coins for shopping`,
+        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+        orderId: updatedOrder.id,
+      };
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        walletBalance: newBalance,
+        walletTransactions: [newTx, ...(currentUser.walletTransactions || [])],
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('ab_user', JSON.stringify(updatedUser));
+    }
+  };
+
+  const handleDeductWalletCoins = (coins: number) => {
+    if (currentUser) {
+      const newBalance = Math.max(0, (currentUser.walletBalance || 0) - coins);
+      const debitTx: WalletTransaction = {
+        id: `tx-checkout-${Date.now()}`,
+        type: 'debit',
+        amount: coins,
+        title: 'AB Coins Used at Checkout',
+        description: 'Store currency applied to order',
+        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+      };
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        walletBalance: newBalance,
+        walletTransactions: [debitTx, ...(currentUser.walletTransactions || [])],
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('ab_user', JSON.stringify(updatedUser));
+    }
+  };
+
   // Location verified callback
   const handleLocationConfirmed = (pin: string, city: string, isJh: boolean) => {
     localStorage.setItem('ab_location_verified', 'true');
@@ -432,10 +480,11 @@ export default function App() {
     return cartItems.reduce((acc, it) => acc + it.quantity, 0);
   }, [cartItems]);
 
-  const currentBottomTab = 
-    activeView === 'home' ? 'home' :
-    activeView === 'orders' ? 'orders' :
-    activeView === 'dashboard' ? 'dashboard' : 'home';
+  const currentBottomTab = useMemo(() => {
+    if (activeView === 'orders') return 'orders';
+    if (activeView === 'dashboard') return 'profile';
+    return activeMobileTab;
+  }, [activeView, activeMobileTab]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900 pb-16 md:pb-0">
@@ -583,13 +632,15 @@ export default function App() {
           />
 
           {/* 2. User Explicit Request: "isme banner ke baad shop by category do" */}
-          <TopCategoryStrip
-            selectedCategory={selectedCategory}
-            onSelectCategory={(catId) => {
-              setSelectedCategory(catId);
-              productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }}
-          />
+          <div ref={categorySectionRef} id="shop-by-category" className="scroll-mt-16">
+            <TopCategoryStrip
+              selectedCategory={selectedCategory}
+              onSelectCategory={(catId) => {
+                setSelectedCategory(catId);
+                productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            />
+          </div>
 
           {/* 3. Catalog Section with Filter & Sort Controls */}
           <main ref={productSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
@@ -758,16 +809,22 @@ export default function App() {
         onSelectTab={(tab) => {
           if (tab === 'home') {
             setActiveView('home');
+            setActiveMobileTab('home');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (tab === 'categories') {
             setActiveView('home');
-            productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            setActiveMobileTab('categories');
+            setTimeout(() => {
+              categorySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 60);
           } else if (tab === 'cart') {
             setIsCartOpen(true);
           } else if (tab === 'orders') {
             setActiveView('orders');
+            setActiveMobileTab('orders');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (tab === 'profile') {
+            setActiveMobileTab('profile');
             if (currentUser?.isLoggedIn) {
               setActiveView('dashboard');
               window.scrollTo({ top: 0, behavior: 'smooth' });

@@ -48,44 +48,38 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      const isAdmin = user.email === 'bhabanishit6@gmail.com';
 
       const userProfile: UserProfile = {
         id: user.uid,
         name: user.displayName || user.email?.split('@')[0] || 'Apna Bazar Shopper',
         email: user.email || '',
-        phone: user.phoneNumber || '9876543210',
+        phone: user.phoneNumber || '',
         avatar: user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
         isLoggedIn: true,
-        role: isAdmin ? 'admin' : 'customer',
-        membership: isAdmin ? 'Apna Bazar Owner' : 'Apna Bazar VIP Plus',
-        referralCode: (user.displayName || 'APNA').replace(/\s+/g, '').toUpperCase().slice(0, 6) + '2026',
-        totalOrders: 4,
-        totalSpent: 4290,
+        role: 'customer',
+        membership: 'Apna Bazar Member',
+        referralCode: (user.displayName || 'APNA').replace(/\s+/g, '').toUpperCase().slice(0, 6) + '100',
+        walletBalance: 100, // 100 AB Coins welcome bonus
+        walletTransactions: [
+          {
+            id: 'tx-welcome',
+            type: 'credit',
+            amount: 100,
+            title: 'Welcome AB Coins Bonus',
+            description: 'Credited on successful account sign in',
+            date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+          }
+        ],
+        totalOrders: 0,
+        totalSpent: 0,
       };
 
       localStorage.setItem('ab_user', JSON.stringify(userProfile));
       onLoginSuccess(userProfile);
       onClose();
     } catch (err: any) {
-      console.warn("Firebase Google popup notice, providing resilient fallback:", err);
-      // Fallback for sandboxed preview iframe
-      const fallbackUser: UserProfile = {
-        id: 'usr-bhabani-2026',
-        name: 'Bhabani Shit',
-        email: 'bhabanishit6@gmail.com',
-        phone: '9876543210',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-        isLoggedIn: true,
-        role: 'admin',
-        membership: 'Apna Bazar VIP Plus',
-        referralCode: 'BHABANI2026',
-        totalOrders: 14,
-        totalSpent: 12450,
-      };
-      localStorage.setItem('ab_user', JSON.stringify(fallbackUser));
-      onLoginSuccess(fallbackUser);
-      onClose();
+      console.warn("Firebase Google popup notice:", err);
+      setError(err?.message || 'Google Sign-In was cancelled or popup was blocked. Please try with Email & Password.');
     } finally {
       setIsLoading(false);
     }
@@ -126,21 +120,31 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         firebaseUser = cred.user;
       }
 
-      const isAdmin = (email.toLowerCase().includes('bhabani') || email.toLowerCase().includes('admin'));
       const profileName = isSignUp ? (name || email.split('@')[0]) : (firebaseUser.displayName || name || email.split('@')[0]);
 
       const userProfile: UserProfile = {
         id: firebaseUser.uid,
         name: profileName,
         email: firebaseUser.email || email.trim(),
-        phone: phone || '9876543210',
+        phone: phone || '',
         avatar: firebaseUser.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
         isLoggedIn: true,
-        role: isAdmin ? 'admin' : 'customer',
-        membership: 'Apna Bazar VIP Plus',
+        role: 'customer',
+        membership: 'Apna Bazar Member',
         referralCode: (profileName.replace(/\s+/g, '').toUpperCase().slice(0, 5) || 'APNA') + Math.floor(1000 + Math.random() * 9000),
-        totalOrders: 1,
-        totalSpent: 999,
+        walletBalance: 100, // 100 AB Coins starter bonus
+        walletTransactions: [
+          {
+            id: `tx-${Date.now()}`,
+            type: 'credit',
+            amount: 100,
+            title: 'Welcome AB Coins Bonus',
+            description: '100 Coins credited on account creation',
+            date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+          }
+        ],
+        totalOrders: 0,
+        totalSpent: 0,
       };
 
       localStorage.setItem('ab_user', JSON.stringify(userProfile));
@@ -162,24 +166,35 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         return;
       }
 
-      // If sandboxed preview iframe restricts third party auth cookies, gracefully create local verified session
-      const isAdmin = (email.toLowerCase().includes('bhabani') || email.toLowerCase().includes('admin'));
-      const fallbackProfile: UserProfile = {
+      // If sandboxed preview iframe restricts third party auth cookies, gracefully create real session for user's own entered details
+      const profileName = isSignUp ? (name || email.split('@')[0]) : (name || email.split('@')[0] || 'Apna Bazar Shopper');
+      const realProfile: UserProfile = {
         id: 'usr_' + Date.now(),
-        name: isSignUp ? (name || email.split('@')[0]) : (email.split('@')[0] || 'Apna Bazar Shopper'),
+        name: profileName,
         email: email.trim(),
-        phone: phone || '9876543210',
+        phone: phone || '',
         avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
         isLoggedIn: true,
-        role: isAdmin ? 'admin' : 'customer',
-        membership: 'Apna Bazar VIP Plus',
-        referralCode: 'APNA' + Math.floor(1000 + Math.random() * 9000),
-        totalOrders: 1,
-        totalSpent: 1200,
+        role: 'customer',
+        membership: 'Apna Bazar Member',
+        referralCode: (profileName.replace(/\s+/g, '').toUpperCase().slice(0, 5) || 'APNA') + '100',
+        walletBalance: 100,
+        walletTransactions: [
+          {
+            id: `tx-${Date.now()}`,
+            type: 'credit',
+            amount: 100,
+            title: 'Welcome AB Coins Bonus',
+            description: '100 Coins credited on account creation',
+            date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+          }
+        ],
+        totalOrders: 0,
+        totalSpent: 0,
       };
 
-      localStorage.setItem('ab_user', JSON.stringify(fallbackProfile));
-      onLoginSuccess(fallbackProfile);
+      localStorage.setItem('ab_user', JSON.stringify(realProfile));
+      onLoginSuccess(realProfile);
       onClose();
     } finally {
       setIsLoading(false);
@@ -187,13 +202,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn overflow-y-auto">
       <div 
-        className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden"
+        className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[90dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-amber-500" />
             <div>
@@ -201,9 +216,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                 {isSignUp ? 'Create Apna Bazar Account' : 'Sign in to Apna Bazar'}
               </h2>
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <span>Firebase Authentication</span>
+                <span>Secure Authentication</span>
                 <span>•</span>
-                <span className="text-amber-400 font-bold">15-Min Delivery in Jharkhand</span>
+                <span className="text-amber-400 font-bold">Fast 3-Day Express Delivery</span>
               </div>
             </div>
           </div>
@@ -215,7 +230,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
           </button>
         </div>
 
-        <div className="p-5 sm:p-6 space-y-4">
+        <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
           
           {/* Google Sign In Button */}
           <button
@@ -261,7 +276,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Bhabani Shit"
+                    placeholder="e.g. Rahul Sharma"
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
                   />
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -277,7 +292,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="bhabanishit6@gmail.com"
+                  placeholder="yourname@gmail.com"
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
                 />
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />

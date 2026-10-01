@@ -2,26 +2,23 @@ import React, { useState } from 'react';
 import { 
   X, 
   MapPin, 
-  CreditCard, 
   Banknote, 
-  QrCode, 
   ShieldCheck, 
+  RotateCcw, 
   CheckCircle2, 
-  Truck,
-  Phone,
-  User,
-  Home,
-  Briefcase,
+  Lock, 
+  Truck, 
   AlertCircle,
+  Clock,
   Sparkles,
-  Lock,
-  RotateCcw,
-  Navigation
+  Edit2,
+  Coins
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CartItem, Coupon, DeliveryAddress, Order } from '../types';
 import { api } from '../utils/api';
 import { getSizePriceDelta, formatINR } from '../utils/pricing';
+import { AbCoinLogo } from './AbCoinLogo';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -32,6 +29,8 @@ interface CheckoutModalProps {
   onSaveAddress: (address: DeliveryAddress) => void;
   onOrderPlaced: (order: Order) => void;
   userId?: string;
+  walletBalance?: number;
+  onDeductWalletCoins?: (coins: number) => void;
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -43,9 +42,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onSaveAddress,
   onOrderPlaced,
   userId,
+  walletBalance = 0,
+  onDeductWalletCoins,
 }) => {
   const [address, setAddress] = useState<DeliveryAddress>(savedAddress);
-  const [paymentMethod] = useState<'cod'>('cod');
+  const [isEditingAddress, setIsEditingAddress] = useState(!savedAddress.fullName || !savedAddress.streetAddress);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ab_coins'>(walletBalance >= 100 ? 'ab_coins' : 'cod');
+  const [useAbCoins, setUseAbCoins] = useState(walletBalance > 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [detectingGps, setDetectingGps] = useState(false);
@@ -127,7 +130,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   }
 
-  const finalTotal = Math.max(0, itemTotal + deliveryFee - discountAmount);
+  const subtotalAfterCoupon = Math.max(0, itemTotal + deliveryFee - discountAmount);
+
+  // AB Coins Calculation
+  const coinsApplicable = (useAbCoins || selectedPaymentMethod === 'ab_coins')
+    ? Math.min(walletBalance, subtotalAfterCoupon)
+    : 0;
+
+  const finalTotal = Math.max(0, subtotalAfterCoupon - coinsApplicable);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,11 +145,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     if (!address.fullName || !address.phoneNumber || !address.streetAddress || !address.pincode) {
       setErrorMessage('Please fill in complete delivery address details.');
+      setIsEditingAddress(true);
       return;
     }
 
     if (address.phoneNumber.length < 10) {
       setErrorMessage('Please provide a valid 10-digit mobile phone number.');
+      setIsEditingAddress(true);
       return;
     }
 
@@ -149,16 +161,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       // Save current address to user profile
       onSaveAddress(address);
 
+      if (coinsApplicable > 0 && onDeductWalletCoins) {
+        onDeductWalletCoins(coinsApplicable);
+      }
+
       const response = await api.createOrder({
         items: cartItems,
         address,
-        paymentMethod,
+        paymentMethod: finalTotal === 0 ? 'ab_coins' : selectedPaymentMethod,
         appliedCoupon,
         tipAmount: 0,
         userId,
       });
 
       if (response && response.order) {
+        const orderWithCoins: Order = {
+          ...response.order,
+          abCoinsUsed: coinsApplicable,
+          totalAmount: finalTotal,
+          estimatedDeliveryDate: '⚡ 3-Day Express Doorstep Delivery',
+        };
+
         // Trigger celebratory confetti
         confetti({
           particleCount: 80,
@@ -167,7 +190,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           colors: ['#f59e0b', '#fb923c', '#e11d48', '#0f172a'],
         });
 
-        onOrderPlaced(response.order);
+        onOrderPlaced(orderWithCoins);
         onClose();
       }
     } catch (err: any) {
@@ -180,18 +203,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn overflow-y-auto">
       <div 
-        className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[95vh] flex flex-col"
+        className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 flex items-center justify-between shadow-xs">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 flex items-center justify-between shadow-xs shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-slate-950 shadow-inner">
               <Lock className="w-5 h-5 text-slate-950" />
             </div>
             <div>
-              <h2 className="font-black text-base sm:text-lg text-slate-950 tracking-tight">Secure Cash on Delivery Checkout</h2>
-              <p className="text-[11px] font-bold text-slate-900/80">Doorstep Delivery in Jharkhand • 6-Digit Delivery OTP</p>
+              <h2 className="font-black text-base sm:text-lg text-slate-950 tracking-tight">Checkout: Apna Bazar Superstore</h2>
+              <p className="text-[11px] font-bold text-slate-900/80">⚡ 3-Day Doorstep Express Delivery • 100% Cash on Delivery &amp; AB Coins</p>
             </div>
           </div>
           <button
@@ -212,163 +235,194 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <span className="w-5 h-5 rounded-full bg-slate-900 text-white font-black flex items-center justify-center text-xs">
                   1
                 </span>
-                <span>Delivery Address (Jharkhand)</span>
+                <span>Delivery Address (India Doorstep)</span>
               </div>
               <button
                 type="button"
                 onClick={handleUseCurrentLocation}
                 disabled={detectingGps}
-                className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-2xs"
+                className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
               >
-                <Navigation className={`w-3.5 h-3.5 text-amber-600 ${detectingGps ? 'animate-spin' : ''}`} />
-                <span>{detectingGps ? 'Detecting GPS...' : '📍 Use Current Location (GPS)'}</span>
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{detectingGps ? 'Detecting...' : '📍 Use Current GPS Location'}</span>
               </button>
             </div>
 
             {gpsSuccessMsg && (
-              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs font-bold flex items-center gap-2 animate-fadeIn">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <p className="text-xs font-bold text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                 <span>{gpsSuccessMsg}</span>
-              </div>
+              </p>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Full Name *</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            {/* Saved Address One-Tap View */}
+            {!isEditingAddress && address.fullName && address.streetAddress ? (
+              <div className="p-4 rounded-2xl bg-amber-50/70 border-2 border-amber-400 flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                      ✓ Saved Delivery Address
+                    </span>
+                    <span className="font-black text-slate-900 text-xs sm:text-sm">{address.fullName}</span>
+                  </div>
+                  <p className="text-xs text-slate-700 font-medium">
+                    {address.streetAddress} {address.landmark ? `(Near ${address.landmark})` : ''}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    {address.city}, {address.state || 'Jharkhand'} - {address.pincode}
+                  </p>
+                  <p className="text-xs font-bold text-slate-900 pt-0.5">
+                    Phone: {address.phoneNumber}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEditingAddress(true)}
+                  className="px-3 py-1.5 rounded-xl bg-white border border-amber-300 text-amber-900 font-bold text-xs flex items-center gap-1 hover:bg-amber-100 transition-colors cursor-pointer shrink-0"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>Change</span>
+                </button>
+              </div>
+            ) : (
+              /* Address Edit Form */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Receiver&apos;s Full Name *</label>
                   <input
                     type="text"
                     required
                     value={address.fullName}
                     onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
-                    placeholder="Recipient's Name"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 font-medium focus:outline-none focus:border-amber-500"
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Mobile Phone Number *</label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Mobile Number (For Delivery OTP) *</label>
                   <input
                     type="tel"
                     required
                     maxLength={10}
                     value={address.phoneNumber}
                     onChange={(e) => setAddress({ ...address, phoneNumber: e.target.value.replace(/\D/g, '') })}
-                    placeholder="10-Digit Mobile"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-3 py-2 font-medium focus:outline-none focus:border-amber-500"
+                    placeholder="10-digit mobile number"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="font-bold text-slate-700 block mb-1">House / Flat / Street / Landmark *</label>
+                  <input
+                    type="text"
+                    required
+                    value={address.streetAddress}
+                    onChange={(e) => setAddress({ ...address, streetAddress: e.target.value })}
+                    placeholder="e.g. Dadu Complex, Near Shitla Mandir, Main Road"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">6-Digit Pincode *</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={address.pincode}
+                    onChange={(e) => setAddress({ ...address, pincode: e.target.value.replace(/\D/g, '') })}
+                    placeholder="e.g. 832101"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-mono font-bold focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">City / Town *</label>
+                  <input
+                    type="text"
+                    required
+                    value={address.city}
+                    onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                    placeholder="e.g. Baharagora"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
+            )}
 
-              <div className="sm:col-span-2">
-                <label className="font-bold text-slate-700 block mb-1">Flat / House No. / Building / Street *</label>
-                <input
-                  type="text"
-                  required
-                  value={address.streetAddress}
-                  onChange={(e) => setAddress({ ...address, streetAddress: e.target.value })}
-                  placeholder="e.g. Dadu Complex, Near Shitla Mandir"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-amber-500"
-                />
+            {/* Express Delivery Badge */}
+            <div className="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4 text-amber-400" />
+                <span className="font-bold">⚡ Fast 3-Day Express Doorstep Delivery</span>
               </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Area / Colony / Street *</label>
-                <input
-                  type="text"
-                  required
-                  value={address.area}
-                  onChange={(e) => setAddress({ ...address, area: e.target.value })}
-                  placeholder="e.g. Main Chowk"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Landmark (Optional)</label>
-                <input
-                  type="text"
-                  value={address.landmark || ''}
-                  onChange={(e) => setAddress({ ...address, landmark: e.target.value })}
-                  placeholder="e.g. Opposite State Bank"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">6-Digit Pincode *</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={6}
-                  value={address.pincode}
-                  onChange={(e) => setAddress({ ...address, pincode: e.target.value.replace(/\D/g, '') })}
-                  placeholder="e.g. 832101"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-mono font-bold focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">City / Town *</label>
-                <input
-                  type="text"
-                  required
-                  value={address.city}
-                  onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                  placeholder="e.g. Baharagora"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 font-medium focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="font-bold text-slate-700 block mb-1">Address Type</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAddress({ ...address, addressType: 'home' })}
-                    className={`flex-1 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
-                      address.addressType === 'home'
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-200 bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <Home className="w-3.5 h-3.5" /> Home
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAddress({ ...address, addressType: 'work' })}
-                    className={`flex-1 py-2 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer ${
-                      address.addressType === 'work'
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-200 bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <Briefcase className="w-3.5 h-3.5" /> Work
-                  </button>
-                </div>
-              </div>
+              <span className="text-[10px] text-amber-300 font-extrabold bg-white/10 px-2 py-0.5 rounded-full">
+                Guaranteed
+              </span>
             </div>
           </div>
 
-          {/* Step 2: Payment Method - Cash on Delivery */}
-          <div className="space-y-3">
+          {/* Step 2: Payment Mode - COD & AB Coins */}
+          <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
                 <span className="w-5 h-5 rounded-full bg-slate-900 text-white font-black flex items-center justify-center text-xs">
                   2
                 </span>
-                <span>Payment Mode: Cash on Delivery (COD)</span>
+                <span>Select Payment Mode</span>
               </div>
               <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
-                Pay on Delivery Only
+                100% Buyer Protection
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl border-2 border-amber-400 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 shadow-xs space-y-3">
+            {/* AB Coins Option Card */}
+            {walletBalance > 0 && (
+              <div 
+                onClick={() => setUseAbCoins(!useAbCoins)}
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-2 ${
+                  useAbCoins
+                    ? 'border-amber-500 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-100 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <AbCoinLogo size="lg" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-black text-slate-950 text-xs sm:text-sm">Pay with AB Coins</h4>
+                        <span className="text-[10px] bg-amber-200 text-amber-950 font-black px-1.5 py-0.5 rounded">
+                          {walletBalance} Coins Available
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-0.5">
+                        Apply {coinsApplicable} AB Coins to save ₹{coinsApplicable} on this order.
+                      </p>
+                    </div>
+                  </div>
+
+                  <input
+                    type="checkbox"
+                    checked={useAbCoins}
+                    onChange={(e) => setUseAbCoins(e.target.checked)}
+                    className="w-5 h-5 rounded accent-amber-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Cash on Delivery (COD) Card */}
+            <div 
+              onClick={() => setSelectedPaymentMethod('cod')}
+              className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-3 ${
+                selectedPaymentMethod === 'cod'
+                  ? 'border-amber-500 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 shadow-xs'
+                  : 'border-slate-200 hover:border-slate-300 bg-white'
+              }`}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md shadow-amber-500/30">
@@ -382,12 +436,16 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </span>
                     </h4>
                     <p className="text-xs text-slate-600 mt-0.5">
-                      Zero advance payment required. Pay via cash or UPI directly to the courier agent when your package is delivered.
+                      {finalTotal === 0
+                        ? 'Your order is 100% covered by AB Coins! ₹0 cash needed.'
+                        : `Pay ${formatINR(finalTotal)} via cash or UPI directly when your package is delivered.`}
                     </p>
                   </div>
                 </div>
-                <div className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-black shrink-0">
-                  ✓
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                  selectedPaymentMethod === 'cod' ? 'bg-amber-500 text-slate-950' : 'border border-slate-300'
+                }`}>
+                  {selectedPaymentMethod === 'cod' && '✓'}
                 </div>
               </div>
 
@@ -422,13 +480,24 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <span>-{formatINR(discountAmount)}</span>
               </div>
             )}
+            {coinsApplicable > 0 && (
+              <div className="flex justify-between text-amber-800 font-black items-center">
+                <span className="flex items-center gap-1">
+                  <AbCoinLogo size="xs" />
+                  <span>AB Coins Redeemed ({coinsApplicable} Coins)</span>
+                </span>
+                <span>-{formatINR(coinsApplicable)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-slate-600">
-              <span>Doorstep Delivery Charges</span>
+              <span>3-Day Express Delivery Charges</span>
               <span>{deliveryFee === 0 ? <strong className="text-amber-700 uppercase">FREE</strong> : formatINR(deliveryFee)}</span>
             </div>
             <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
               <span>Total Payable at Doorstep</span>
-              <span>{formatINR(finalTotal)}</span>
+              <span className={finalTotal === 0 ? 'text-emerald-700' : 'text-slate-950'}>
+                {finalTotal === 0 ? '₹0 (Paid with AB Coins)' : formatINR(finalTotal)}
+              </span>
             </div>
           </div>
 
@@ -447,7 +516,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
             >
               <ShieldCheck className="w-5 h-5" />
-              <span>{isSubmitting ? 'Securing Your Order...' : `Confirm Order with COD (${formatINR(finalTotal)})`}</span>
+              <span>
+                {isSubmitting
+                  ? 'Securing Your Order...'
+                  : finalTotal === 0
+                  ? 'Confirm Order with AB Coins (₹0 Cash)'
+                  : `Confirm Order (${formatINR(finalTotal)})`}
+              </span>
             </button>
             <p className="text-[11px] text-center text-slate-400 mt-2">
               By placing your order, you agree to Apna Bazar&apos;s Terms of Service and 5-Day Return Policy.

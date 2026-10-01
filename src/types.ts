@@ -132,6 +132,11 @@ export interface Order {
   cancellationAllowed?: boolean;
   trackingSteps?: TrackingStep[];
   userId?: string;
+  // AB Coin Wallet & Return system
+  abCoinsUsed?: number;
+  walletRefundAmount?: number;
+  returnApprovedAt?: number;
+  returnStatus?: 'not_requested' | 'requested' | 'approved' | 'rejected';
   // 5-Day Return & Live Rider system
   deliveredAt?: number;
   returnEligibleUntil?: number;
@@ -149,6 +154,16 @@ export interface Order {
   };
 }
 
+export interface WalletTransaction {
+  id: string;
+  type: 'credit' | 'debit';
+  amount: number; // in AB Coins (1 AB Coin = ₹1)
+  title: string;
+  description?: string;
+  date: string;
+  orderId?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -159,6 +174,8 @@ export interface UserProfile {
   role: 'customer' | 'admin' | string;
   membership?: string;
   referralCode?: string;
+  walletBalance?: number; // In AB Coins
+  walletTransactions?: WalletTransaction[];
   totalOrders?: number;
   totalSpent?: number;
   savedAddresses?: DeliveryAddress[];

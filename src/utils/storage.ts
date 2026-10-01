@@ -6,11 +6,11 @@ const ORDERS_KEY = 'apnabazar_orders_v1';
 const ADDRESS_KEY = 'apnabazar_address_v1';
 
 export const DEFAULT_ADDRESS: DeliveryAddress = {
-  fullName: 'Bhabani Shit',
-  phoneNumber: '9876543210',
-  streetAddress: 'Plot 42, Green Avenue, Sector 14',
-  landmark: 'Near City Center Mall',
-  area: 'Sector 14',
+  fullName: '',
+  phoneNumber: '',
+  streetAddress: '',
+  landmark: '',
+  area: 'Baharagora',
   city: 'Baharagora',
   state: 'Jharkhand',
   pincode: '832101',
@@ -42,9 +42,9 @@ export function getSavedWishlist(): string[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(WISHLIST_KEY);
-    return raw ? JSON.parse(raw) : ['prod-fsh-01', 'prod-ftw-01'];
+    return raw ? JSON.parse(raw) : [];
   } catch (e) {
-    return ['prod-fsh-01', 'prod-ftw-01'];
+    return [];
   }
 }
 
@@ -76,11 +76,20 @@ export function saveOrders(orders: Order[]): void {
   }
 }
 
+const ADDRESSES_LIST_KEY = 'apnabazar_addresses_list_v1';
+
 export function getSavedAddress(): DeliveryAddress {
   if (typeof window === 'undefined') return DEFAULT_ADDRESS;
   try {
     const raw = localStorage.getItem(ADDRESS_KEY);
-    return raw ? JSON.parse(raw) : DEFAULT_ADDRESS;
+    if (raw) return JSON.parse(raw);
+    const listRaw = localStorage.getItem(ADDRESSES_LIST_KEY);
+    if (listRaw) {
+      const list: DeliveryAddress[] = JSON.parse(listRaw);
+      const def = list.find((a) => a.isDefault) || list[0];
+      if (def) return def;
+    }
+    return DEFAULT_ADDRESS;
   } catch (e) {
     return DEFAULT_ADDRESS;
   }
@@ -90,7 +99,43 @@ export function saveAddress(addr: DeliveryAddress): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(ADDRESS_KEY, JSON.stringify(addr));
+    // Also sync to address list
+    const currentList = getSavedAddressesList();
+    const existingIndex = currentList.findIndex(a => a.id === addr.id || (a.streetAddress === addr.streetAddress && a.pincode === addr.pincode));
+    if (existingIndex >= 0) {
+      currentList[existingIndex] = { ...addr, isDefault: true };
+    } else if (addr.fullName && addr.streetAddress) {
+      currentList.push({ ...addr, id: addr.id || `addr-${Date.now()}`, isDefault: true });
+    }
+    saveAddressesList(currentList.map(a => ({ ...a, isDefault: a.streetAddress === addr.streetAddress })));
   } catch (e) {
     console.error('Failed to save address', e);
+  }
+}
+
+export function getSavedAddressesList(): DeliveryAddress[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(ADDRESSES_LIST_KEY);
+    if (raw) return JSON.parse(raw);
+    const single = localStorage.getItem(ADDRESS_KEY);
+    if (single) {
+      const parsed = JSON.parse(single);
+      if (parsed.fullName && parsed.streetAddress) {
+        return [{ ...parsed, id: 'addr-default', isDefault: true }];
+      }
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
+export function saveAddressesList(list: DeliveryAddress[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(ADDRESSES_LIST_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.error('Failed to save addresses list', e);
   }
 }

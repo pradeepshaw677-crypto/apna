@@ -164,7 +164,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
             <span className="text-slate-500 font-medium">Prefer immediate assistance?</span>
             <div className="flex items-center gap-2">
               <a
-                href="https://wa.me/916207462800?text=Hi%20The%20Grocery%20Hub,%20I%20need%20help%20with%20my%20order"
+                href="https://wa.me/916207462800?text=Hi%20Apna%20Bazar,%20I%20need%20help%20with%20my%20order"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 flex items-center gap-1.5 hover:bg-emerald-100 transition-colors"

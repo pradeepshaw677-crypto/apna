@@ -85,10 +85,10 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({ isOpen
 
       const storeMarker = L.marker(STORE_COORDS, { icon: storeIcon }).addTo(map);
       storeMarker.bindPopup(`
-        <div style="font-family: 'Outfit', sans-serif; padding: 4px;">
-          <b style="font-size: 13px; color: #064e3b;">The Grocery Hub</b><br/>
+        <div style="font-family: 'Plus Jakarta Sans', sans-serif; padding: 4px;">
+          <b style="font-size: 13px; color: #0f172a;">Apna Bazar Express Hub</b><br/>
           <span style="font-size: 11px; color: #475569;">Central Store: Dadu Complex, Near Shitla Mandir, Baharagora</span><br/>
-          <span style="color: #059669; font-size: 11px; font-weight: bold;">15-Min Express Delivery Hub</span>
+          <span style="color: #d97706; font-size: 11px; font-weight: bold;">15-Min Express Delivery Hub</span>
         </div>
       `).openPopup();
 
@@ -213,8 +213,8 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({ isOpen
     : BAHARAGORA_AREAS;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn overflow-y-auto">
+      <div className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col my-auto max-h-[90dvh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-800 to-teal-800 text-white">
           <div className="flex items-center gap-2.5">

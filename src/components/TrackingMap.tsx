@@ -211,16 +211,16 @@ export const TrackingMap: React.FC<TrackingMapProps> = ({
     <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 shadow-md bg-slate-100">
       
       {/* Live Route Status Overlay Bar */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        <div className="bg-slate-950/90 backdrop-blur-md text-white px-3.5 py-1.5 rounded-full shadow-lg border border-amber-500/50 flex items-center gap-2 pointer-events-auto">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-          <span className="text-xs font-black text-amber-300">
-            Real GPS Route: Apna Bazar Hub ➔ Customer Location
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-[1000] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 pointer-events-none">
+        <div className="bg-slate-950/90 backdrop-blur-md text-white px-2.5 sm:px-3.5 py-1 rounded-full shadow-lg border border-amber-500/50 flex items-center gap-1.5 pointer-events-auto max-w-full">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+          <span className="text-[10px] sm:text-xs font-black text-amber-300 truncate">
+            Apna Bazar Hub ➔ Customer Location
           </span>
         </div>
 
-        <div className="bg-white/95 backdrop-blur-md text-slate-900 px-3.5 py-1.5 rounded-full shadow-md border border-slate-200 text-xs font-black flex items-center gap-1.5 pointer-events-auto">
-          <Clock className="w-3.5 h-3.5 text-amber-600" />
+        <div className="bg-white/95 backdrop-blur-md text-slate-900 px-2.5 sm:px-3.5 py-1 rounded-full shadow-md border border-slate-200 text-[10px] sm:text-xs font-black flex items-center gap-1 pointer-events-auto shrink-0">
+          <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 shrink-0" />
           <span>ETA: <strong className="text-rose-600 font-black">{etaMinutes} Mins</strong> ({distanceKm} km away)</span>
         </div>
       </div>

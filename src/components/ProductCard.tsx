@@ -159,8 +159,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <span className="text-slate-500">{product.subcategory || product.category}</span>
         </div>
 
-        {/* Product Name */}
-        <h4 className="font-black text-slate-900 text-xs sm:text-sm line-clamp-2 leading-snug group-hover:text-amber-600 transition-colors">
+        {/* Product Name with Stable Baseline */}
+        <h4 className="font-black text-slate-900 text-xs sm:text-sm line-clamp-2 leading-snug group-hover:text-amber-600 transition-colors min-h-[2rem]">
           {product.name}
         </h4>
 
@@ -170,13 +170,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-1 overflow-hidden text-[10px] text-slate-500 font-semibold flex-wrap pt-0.5"
           >
-            <span className="text-slate-400 text-[10px]">Size:</span>
+            <span className="text-slate-400 text-[10px] shrink-0">Size:</span>
             {product.sizes.slice(0, 4).map((s, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => setSelectedSize(s)}
-                className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold cursor-pointer transition-all border ${
+                className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold cursor-pointer transition-all border shrink-0 ${
                   selectedSize === s
                     ? 'bg-slate-900 text-amber-300 border-slate-900 shadow-2xs'
                     : 'bg-slate-100 text-slate-700 border-slate-200 hover:border-slate-300'
@@ -192,60 +192,64 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         )}
 
         {/* Price Row: Dynamic Price with Indian Rupees, MRP, Savings */}
-        <div className="flex items-baseline gap-1.5 pt-1">
-          <span className="text-base sm:text-lg font-black text-slate-950">
+        <div className="flex items-baseline gap-1 sm:gap-1.5 pt-1 flex-wrap">
+          <span className="text-sm sm:text-lg font-black text-slate-950 whitespace-nowrap">
             {formatINR(currentPrice)}
           </span>
           {currentOriginalPrice > currentPrice && (
-            <span className="text-xs text-slate-400 line-through">
+            <span className="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">
               {formatINR(currentOriginalPrice)}
             </span>
           )}
           {savings > 0 && (
-            <span className="text-[10px] font-black text-amber-900 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+            <span className="text-[9px] sm:text-[10px] font-black text-amber-900 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 whitespace-nowrap">
               SAVE {formatINR(savings)}
             </span>
           )}
         </div>
 
         {/* 5-Day Return & COD Reassurance */}
-        <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 pt-0.5">
-          <span className="flex items-center gap-1 text-slate-600">
-            <Banknote className="w-3 h-3 text-amber-600" />
+        <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 pt-0.5 flex-wrap gap-1">
+          <span className="flex items-center gap-1 text-slate-600 whitespace-nowrap">
+            <Banknote className="w-3 h-3 text-amber-600 shrink-0" />
             <span>Cash on Delivery</span>
           </span>
-          <span className="flex items-center gap-1 text-amber-700 font-extrabold">
-            <RotateCcw className="w-3 h-3 text-amber-600" />
+          <span className="flex items-center gap-1 text-amber-700 font-extrabold whitespace-nowrap">
+            <RotateCcw className="w-3 h-3 text-amber-600 shrink-0" />
             <span>5-Day Return</span>
           </span>
         </div>
       </div>
 
       {/* Bottom Action: Radiant Glowing "Add to Cart" Button */}
-      <div className="pt-3">
+      <div className="pt-2 sm:pt-3">
         {quantityInCart > 0 ? (
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-between bg-slate-900 text-amber-300 rounded-full p-1 shadow-md shadow-slate-900/20 border border-slate-800"
+            className="flex items-center justify-between bg-slate-900 text-amber-300 rounded-full p-0.5 sm:p-1 shadow-md shadow-slate-900/20 border border-slate-800"
           >
             <button
               onClick={() => onUpdateQuantity(product, quantityInCart - 1)}
-              className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90 shrink-0"
+              aria-label="Decrease quantity"
             >
-              <Minus className="w-3.5 h-3.5" />
+              <Minus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
-            <span className="text-xs font-black px-2">{quantityInCart} in Bag</span>
+            <span className="text-[11px] sm:text-xs font-black px-1 text-center truncate min-w-0">
+              {quantityInCart} in Bag
+            </span>
             <button
               onClick={() => onUpdateQuantity(product, quantityInCart + 1)}
-              className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90"
+              className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90 shrink-0"
+              aria-label="Increase quantity"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
           </div>
         ) : !product.inStock ? (
           <button
             disabled
-            className="w-full py-2.5 px-3 rounded-full bg-slate-100 text-slate-400 text-xs font-bold cursor-not-allowed text-center"
+            className="w-full py-2 sm:py-2.5 px-2 rounded-full bg-slate-100 text-slate-400 text-[11px] sm:text-xs font-bold cursor-not-allowed text-center whitespace-nowrap"
           >
             Out of Stock
           </button>
@@ -255,10 +259,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               e.stopPropagation();
               onAddToCart(product, selectedSize, selectedColor, currentPrice);
             }}
-            className="w-full py-2.5 px-3 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-500 hover:to-yellow-500 text-slate-950 text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-md shadow-amber-400/20 border border-amber-300 hover:scale-102 active:scale-98 cursor-pointer"
+            className="w-full py-2 sm:py-2.5 px-2 sm:px-3 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-500 hover:to-yellow-500 text-slate-950 text-xs font-black transition-all flex items-center justify-center gap-1 sm:gap-1.5 shadow-md shadow-amber-400/20 border border-amber-300 hover:scale-102 active:scale-98 cursor-pointer"
           >
-            <ShoppingBag className="w-3.5 h-3.5 text-slate-950" />
-            <span>Add to Bag ({formatINR(currentPrice)})</span>
+            <ShoppingBag className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+            <span className="hidden sm:inline whitespace-nowrap">Add to Bag ({formatINR(currentPrice)})</span>
+            <span className="sm:hidden text-[11px] font-black whitespace-nowrap">Add • {formatINR(currentPrice)}</span>
           </button>
         )}
       </div>

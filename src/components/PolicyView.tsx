@@ -145,7 +145,7 @@ export const PolicyView: React.FC<PolicyViewProps> = ({ policyType, onBackToShop
           content: (
             <div className="space-y-4">
               <p className="font-semibold text-slate-800">
-                Welcome to The Grocery Hub. By accessing or using our website, you agree to comply with and be bound by the following terms.
+                Welcome to Apna Bazar. By accessing or using our website, you agree to comply with and be bound by the following terms.
               </p>
               <div>
                 <h4 className="font-bold text-slate-900">1. Acceptance of Terms</h4>
@@ -177,7 +177,7 @@ export const PolicyView: React.FC<PolicyViewProps> = ({ policyType, onBackToShop
           content: (
             <div className="space-y-4">
               <p className="font-semibold text-slate-800">
-                Your privacy is paramount to us. This Privacy Policy explains how The Grocery Hub collects, uses, and safeguards your information.
+                Your privacy is paramount to us. This Privacy Policy explains how Apna Bazar collects, uses, and safeguards your information.
               </p>
               <div>
                 <h4 className="font-bold text-slate-900">1. Information We Collect</h4>
@@ -204,7 +204,7 @@ export const PolicyView: React.FC<PolicyViewProps> = ({ policyType, onBackToShop
           content: (
             <div className="space-y-4">
               <p className="font-semibold text-slate-800">
-                Welcome to The Grocery Hub. The information provided on this website is for general informational and shopping purposes only.
+                Welcome to Apna Bazar. The information provided on this website is for general informational and shopping purposes only.
               </p>
               <div>
                 <h4 className="font-bold text-slate-900">Product Information Disclaimer</h4>

@@ -15,9 +15,9 @@ export const DashboardOptionsModal: React.FC<DashboardOptionsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn overflow-y-auto">
       <div 
-        className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden p-6 space-y-4 animate-slideUp sm:animate-scaleUp"
+        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-y-auto p-6 space-y-4 animate-slideUp sm:animate-scaleUp max-h-[85dvh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Handle on Mobile */}
@@ -49,7 +49,7 @@ export const DashboardOptionsModal: React.FC<DashboardOptionsModalProps> = ({
               <span className="text-sm font-bold">Refer &amp; Earn</span>
             </div>
             <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black">
-              Earn ₹200
+              Flat ₹100 OFF
             </span>
           </button>
 

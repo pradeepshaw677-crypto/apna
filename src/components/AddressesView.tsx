@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, Check, Trash2, Home, Briefcase, Building, X, ArrowLeft, Navigation, Sparkles, CheckCircle2 } from 'lucide-react';
 import { DeliveryAddress } from '../types';
+import { getSavedAddressesList, saveAddressesList, saveAddress, getSavedAddress } from '../utils/storage';
 
 interface AddressesViewProps {
   onSelectAddress?: (addr: DeliveryAddress) => void;
@@ -8,34 +9,23 @@ interface AddressesViewProps {
 }
 
 export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, onBackToShop }) => {
-  const [addresses, setAddresses] = useState<DeliveryAddress[]>([
-    {
-      id: 'addr-1',
-      fullName: 'Bhabani Shit',
-      phoneNumber: '9876543210',
-      streetAddress: 'Plot 42, Green Avenue, Sector 14, Main Road',
-      landmark: 'Near City Center Mall',
-      area: 'Sector 14',
-      city: 'Baharagora',
-      state: 'Jharkhand',
-      pincode: '832101',
-      addressType: 'home',
-      isDefault: true,
-    },
-    {
-      id: 'addr-2',
-      fullName: 'Bhabani Shit (Commercial)',
-      phoneNumber: '9876543210',
-      streetAddress: 'Shop 18, Commercial Plaza, Market Hub',
-      landmark: 'Opposite State Bank Branch',
-      area: 'Main Market',
-      city: 'Baharagora',
-      state: 'Jharkhand',
-      pincode: '832101',
-      addressType: 'work',
-      isDefault: false,
-    },
-  ]);
+  const [addresses, setAddresses] = useState<DeliveryAddress[]>(() => {
+    const list = getSavedAddressesList();
+    if (list && list.length > 0) return list;
+    const current = getSavedAddress();
+    if (current && current.fullName && current.streetAddress) {
+      return [{ ...current, id: 'addr-default', isDefault: true }];
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    saveAddressesList(addresses);
+    const def = addresses.find(a => a.isDefault) || addresses[0];
+    if (def) {
+      saveAddress(def);
+    }
+  }, [addresses]);
 
   const [isAdding, setIsAdding] = useState(false);
   const [detectingGps, setDetectingGps] = useState(false);
@@ -369,8 +359,28 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
         )}
 
         {/* Addresses Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {addresses.map(addr => (
+        {addresses.length === 0 && !isAdding ? (
+          <div className="bg-white rounded-3xl p-8 sm:p-12 text-center border border-slate-200 space-y-4 max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-2xs">
+              <MapPin className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-black text-slate-900">No Saved Delivery Address</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Add your delivery address once. You won&apos;t ever have to type it again during checkout!
+              </p>
+            </div>
+            <button
+              onClick={() => setIsAdding(true)}
+              className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-black text-xs inline-flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Your Address Now</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {addresses.map(addr => (
             <div
               key={addr.id}
               className={`p-5 rounded-3xl border-2 transition-all space-y-3 bg-white ${
@@ -426,6 +436,7 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
             </div>
           ))}
         </div>
+        )}
 
       </div>
     </div>

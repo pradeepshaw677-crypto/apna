@@ -6,13 +6,15 @@ import {
   Share2, 
   Users, 
   Sparkles, 
-  Coins, 
+  ShieldCheck, 
   MessageCircle, 
   CheckCircle2, 
   Clock,
   ArrowRight,
-  ShoppingBag
+  ShoppingBag,
+  AlertTriangle
 } from 'lucide-react';
+import { AbCoinLogo } from './AbCoinLogo';
 
 interface ReferViewProps {
   referralCode?: string;
@@ -20,7 +22,7 @@ interface ReferViewProps {
 }
 
 export const ReferView: React.FC<ReferViewProps> = ({
-  referralCode = 'BHABANI2026',
+  referralCode = 'APNA100',
   onExploreProducts,
 }) => {
   const [copied, setCopied] = useState(false);
@@ -31,7 +33,7 @@ export const ReferView: React.FC<ReferViewProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const shareText = `Hey! Use my referral code ${referralCode} on Apna Bazar to get flat ₹200 OFF on your first fashion & footwear order! 15-minute express delivery in Jharkhand with 100% Cash on Delivery & 5-Day Returns: https://apnabazar.in`;
+  const shareText = `Hey! Use my Apna Bazar invite code ${referralCode} to get flat ₹100 OFF on your first fashion & footwear order! Fast 3-Day Express Delivery with 100% Cash on Delivery & 5-Day Returns: https://apnabazar.in`;
 
   const shareOnWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -51,11 +53,11 @@ export const ReferView: React.FC<ReferViewProps> = ({
               <span>Apna Bazar Rewards Program</span>
             </span>
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-              Give ₹200, <br />
-              <span className="text-white drop-shadow-sm">Get ₹200!</span>
+              Give ₹100, <br />
+              <span className="text-white drop-shadow-sm">Get 100 AB Coins!</span>
             </h1>
-            <p className="text-slate-950/80 text-xs sm:text-sm font-semibold leading-relaxed">
-              Invite your friends and family to Apna Bazar. They get flat ₹200 off their first order, and you earn ₹200 in Apna Bazar shopping credits as soon as their package is delivered!
+            <p className="text-slate-950/90 text-xs sm:text-sm font-semibold leading-relaxed">
+              Invite your friends and family to Apna Bazar. They get flat ₹100 OFF on their first order, and you earn 100 AB Coins (₹100 shopping value) directly in your wallet once their package is delivered!
             </p>
           </div>
         </div>
@@ -103,6 +105,35 @@ export const ReferView: React.FC<ReferViewProps> = ({
           </div>
         </div>
 
+        {/* Anti-Fraud Security Guarantee Banner */}
+        <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-800">
+          <div className="flex items-center gap-2 text-amber-400">
+            <ShieldCheck className="w-5 h-5" />
+            <h3 className="font-black text-base">Anti-Fraud &amp; Fair Referral Policy</h3>
+          </div>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            To ensure genuine benefits and prevent fraudulent accounts, our automated security engine enforces these verification rules:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1">
+              <span className="font-bold text-amber-300 block">1. Device &amp; Mobile Verification</span>
+              <p className="text-slate-400 text-[11px]">Each referral discount is valid only for distinct, first-time mobile numbers and verified delivery devices.</p>
+            </div>
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1">
+              <span className="font-bold text-amber-300 block">2. Self-Referral Prevention</span>
+              <p className="text-slate-400 text-[11px]">Users cannot apply their own code or use multiple duplicate accounts from the same address.</p>
+            </div>
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1">
+              <span className="font-bold text-amber-300 block">3. Min Order Value ₹499</span>
+              <p className="text-slate-400 text-[11px]">The flat ₹100 discount coupon applies automatically on any order with cart value of ₹499 or above.</p>
+            </div>
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1">
+              <span className="font-bold text-amber-300 block">4. OTP Delivered Confirmation</span>
+              <p className="text-slate-400 text-[11px]">100 AB Coins reward is credited to your wallet after OTP verification and confirmed doorstep delivery.</p>
+            </div>
+          </div>
+        </div>
+
         {/* How It Works Steps */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
           <h3 className="text-base font-black text-slate-900 border-b border-slate-100 pb-3">
@@ -124,9 +155,9 @@ export const ReferView: React.FC<ReferViewProps> = ({
               <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-800 flex items-center justify-center font-black text-lg">
                 2
               </div>
-              <h4 className="font-black text-slate-900 text-sm">Friend Gets ₹200 OFF</h4>
+              <h4 className="font-black text-slate-900 text-sm">Friend Gets ₹100 OFF</h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                When they apply your code at checkout, they instantly get ₹200 discount on their purchase.
+                When they apply your code at checkout, they instantly get flat ₹100 discount on their purchase.
               </p>
             </div>
 
@@ -134,9 +165,12 @@ export const ReferView: React.FC<ReferViewProps> = ({
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-lg">
                 3
               </div>
-              <h4 className="font-black text-slate-900 text-sm">You Earn ₹200 Cash</h4>
+              <h4 className="font-black text-slate-900 text-sm flex items-center gap-1">
+                <span>You Earn 100 Coins</span>
+                <AbCoinLogo size="xs" />
+              </h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Once their order is successfully delivered, ₹200 is credited straight into your Apna Bazar wallet!
+                Once their order is successfully delivered with OTP, 100 AB Coins are credited straight into your wallet!
               </p>
             </div>
           </div>

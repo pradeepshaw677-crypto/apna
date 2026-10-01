@@ -22,7 +22,7 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn overflow-y-auto">
       <div 
-        className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[85vh] flex flex-col"
+        className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[88dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

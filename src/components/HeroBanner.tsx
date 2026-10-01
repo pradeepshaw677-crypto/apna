@@ -54,58 +54,58 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           <div className="space-y-4 max-w-xl text-center md:text-left">
             
             {/* Scarcity & Urgency Pill */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 text-orange-950 text-xs font-black border border-amber-300 shadow-2xs">
-              <span className="flex h-2 w-2 relative">
+            <div className="inline-flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 px-3 py-1.5 rounded-2xl sm:rounded-full bg-gradient-to-r from-amber-100 to-orange-100 text-orange-950 text-[11px] sm:text-xs font-black border border-amber-300 shadow-2xs max-w-full">
+              <span className="flex h-2 w-2 relative shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
               </span>
               <span>⚡ Big Fashion &amp; Lifestyle Festival</span>
-              <span className="text-orange-400">•</span>
+              <span className="text-orange-400 hidden xs:inline">•</span>
               <span className="text-orange-800">15-Min Delivery Live in Baharagora</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-black text-slate-950 tracking-tight leading-tight">
-              Trending Fashion &amp; Footwear <br />
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-950 tracking-tight leading-tight">
+              Trending Fashion &amp; Footwear <br className="hidden sm:inline" />
               <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 bg-clip-text text-transparent">
                 Apna Bazar
               </span> Superstore!
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed max-w-lg mx-auto md:mx-0">
               Discover viral streetwear, luxury sneakers, high-speed toys &amp; designer accessories at wholesale prices. 
               <strong className="text-slate-900 ml-1">100% Cash on Delivery &amp; 5-Day Hassle-Free Returns with OTP verification!</strong>
             </p>
 
             {/* Countdown Flash Deal Pill */}
-            <div className="p-3.5 rounded-2xl bg-white/90 border border-amber-200/90 shadow-xs flex items-center justify-between gap-3 max-w-md mx-auto md:mx-0">
-              <div className="flex items-center gap-2">
+            <div className="p-3 sm:p-3.5 rounded-2xl bg-white/90 border border-amber-200/90 shadow-xs flex flex-wrap items-center justify-between gap-2.5 max-w-md mx-auto md:mx-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Clock className="w-4 h-4 text-orange-600 animate-pulse shrink-0" />
-                <span className="text-xs font-black text-slate-900">Flash Festival Deals End In:</span>
+                <span className="text-xs font-black text-slate-900">Flash Deals End In:</span>
               </div>
               
-              <div className="flex items-center gap-1.5 font-mono text-xs font-black text-slate-900">
-                <span className="bg-slate-900 text-amber-300 px-2 py-1 rounded-md shadow-2xs">
+              <div className="flex items-center gap-1 font-mono text-xs font-black text-slate-900">
+                <span className="bg-slate-900 text-amber-300 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md shadow-2xs">
                   {formatNum(timeLeft.hours)}h
                 </span>
                 <span>:</span>
-                <span className="bg-slate-900 text-amber-300 px-2 py-1 rounded-md shadow-2xs">
+                <span className="bg-slate-900 text-amber-300 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md shadow-2xs">
                   {formatNum(timeLeft.minutes)}m
                 </span>
                 <span>:</span>
-                <span className="bg-slate-900 text-amber-300 px-2 py-1 rounded-md shadow-2xs">
+                <span className="bg-slate-900 text-amber-300 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md shadow-2xs">
                   {formatNum(timeLeft.seconds)}s
                 </span>
               </div>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-2.5 sm:gap-3 pt-1 w-full">
               <button
                 onClick={() => {
                   onSelectCategory('fashion');
                   onExploreShop();
                 }}
-                className="px-6 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-orange-500/25 transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                className="w-full sm:w-auto px-5 sm:px-6 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition-all hover:scale-102 active:scale-98 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4" />
                 <span>Shop Trending Fashion 🔥</span>
@@ -113,18 +113,18 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
               <button
                 onClick={onOpenCouponModal}
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-full bg-white hover:bg-slate-50 border border-amber-300 text-slate-800 text-xs font-bold shadow-2xs transition-all hover:scale-102 active:scale-98 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-white hover:bg-slate-50 border border-amber-300 text-slate-800 text-xs font-bold shadow-2xs transition-all hover:scale-102 active:scale-98 cursor-pointer"
               >
-                <Tag className="w-4 h-4 text-emerald-600" />
-                <span>Coupons &amp; Offers (Code: APNAFIRST)</span>
+                <Tag className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="truncate">Coupons &amp; Offers (Code: APNAFIRST)</span>
               </button>
             </div>
 
             {/* Social Proof Bar */}
             <div className="pt-2 flex items-center justify-center md:justify-start gap-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 shadow-xs text-xs font-bold text-slate-700">
-                <Users className="w-4 h-4 text-blue-600" />
-                <span>1,480+ Orders Delivered Today in Baharagora ⭐</span>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 shadow-xs text-[11px] sm:text-xs font-bold text-slate-700 max-w-full">
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 shrink-0" />
+                <span className="truncate">1,480+ Orders Delivered Today in Baharagora ⭐</span>
               </div>
             </div>
 

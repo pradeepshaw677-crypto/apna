@@ -323,17 +323,18 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* 2. Main Navigation Row */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 sm:h-18 gap-2 sm:gap-6">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 sm:h-18 gap-1.5 sm:gap-6">
           
           {/* Hamburger Menu & Brand Logo */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0 min-w-0">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 rounded-xl text-slate-800 hover:bg-amber-100 hover:text-slate-950 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-800 hover:bg-amber-100 hover:text-slate-950 transition-colors cursor-pointer shrink-0"
               title="Open Navigation Menu & Settings"
+              aria-label="Open Navigation Menu"
             >
-              <Menu className="w-6 h-6 stroke-[2.2]" />
+              <Menu className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
             </button>
 
             <BrandLogo onClick={() => onNavigateView('home')} />
@@ -391,17 +392,18 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Action Icons: Notifications, Wishlist, Bag, User Login */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
 
             {/* Notification Bell */}
             <div ref={notifRef} className="relative">
               <button
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="p-2 sm:p-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors relative cursor-pointer"
+                className="p-1.5 sm:p-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors relative cursor-pointer"
                 title="Notifications"
+                aria-label="Notifications"
               >
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500" />
+                <Bell className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                <span className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-2 h-2 rounded-full bg-amber-500" />
               </button>
 
               {/* Notification Popup */}
@@ -430,6 +432,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onOpenWishlist}
               className="hidden sm:flex items-center justify-center p-2.5 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors relative cursor-pointer"
               title="Wishlist"
+              aria-label="Wishlist"
             >
               <Heart className="w-5 h-5" />
               {wishlistCount > 0 && (
@@ -442,12 +445,14 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Shopping Bag / Cart */}
             <button
               onClick={onOpenCart}
-              className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-md shadow-amber-400/20 active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-md shadow-amber-400/20 active:scale-95 transition-all cursor-pointer"
+              title="Shopping Bag"
+              aria-label="Shopping Bag"
             >
               <div className="relative">
-                <ShoppingBag className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
                 {totalCartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-slate-950 text-amber-300 text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs animate-bounce">
+                  <span className="absolute -top-2 -right-2 bg-slate-950 text-amber-300 text-[9px] sm:text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs animate-bounce">
                     {totalCartCount}
                   </span>
                 )}
@@ -461,17 +466,18 @@ export const Header: React.FC<HeaderProps> = ({
                 <div>
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                    className="flex items-center gap-1 sm:gap-2 p-1 sm:px-3 sm:py-1.5 rounded-xl sm:rounded-2xl bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                    title="User Profile"
                   >
                     <img
                       src={currentUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'}
                       alt={currentUser.name}
-                      className="w-7 h-7 rounded-full object-cover border border-amber-400"
+                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover border border-amber-400"
                     />
                     <span className="hidden lg:inline text-xs font-bold text-slate-800 max-w-[85px] truncate">
                       {currentUser.name}
                     </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-500 hidden sm:inline" />
+                    <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-500 hidden sm:inline" />
                   </button>
 
                   {/* Dropdown Menu */}
@@ -547,10 +553,11 @@ export const Header: React.FC<HeaderProps> = ({
               ) : (
                 <button
                   onClick={onOpenLogin}
-                  className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs flex items-center gap-1 sm:gap-1.5 shadow-sm transition-colors cursor-pointer shrink-0"
+                  title="Sign In"
                 >
                   <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span>Sign In</span>
+                  <span className="hidden sm:inline">Sign In</span>
                 </button>
               )}
             </div>
@@ -560,7 +567,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Mobile Search Row with Microphone & Autocomplete Dropdown */}
-        <div ref={mobileSearchRef} className="relative md:hidden pb-2.5">
+        <div ref={mobileSearchRef} className="relative md:hidden pb-2">
           <form onSubmit={handleSearchSubmit} className="relative flex items-center">
             <input
               type="text"
@@ -571,18 +578,18 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               onFocus={() => setIsMobileSearchFocused(true)}
               placeholder={PLACEHOLDER_TEXTS[placeholderIndex]}
-              className="w-full bg-slate-100 hover:bg-white focus:bg-white text-slate-900 placeholder-slate-400 text-xs sm:text-sm rounded-full pl-9 pr-20 py-2 border border-slate-200 focus:outline-none focus:border-amber-500 font-medium"
+              className="w-full bg-slate-100 hover:bg-white focus:bg-white text-slate-900 placeholder-slate-400 text-xs rounded-full pl-8 pr-16 py-2 border border-slate-200 focus:outline-none focus:border-amber-500 font-medium"
             />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" />
             
-            <div className="absolute right-1.5 flex items-center gap-1">
+            <div className="absolute right-1.5 flex items-center gap-0.5">
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
                   className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
 
@@ -593,14 +600,14 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Search with Voice Microphone"
                 className="p-1 text-slate-600 hover:text-amber-700 cursor-pointer"
               >
-                <Mic className="w-4 h-4 text-amber-600" />
+                <Mic className="w-3.5 h-3.5 text-amber-600" />
               </button>
               
               <button
                 type="submit"
-                className="w-6.5 h-6.5 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center shadow-xs cursor-pointer"
+                className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 flex items-center justify-center shadow-xs cursor-pointer"
               >
-                <Search className="w-3.5 h-3.5" />
+                <Search className="w-3 h-3" />
               </button>
             </div>
           </form>
@@ -612,17 +619,17 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* 3. Sub-bar: "All Collections ˅" Pill Button and Horizontal Categories */}
-      <div className="bg-slate-50/80 border-t border-slate-200/80 px-3 sm:px-6 lg:px-8 py-1.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
+      <div className="bg-slate-50/90 border-t border-slate-200/80 px-2.5 sm:px-6 lg:px-8 py-1.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
           
           {/* "All Collections ˅" Pill Dropdown Trigger */}
-          <div ref={categoryRef} className="relative">
+          <div ref={categoryRef} className="relative min-w-0">
             <button
               onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-300 text-slate-900 bg-amber-50 hover:bg-amber-100 text-xs font-black transition-all shadow-2xs cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-amber-300 text-slate-900 bg-amber-50 hover:bg-amber-100 text-[11px] sm:text-xs font-black transition-all shadow-2xs cursor-pointer max-w-[150px] sm:max-w-none"
             >
-              <span>{currentCategoryName}</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+              <span className="truncate">{currentCategoryName}</span>
+              <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Clean Dropdown Modal */}
@@ -666,14 +673,14 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Location / 10 km Radius Pill Button */}
           <button
             onClick={onOpenLocationModal}
-            className="flex items-center gap-1 text-[11px] font-black text-amber-950 bg-amber-100/90 hover:bg-amber-200 px-2.5 py-1 rounded-full border border-amber-300 shrink-0 cursor-pointer transition-colors shadow-2xs"
+            className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black text-amber-950 bg-amber-100/90 hover:bg-amber-200 px-2 sm:px-2.5 py-1 rounded-full border border-amber-300 shrink-0 cursor-pointer transition-colors shadow-2xs max-w-[160px] sm:max-w-none"
             title="Interactive 10km Radius Map"
           >
-            <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-            <span className="truncate max-w-[130px] sm:max-w-none">
+            <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-700 shrink-0" />
+            <span className="truncate">
               {compactLocationDisplay} (10km)
             </span>
-            <ChevronDown className="w-3 h-3 text-amber-800 shrink-0" />
+            <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-800 shrink-0" />
           </button>
 
         </div>

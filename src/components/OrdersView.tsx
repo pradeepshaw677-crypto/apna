@@ -17,6 +17,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { Order, CartItem } from '../types';
+import { AbCoinLogo } from './AbCoinLogo';
 
 interface OrdersViewProps {
   orders?: Order[];
@@ -24,6 +25,7 @@ interface OrdersViewProps {
   onViewInvoice: (order: Order) => void;
   onReorder: (items: CartItem[]) => void;
   onBackToShop?: () => void;
+  onRequestReturn?: (order: Order) => void;
 }
 
 export const OrdersView: React.FC<OrdersViewProps> = ({
@@ -32,6 +34,7 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
   onViewInvoice,
   onReorder,
   onBackToShop,
+  onRequestReturn,
 }) => {
   const [filter, setFilter] = useState<'all' | 'active' | 'delivered' | 'returned' | 'cancelled'>('all');
   const [copiedOtp, setCopiedOtp] = useState<string | null>(null);
@@ -227,12 +230,33 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                       </div>
                       {isWithin5Days && (
                         <button
-                          onClick={() => onOpenTrackOrder(order)}
-                          className="px-3 py-1 bg-white hover:bg-amber-100 text-amber-900 font-bold rounded-lg border border-amber-300 text-[11px] shrink-0 transition-colors cursor-pointer"
+                          onClick={() => onRequestReturn ? onRequestReturn(order) : onOpenTrackOrder(order)}
+                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-300 font-black rounded-xl border border-slate-900 text-xs shrink-0 transition-all cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5"
                         >
-                          Request Return
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Request Return (AB Coins)</span>
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {/* Return Approved & AB Coin Credited Banner */}
+                  {(order.orderStatus === 'returned' || order.returnStatus === 'approved') && (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-100 border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <AbCoinLogo size="sm" />
+                        <div>
+                          <p className="font-black text-amber-950">
+                            Return Confirmed &amp; Approved by Admin
+                          </p>
+                          <p className="text-[11px] text-amber-900 font-semibold">
+                            Full refund of ₹{order.walletRefundAmount || order.totalAmount} credited as {order.walletRefundAmount || order.totalAmount} AB Coins to your wallet!
+                          </p>
+                        </div>
+                      </div>
+                      <span className="font-mono font-black text-emerald-800 bg-white px-2.5 py-1 rounded-lg border border-amber-300 text-xs self-start sm:self-auto">
+                        +{order.walletRefundAmount || order.totalAmount} AB Coins
+                      </span>
                     </div>
                   )}
 

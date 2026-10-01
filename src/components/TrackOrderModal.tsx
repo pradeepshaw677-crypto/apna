@@ -160,7 +160,7 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn overflow-y-auto">
       <div 
-        className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[94vh] flex flex-col"
+        className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -171,7 +171,7 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
             </span>
             <div>
               <h2 className="font-black text-base sm:text-lg">Live Delivery Tracking &amp; OTP</h2>
-              <p className="text-[11px] text-amber-300 font-semibold">15-Min Express Hub • Baharagora (832101)</p>
+              <p className="text-[11px] text-amber-300 font-semibold">⚡ Fast 3-Day Express Doorstep Delivery • All India (832101 Hub)</p>
             </div>
           </div>
           <button

@@ -27,10 +27,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           onClick ? 'group-hover:scale-105' : ''
         } ${
           isFooter
-            ? 'w-11 h-11 bg-slate-900 border-amber-500/40 shadow-lg shadow-amber-500/20'
+            ? 'w-10 h-10 sm:w-11 sm:h-11 bg-slate-900 border-amber-500/40 shadow-lg shadow-amber-500/20'
             : isInvoice
-            ? 'w-10 h-10 bg-slate-900 border-slate-700 text-amber-400 shadow-xs'
-            : 'w-11 h-11 bg-white border-amber-300 shadow-md shadow-amber-500/15 ring-2 ring-amber-400/20'
+            ? 'w-9 h-9 sm:w-10 sm:h-10 bg-slate-900 border-slate-700 text-amber-400 shadow-xs'
+            : 'w-9 h-9 sm:w-11 sm:h-11 bg-white border-amber-300 shadow-md shadow-amber-500/15 ring-2 ring-amber-400/20'
         }`}
       >
         {!logoLoadError ? (
@@ -41,23 +41,23 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
             className="w-full h-full object-cover rounded-2xl"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-sm">
+          <div className="w-full h-full bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 text-slate-950 flex items-center justify-center font-black text-xs sm:text-sm">
             AB
           </div>
         )}
         
         {/* Fashion pulse badge */}
-        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-amber-500 border border-white" />
         </span>
       </div>
 
       {/* Typography: "Apna Bazar" Fashion */}
-      <div className="flex flex-col leading-none text-left">
+      <div className="flex flex-col leading-none text-left min-w-0">
         <div className="flex items-center gap-1.5">
           <span
-            className={`text-xl sm:text-2xl font-black tracking-tight ${
+            className={`text-lg sm:text-2xl font-black tracking-tight whitespace-nowrap ${
               isFooter ? 'text-white' : 'text-slate-950'
             }`}
           >
@@ -68,7 +68,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           </span>
           
           {!isInvoice && (
-            <span className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-slate-950 shadow-2xs">
+            <span className="hidden sm:inline-flex items-center gap-0.5 text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-slate-950 shadow-2xs">
               <Sparkles className="w-2.5 h-2.5 text-slate-950" />
               <span className="font-extrabold text-slate-950">FASHION</span>
             </span>
@@ -77,7 +77,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
         {!isInvoice && (
           <span
-            className={`text-[10px] font-bold tracking-tight mt-0.5 hidden xs:flex items-center gap-1 ${
+            className={`text-[10px] font-bold tracking-tight mt-0.5 hidden sm:flex items-center gap-1 ${
               isFooter ? 'text-slate-400' : 'text-slate-500'
             }`}
           >
