@@ -20,7 +20,11 @@ import {
   ShieldCheck,
   AlertCircle,
   Eye,
-  Wallet
+  Wallet,
+  Camera,
+  User,
+  Mail,
+  Phone
 } from 'lucide-react';
 import { UserProfile, Order } from '../types';
 import { AbCoinLogo } from './AbCoinLogo';
@@ -224,6 +228,77 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
           )}
+        </div>
+
+        {/* 2.8 Account Profile Details Card (Matching Screenshot 13) */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <img
+                  src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'}
+                  alt={currentUser.name}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-3 border-amber-400 shadow-md"
+                />
+                <button
+                  type="button"
+                  title="Update Photo"
+                  className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center shadow-md border border-white cursor-pointer hover:bg-slate-800"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                <h2 className="text-lg sm:text-xl font-black text-slate-950">{currentUser.name}</h2>
+                <p className="text-xs text-slate-500 font-medium">{currentUser.email || 'customer@apnabazar.in'}</p>
+                <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-bold">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Verified Account • Apna Bazar Gold Member</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={onOpenAddresses}
+              className="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-950 font-bold text-xs flex items-center gap-1.5 border border-amber-300 self-start sm:self-auto cursor-pointer transition-colors"
+            >
+              <MapPin className="w-4 h-4 text-amber-600" />
+              <span>Manage Addresses</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-bold text-slate-700">
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1">
+                <User className="w-3 h-3 text-slate-400" />
+                <span>Full Name</span>
+              </label>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-semibold truncate">
+                {currentUser.name}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1">
+                <Phone className="w-3 h-3 text-slate-400" />
+                <span>Phone Number</span>
+              </label>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-semibold font-mono truncate">
+                {currentUser.phone || '+91 6207462800'}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1">
+                <Mail className="w-3 h-3 text-slate-400" />
+                <span>Email Address</span>
+              </label>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-semibold truncate">
+                {currentUser.email || 'customer@apnabazar.in'}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 3. Active Order Card */}

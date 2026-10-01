@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Plus, Check, Trash2, Home, Briefcase, Building, X, ArrowLeft, Navigation, Sparkles, CheckCircle2 } from 'lucide-react';
+import { 
+  MapPin, 
+  Plus, 
+  Check, 
+  Trash2, 
+  Home, 
+  Briefcase, 
+  Building, 
+  X, 
+  ArrowLeft, 
+  Navigation, 
+  Sparkles, 
+  CheckCircle2,
+  Phone,
+  User,
+  Compass
+} from 'lucide-react';
 import { DeliveryAddress } from '../types';
 import { getSavedAddressesList, saveAddressesList, saveAddress, getSavedAddress } from '../utils/storage';
+import { LocationPermissionModal } from './LocationPermissionModal';
 
 interface AddressesViewProps {
   onSelectAddress?: (addr: DeliveryAddress) => void;
@@ -19,14 +36,7 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
     return [];
   });
 
-  useEffect(() => {
-    saveAddressesList(addresses);
-    const def = addresses.find(a => a.isDefault) || addresses[0];
-    if (def) {
-      saveAddress(def);
-    }
-  }, [addresses]);
-
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [detectingGps, setDetectingGps] = useState(false);
   const [gpsMessage, setGpsMessage] = useState<string | null>(null);
@@ -36,12 +46,32 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
     phoneNumber: '',
     streetAddress: '',
     landmark: '',
-    area: 'Baharagora Town',
+    area: 'Baharagora Central Area',
     city: 'Baharagora',
     state: 'Jharkhand',
     pincode: '832101',
     addressType: 'home',
   });
+
+  useEffect(() => {
+    saveAddressesList(addresses);
+    const def = addresses.find(a => a.isDefault) || addresses[0];
+    if (def) {
+      saveAddress(def);
+    }
+  }, [addresses]);
+
+  const handleLocationConfirmedFromMap = (pin: string, detectedAddr: string, isExpressZone: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      pincode: pin,
+      streetAddress: detectedAddr,
+      area: isExpressZone ? 'Baharagora Express Hub' : 'Jharkhand Delivery District',
+      city: 'Baharagora',
+      state: 'Jharkhand',
+    }));
+    setIsAdding(true);
+  };
 
   const handleUseCurrentLocation = () => {
     setDetectingGps(true);
@@ -64,21 +94,18 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
       (pos) => {
         setDetectingGps(false);
         const { latitude, longitude } = pos.coords;
-        // Check if roughly in Jharkhand
-        const isJharkhand = latitude >= 21.8 && latitude <= 25.5 && longitude >= 83.2 && longitude <= 88.0;
-        
         setFormData(prev => ({
           ...prev,
-          city: isJharkhand ? 'Baharagora' : 'Baharagora Hub (Selected)',
+          city: 'Baharagora',
           state: 'Jharkhand',
           pincode: '832101',
           area: 'Dadu Complex / Main Chowk',
-          streetAddress: prev.streetAddress || `GPS Detected (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) - Near Baharagora Center`,
+          streetAddress: prev.streetAddress || `GPS Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) - Baharagora Hub Entrance`,
         }));
-        setGpsMessage('GPS Location Confirmed for Jharkhand Delivery!');
+        setGpsMessage('GPS Location Confirmed for 3-Day Express Delivery!');
         setTimeout(() => setGpsMessage(null), 4000);
       },
-      (err) => {
+      () => {
         setDetectingGps(false);
         setFormData(prev => ({
           ...prev,
@@ -121,7 +148,7 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
       phoneNumber: '',
       streetAddress: '',
       landmark: '',
-      area: 'Baharagora Town',
+      area: 'Baharagora Central Area',
       city: 'Baharagora',
       state: 'Jharkhand',
       pincode: '832101',
@@ -135,8 +162,11 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
       isDefault: a.id === id,
     }));
     setAddresses(updated);
-    const def = updated.find(a => a.isDefault);
-    if (def && onSelectAddress) onSelectAddress(def);
+    const def = updated.find(a => a.id === id);
+    if (def) {
+      saveAddress(def);
+      if (onSelectAddress) onSelectAddress(def);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -144,7 +174,7 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/70 py-6 sm:py-10">
+    <div className="min-h-screen bg-slate-50 py-6 sm:py-10">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
         
         {/* Top Header Row */}
@@ -155,7 +185,7 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
               <span>Saved Delivery Addresses</span>
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Select or add delivery addresses for 15-minute express Cash on Delivery checkout in Jharkhand.
+              Select or add delivery addresses for ⚡ Fast 3-Day Express Doorstep Delivery with 100% Cash on Delivery.
             </p>
           </div>
 
@@ -180,12 +210,34 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
           </div>
         </div>
 
+        {/* 1. Map Point Banner matching Screenshot 12 */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs text-center space-y-4 max-w-lg mx-auto">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs border border-emerald-200">
+            <Compass className="w-8 h-8" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg sm:text-xl font-black text-slate-900">
+              Where should we deliver?
+            </h2>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
+              Please select your exact delivery location on the map to continue.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsMapModalOpen(true)}
+            className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all active:scale-98 cursor-pointer"
+          >
+            <span>🎯 Select Exact Delivery Point on Map</span>
+          </button>
+        </div>
+
         {/* Add Address Form Modal Card */}
         {isAdding && (
           <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-amber-400 shadow-xl animate-fadeIn space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                <span className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
                   <MapPin className="w-4 h-4" />
                 </span>
                 <h3 className="text-base font-black text-slate-900">Add New Delivery Address</h3>
@@ -198,94 +250,93 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
               </button>
             </div>
 
-            {/* User Request: 1-Tap "Use Current Location" Card */}
-            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
-                  <Navigation className={`w-4 h-4 text-amber-600 ${detectingGps ? 'animate-spin' : ''}`} />
-                  <span>Auto-Detect GPS Location</span>
-                </span>
-                <p className="text-[11px] text-slate-600">
-                  Instantly fill city, area, and pincode using your device GPS.
-                </p>
-                {gpsMessage && (
-                  <p className="text-[11px] font-bold text-amber-800 flex items-center gap-1 pt-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>{gpsMessage}</span>
-                  </p>
-                )}
-              </div>
+            {/* Quick Map and GPS Action Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setIsMapModalOpen(true)}
+                className="py-3 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center gap-2 border border-emerald-200 transition-all cursor-pointer"
+              >
+                <MapPin className="w-4 h-4 text-emerald-600" />
+                <span>Pick Exact Point on Map</span>
+              </button>
 
               <button
                 type="button"
                 onClick={handleUseCurrentLocation}
                 disabled={detectingGps}
-                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 text-xs font-black flex items-center justify-center gap-2 shadow-sm shrink-0 cursor-pointer active:scale-95 transition-all"
+                className="py-3 px-4 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs flex items-center justify-center gap-2 border border-amber-200 transition-all cursor-pointer"
               >
-                <Navigation className="w-3.5 h-3.5" />
-                <span>{detectingGps ? 'Detecting Location...' : '📍 Use Current Location'}</span>
+                <Navigation className={`w-4 h-4 text-amber-600 ${detectingGps ? 'animate-spin' : ''}`} />
+                <span>{detectingGps ? 'Detecting GPS...' : 'Auto-Detect Device GPS'}</span>
               </button>
             </div>
 
-            <form onSubmit={handleAddAddress} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold">
+            {gpsMessage && (
+              <p className="text-[11px] font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 p-2 rounded-xl border border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{gpsMessage}</span>
+              </p>
+            )}
+
+            {/* Form Fields matching Screenshot 13 (Full Name, Phone Number, Address) */}
+            <form onSubmit={handleAddAddress} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold text-slate-700">
               <div>
-                <label className="text-slate-700 block mb-1">Full Name *</label>
+                <label className="text-slate-700 block mb-1">Full Name (Recipient) *</label>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Rahul Sharma"
                   value={formData.fullName}
-                  onChange={e => setFormData({ ...formData, fullName: e.target.value })}
-                  placeholder="e.g. Bhabani Shit"
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-slate-700 block mb-1">Mobile Phone Number *</label>
+                <label className="text-slate-700 block mb-1">10-Digit Mobile Phone *</label>
                 <input
                   type="tel"
                   required
                   maxLength={10}
+                  placeholder="e.g. 9876543210"
                   value={formData.phoneNumber}
-                  onChange={e => setFormData({ ...formData, phoneNumber: e.target.value.replace(/\D/g, '') })}
-                  placeholder="10-digit number"
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-medium"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="text-slate-700 block mb-1">Street Address / House No. / Flat *</label>
+                <label className="text-slate-700 block mb-1">House / Flat No., Building &amp; Street *</label>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Flat 302, Royal Residency, Near Main Market"
                   value={formData.streetAddress}
-                  onChange={e => setFormData({ ...formData, streetAddress: e.target.value })}
-                  placeholder="e.g. Dadu Complex, Near Shitla Mandir, Main Chowk"
+                  onChange={(e) => setFormData({ ...formData, streetAddress: e.target.value })}
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-slate-700 block mb-1">Landmark (Optional)</label>
+                <label className="text-slate-700 block mb-1">Landmark (e.g. Near Shitla Mandir)</label>
                 <input
                   type="text"
+                  placeholder="e.g. Dadu Complex, Town High School"
                   value={formData.landmark}
-                  onChange={e => setFormData({ ...formData, landmark: e.target.value })}
-                  placeholder="e.g. Opposite State Bank"
+                  onChange={(e) => setFormData({ ...formData, landmark: e.target.value })}
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-slate-700 block mb-1">6-Digit Pincode *</label>
+                <label className="text-slate-700 block mb-1">Area / Locality</label>
                 <input
                   type="text"
-                  required
-                  maxLength={6}
-                  value={formData.pincode}
-                  onChange={e => setFormData({ ...formData, pincode: e.target.value.replace(/\D/g, '') })}
-                  placeholder="e.g. 832101"
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-mono font-bold"
+                  placeholder="e.g. Baharagora Town"
+                  value={formData.area}
+                  onChange={(e) => setFormData({ ...formData, area: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-medium"
                 />
               </div>
 
@@ -295,19 +346,20 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
                   type="text"
                   required
                   value={formData.city}
-                  onChange={e => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="e.g. Baharagora"
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-medium"
                 />
               </div>
 
               <div>
-                <label className="text-slate-700 block mb-1">State</label>
+                <label className="text-slate-700 block mb-1">Pincode (6 Digits) *</label>
                 <input
                   type="text"
-                  readOnly
-                  value="Jharkhand"
-                  className="w-full px-3 py-2.5 bg-slate-100 border border-slate-300 rounded-xl text-slate-700 font-bold"
+                  required
+                  maxLength={6}
+                  value={formData.pincode}
+                  onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:border-amber-500 font-medium font-mono"
                 />
               </div>
 
@@ -317,24 +369,24 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, addressType: 'home' })}
-                    className={`flex-1 py-2 rounded-xl border text-xs font-bold cursor-pointer ${
+                    className={`flex-1 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
                       formData.addressType === 'home'
                         ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                         : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}
                   >
-                    Home
+                    🏠 Home Delivery
                   </button>
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, addressType: 'work' })}
-                    className={`flex-1 py-2 rounded-xl border text-xs font-bold cursor-pointer ${
+                    className={`flex-1 py-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
                       formData.addressType === 'work'
                         ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                         : 'bg-slate-50 text-slate-700 border-slate-200'
                     }`}
                   >
-                    Work
+                    🏢 Office / Work
                   </button>
                 </div>
               </div>
@@ -342,14 +394,14 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
               <div className="sm:col-span-2 pt-2 flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black shadow-md shadow-amber-400/20 cursor-pointer active:scale-98 transition-all"
+                  className="flex-1 py-3.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-400/20 cursor-pointer active:scale-98 transition-all"
                 >
                   Save Delivery Address
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsAdding(false)}
-                  className="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold cursor-pointer"
+                  className="px-6 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -381,64 +433,72 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {addresses.map(addr => (
-            <div
-              key={addr.id}
-              className={`p-5 rounded-3xl border-2 transition-all space-y-3 bg-white ${
-                addr.isDefault
-                  ? 'border-amber-500 shadow-md shadow-amber-500/10'
-                  : 'border-slate-200/90 hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="p-1.5 rounded-lg bg-amber-50 text-amber-800">
-                    {addr.addressType === 'work' ? <Briefcase className="w-4 h-4" /> : <Home className="w-4 h-4" />}
-                  </span>
-                  <span className="font-black text-slate-900 text-sm">{addr.fullName}</span>
+              <div
+                key={addr.id}
+                className={`p-5 rounded-3xl border-2 transition-all space-y-3 bg-white ${
+                  addr.isDefault
+                    ? 'border-amber-500 shadow-md shadow-amber-500/10'
+                    : 'border-slate-200/90 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-amber-50 text-amber-800">
+                      {addr.addressType === 'work' ? <Briefcase className="w-4 h-4" /> : <Home className="w-4 h-4" />}
+                    </span>
+                    <span className="font-black text-slate-900 text-sm">{addr.fullName}</span>
+                  </div>
+
+                  {addr.isDefault && (
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200">
+                      Default Address
+                    </span>
+                  )}
                 </div>
 
-                {addr.isDefault && (
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200">
-                    Default Address
-                  </span>
-                )}
-              </div>
+                <div className="text-xs text-slate-600 space-y-0.5 font-medium">
+                  <p className="text-slate-800 font-bold">{addr.streetAddress}</p>
+                  {addr.landmark && <p className="text-slate-500">Landmark: {addr.landmark}</p>}
+                  <p>{addr.city}, {addr.state || 'Jharkhand'} - {addr.pincode}</p>
+                  <p className="pt-1 text-slate-900 font-bold">Mobile: {addr.phoneNumber}</p>
+                </div>
 
-              <div className="text-xs text-slate-600 space-y-0.5 font-medium">
-                <p className="text-slate-800 font-bold">{addr.streetAddress}</p>
-                {addr.landmark && <p className="text-slate-500">Landmark: {addr.landmark}</p>}
-                <p>{addr.city}, {addr.state || 'Jharkhand'} - {addr.pincode}</p>
-                <p className="pt-1 text-slate-900 font-bold">Mobile: {addr.phoneNumber}</p>
-              </div>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                  {!addr.isDefault ? (
+                    <button
+                      onClick={() => handleSetDefault(addr.id || '')}
+                      className="text-amber-700 font-bold hover:underline cursor-pointer"
+                    >
+                      Set as Default
+                    </button>
+                  ) : (
+                    <span className="text-amber-800 font-bold flex items-center gap-1">
+                      <Check className="w-3.5 h-3.5 text-amber-600" /> Selected for Delivery
+                    </span>
+                  )}
 
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                {!addr.isDefault ? (
                   <button
-                    onClick={() => handleSetDefault(addr.id || '')}
-                    className="text-amber-700 font-bold hover:underline cursor-pointer"
+                    onClick={() => handleDelete(addr.id || '')}
+                    className="text-slate-400 hover:text-red-600 p-1 transition-colors cursor-pointer"
+                    title="Delete address"
                   >
-                    Set as Default
+                    <Trash2 className="w-4 h-4" />
                   </button>
-                ) : (
-                  <span className="text-amber-800 font-bold flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5 text-amber-600" /> Selected for Delivery
-                  </span>
-                )}
-
-                <button
-                  onClick={() => handleDelete(addr.id || '')}
-                  className="text-slate-400 hover:text-red-600 p-1 transition-colors cursor-pointer"
-                  title="Delete address"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
 
       </div>
+
+      {/* Interactive Map Picker Modal */}
+      <LocationPermissionModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        currentPincode={formData.pincode || '832101'}
+        onConfirmPincode={handleLocationConfirmedFromMap}
+      />
     </div>
   );
 };

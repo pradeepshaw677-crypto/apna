@@ -30,7 +30,8 @@ import {
   RotateCcw,
   Tag,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Flame
 } from 'lucide-react';
 import { Product, CartItem, UserProfile } from '../types';
 import { CATEGORIES } from '../data/products';
@@ -57,22 +58,21 @@ interface HeaderProps {
 }
 
 const PLACEHOLDER_TEXTS = [
+  "Search for Banarasi sarees, organza & pattu...",
   "Search for oversized tees, denim & kurtas...",
   "Search for running sneakers & formal loafers...",
-  "Search for RC drift cars & building blocks...",
   "Search for AMOLED smart watches & sunglasses...",
-  "Search for 15-min fashion delivery in Jharkhand...",
+  "Search for 3-day express fashion delivery across India...",
 ];
 
 const POPULAR_SEARCH_CHIPS = [
+  'Banarasi Silk Sarees',
+  'Organza Floral Saree',
   'Oversized Graphic Tees',
-  'Air Cushion Running Shoes',
-  'Casual Sneakers',
-  'RC Drift Racing Car',
-  'AMOLED Smart Watch',
-  'Aviator Sunglasses',
-  'Cotton Kurta Set',
+  'Air Cushion Sneakers',
   'Denim Jeans',
+  'Cotton Kurta Set',
+  'AMOLED Smart Watch',
 ];
 
 export const Header: React.FC<HeaderProps> = ({
@@ -267,28 +267,82 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )
         ) : (
-          <div className="p-4 space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-              <span>Trending Searches in Jharkhand</span>
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <div className="p-4 space-y-4">
+            {/* Trending Searches matching Screenshot 14 */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-500">
+                <span className="flex items-center gap-1.5 text-slate-700">
+                  <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span>Trending Right Now</span>
+                </span>
+                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  Popular
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {POPULAR_SEARCH_CHIPS.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(item);
+                      setIsSearchFocused(false);
+                      setIsMobileSearchFocused(false);
+                      onNavigateView('home');
+                      window.scrollTo({ top: 450, behavior: 'smooth' });
+                    }}
+                    className="text-xs bg-slate-100 hover:bg-amber-100 hover:text-amber-950 text-slate-700 px-3 py-1.5 rounded-full font-bold transition-colors border border-slate-200 cursor-pointer flex items-center gap-1.5 active:scale-95"
+                  >
+                    <Search className="w-3 h-3 text-slate-400" />
+                    <span>{item}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {POPULAR_SEARCH_CHIPS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery(item);
-                    setIsSearchFocused(false);
-                    setIsMobileSearchFocused(false);
-                    onNavigateView('home');
-                    window.scrollTo({ top: 450, behavior: 'smooth' });
-                  }}
-                  className="text-xs bg-slate-100 hover:bg-amber-100 hover:text-amber-950 text-slate-700 px-3 py-1.5 rounded-full font-medium transition-colors border border-slate-200 cursor-pointer"
-                >
-                  {item}
-                </button>
-              ))}
+
+            {/* Popular Fashion Products Preview matching Screenshot 14 */}
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-slate-500">
+                <span className="flex items-center gap-1.5 text-slate-700">
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span>Popular Fashion Picks</span>
+                </span>
+                <span className="text-[10px] text-emerald-700 font-bold">In Stock</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {allProducts.slice(0, 4).map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => handleProductItemClick(p)}
+                    className="py-2 px-1 flex items-center justify-between gap-3 hover:bg-amber-50/80 rounded-xl cursor-pointer transition-colors group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        className="w-10 h-10 rounded-lg object-cover bg-slate-100 border border-slate-200 shrink-0 group-hover:scale-105 transition-transform"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 truncate group-hover:text-amber-800 transition-colors">
+                          {p.name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs font-black text-amber-900">₹{p.price}</span>
+                          {p.originalPrice && p.originalPrice > p.price && (
+                            <span className="text-[10px] text-slate-400 line-through">₹{p.originalPrice}</span>
+                          )}
+                          <span className="text-[9px] font-black text-rose-600 bg-rose-50 px-1 rounded">
+                            {p.discountPercent}% OFF
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-700 bg-slate-100 group-hover:bg-amber-400 group-hover:text-slate-950 px-2.5 py-1 rounded-lg shrink-0 transition-colors">
+                      View
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

@@ -61,13 +61,13 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               </span>
               <span>⚡ Big Fashion &amp; Lifestyle Festival</span>
               <span className="text-orange-400 hidden xs:inline">•</span>
-              <span className="text-orange-800">15-Min Delivery Live in Baharagora</span>
+              <span className="text-orange-800">⚡ 3-Day Express Delivery Across India</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-950 tracking-tight leading-tight">
-              Trending Fashion &amp; Footwear <br className="hidden sm:inline" />
+              Trending Sarees, Fashion &amp; Footwear <br className="hidden sm:inline" />
               <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 bg-clip-text text-transparent">
-                Apna Bazar
+                Apka Apna Bazar
               </span> Superstore!
             </h1>
 
