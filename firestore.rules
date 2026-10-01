@@ -72,7 +72,7 @@ service cloud.firestore {
              data.itemTotal is number && data.itemTotal >= 0 &&
              data.totalAmount is number && data.totalAmount >= 0 &&
              data.paymentMethod in ['cod', 'upi', 'card'] &&
-             data.orderStatus in ['placed', 'confirmed', 'packing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
+             data.orderStatus in ['placed', 'confirmed', 'packing', 'shipped', 'out_for_delivery', 'delivered', 'return_requested', 'return_pickup_scheduled', 'returned', 'cancelled'];
     }
 
     function isValidReview(data) {
@@ -121,10 +121,19 @@ service cloud.firestore {
         isAdmin() ||
         (
           existing().userId == request.auth.uid &&
-          existing().orderStatus != 'delivered' &&
-          existing().orderStatus != 'cancelled' &&
-          incoming().diff(existing()).affectedKeys().hasOnly(['orderStatus']) &&
-          incoming().orderStatus == 'cancelled'
+          (
+            (
+              existing().orderStatus != 'delivered' &&
+              existing().orderStatus != 'cancelled' &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['orderStatus']) &&
+              incoming().orderStatus == 'cancelled'
+            ) ||
+            (
+              existing().orderStatus == 'delivered' &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['orderStatus', 'returnRequested', 'returnOtp', 'returnReason', 'returnComments', 'returnRequestedAt']) &&
+              incoming().orderStatus in ['return_requested', 'return_pickup_scheduled']
+            )
+          )
         )
       );
       allow delete: if isAdmin();

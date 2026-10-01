@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
 import { 
-  Heart, 
   Package, 
-  Wallet, 
-  ArrowRight, 
-  ShoppingBag, 
-  Truck, 
   MapPin, 
-  CheckCircle2, 
-  FileText, 
   Gift, 
+  HelpCircle, 
+  Heart, 
+  LogOut, 
+  Clock, 
+  CheckCircle2, 
+  Truck, 
+  FileText, 
+  ArrowRight, 
+  RotateCcw, 
   Copy, 
-  Check,
-  Clock,
+  Check, 
+  KeyRound, 
+  ShoppingBag,
   Sparkles,
-  Phone,
-  AlertCircle
+  ShieldCheck,
+  AlertCircle,
+  Eye,
+  Wallet
 } from 'lucide-react';
 import { UserProfile, Order } from '../types';
 
@@ -23,7 +28,7 @@ interface DashboardViewProps {
   currentUser: UserProfile;
   wishlistCount: number;
   orders: Order[];
-  onOpenTrackOrder: () => void;
+  onOpenTrackOrder: (order?: Order) => void;
   onOpenWishlist: () => void;
   onOpenOrders: () => void;
   onOpenRefer: () => void;
@@ -48,76 +53,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const [copiedOtp, setCopiedOtp] = useState(false);
 
-  // Active delivery order (latest active order or grocery demo order from screenshot)
-  const activeOrder: Order = orders.find(o => o.orderStatus !== 'delivered' && o.orderStatus !== 'cancelled') || orders[0] || {
-    id: 'ORD-9721',
-    createdAt: Date.now() - 40 * 60 * 1000,
-    items: [
-      {
-        product: {
-          id: 'prod-funfoods-pizza-topping',
-          name: "Dr. Oetker Funfoods Pizza Topping All in One",
-          brand: "Dr. Oetker",
-          category: "snacks",
-          price: 45,
-          originalPrice: 50,
-          discountPercent: 10,
-          image: "https://images.unsplash.com/photo-1572448862527-d3c904757de6?auto=format&fit=crop&w=600&q=80",
-          unit: "200g Pouch",
-          rating: 4.8,
-          reviewsCount: 94,
-          inStock: true,
-          description: "Rich Italian tomato puree blended with Mediterranean herbs.",
-        },
-        quantity: 1,
-      },
-      {
-        product: {
-          id: 'prod-clean-and-clear',
-          name: "Clean & Clear Foaming Face Wash",
-          brand: "Clean & Clear",
-          category: "personal-care",
-          price: 285,
-          originalPrice: 310,
-          discountPercent: 8,
-          image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=600&q=80",
-          unit: "100ml Bottle",
-          rating: 4.9,
-          reviewsCount: 165,
-          inStock: true,
-          description: "Oil-free facial cleanser.",
-        },
-        quantity: 1,
-      },
-    ],
-    itemTotal: 2203,
-    deliveryFee: 0,
-    packagingFee: 0,
-    discount: 200,
-    tipAmount: 0,
-    totalAmount: 2203,
-    address: {
-      fullName: currentUser.name,
-      phoneNumber: currentUser.phone,
-      streetAddress: "Dadu Complex, Near Shitla Mandir",
-      landmark: "Main Market",
-      area: "Main Road",
-      city: "Baharagora",
-      state: "Jharkhand",
-      pincode: "832101",
-      addressType: "home",
-      isDefault: true,
-    },
-    paymentMethod: "cod",
-    paymentStatus: "pending",
-    orderStatus: "shipped",
-    estimatedDeliveryDate: "Next Morning Delivery (9 AM - 12 PM)",
-    appliedCoupon: "GROCERY200",
-    otp: "577448",
-    cancellationAllowed: true,
-  };
+  // Active delivery order (latest active order or demo order)
+  const activeOrder = orders.find(
+    (o) => o.orderStatus === 'placed' || o.orderStatus === 'confirmed' || o.orderStatus === 'shipped' || o.orderStatus === 'out_for_delivery'
+  ) || orders[0];
 
-  const totalSpent = orders.reduce((acc, o) => acc + o.totalAmount, 0) || 2203;
+  const totalSpent = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) + (currentUser.totalSpent || 0);
 
   const handleCopyOtp = (otp: string) => {
     navigator.clipboard.writeText(otp);
@@ -126,20 +67,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/80 py-6 sm:py-10">
+    <div className="min-h-screen bg-slate-50/70 py-6 sm:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
         
-        {/* 1. Green Welcome Hero Card matching screenshot `thegroceryhub.in/dash`:
-            - Deep green gradient
-            - "⭐ Welcome to your Account"
-            - "Hello, Ttt! 👋"
-            - "Track active deliveries, manage your saved addresses, and browse your favorite groceries."
-            - Yellow button: "Start Shopping →" */}
-        <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-emerald-800 via-emerald-900 to-green-950 text-white shadow-xl space-y-4 relative overflow-hidden">
+        {/* 1. Fashion Welcome Hero Card */}
+        <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950 text-white shadow-xl space-y-4 relative overflow-hidden border border-amber-500/30">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+
           <div className="space-y-2 relative z-10 max-w-xl">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-emerald-200 text-xs font-bold backdrop-blur-xs">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-amber-300 text-xs font-bold backdrop-blur-xs border border-amber-400/20">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Welcome to your Account</span>
+              <span>Welcome to your Fashion Hub</span>
             </span>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight flex items-center gap-2">
@@ -147,46 +85,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>👋</span>
             </h1>
 
-            <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed font-medium">
-              Track active deliveries, manage your saved addresses, and browse your favorite groceries.
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+              Track active deliveries in Jharkhand, manage saved addresses, and browse trending fashion, footwear &amp; accessories.
             </p>
 
             <div className="pt-2">
               <button
                 onClick={onOpenCatalogue}
-                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-md shadow-amber-400/20 transition-all active:scale-95 cursor-pointer"
               >
-                <span>Start Shopping</span>
+                <span>Explore Trending Collections</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* 2. Three Stat Cards matching screenshot:
-            Wishlist Items: 0 Saved
-            Total Orders: 6
-            Total Spent: ₹2203 */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        {/* 2. Stat Pills */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           
+          <div className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Membership</p>
+              <h4 className="text-xs sm:text-sm font-black text-slate-900 truncate">Apna Bazar Plus</h4>
+            </div>
+          </div>
+
           <div 
             onClick={onOpenWishlist}
-            className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:border-rose-300 transition-all cursor-pointer space-y-2"
+            className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs space-y-2 cursor-pointer hover:border-rose-300 transition-colors"
           >
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
               <Heart className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Wishlist Items</p>
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Wishlist</p>
               <h4 className="text-sm sm:text-lg font-black text-slate-900">{wishlistCount} Saved</h4>
             </div>
           </div>
 
           <div 
             onClick={onOpenOrders}
-            className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs hover:border-amber-300 transition-all cursor-pointer space-y-2"
+            className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs space-y-2 cursor-pointer hover:border-slate-400 transition-colors"
           >
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
               <Package className="w-4 h-4" />
             </div>
             <div>
@@ -196,7 +141,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="p-4 sm:p-5 rounded-3xl bg-white border border-slate-200/90 shadow-2xs space-y-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <Wallet className="w-4 h-4" />
             </div>
             <div>
@@ -207,113 +152,106 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         </div>
 
-        {/* 3. Active Order Card matching screenshot `#ORD-9721`:
-            - Header: #ORD-9721, Aug 29, 10:47 PM, ₹2203.00, PROCESSING
-            - Items: Dr. Oetker Funfoods Pizza Topping... "25 Items • Payment Verified"
-            - Slot: 🌙 NEXT MORNING DELIVERY (9 AM - 12 PM)
-            - DELIVERY OTP: 5 7 7 4 4 8 (Share this OTP only after receiving your order)
-            - Buttons: Track Live Delivery (Yellow) | Cancel Order (Pink) | View Invoice (Text) */}
+        {/* 3. Active Order Card */}
         {activeOrder && (
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs space-y-4">
             
             {/* Top Row */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
-                  <Clock className="w-4 h-4" />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm sm:text-base font-black text-slate-900">
+                    #{activeOrder.id}
+                  </span>
+                  <span className="text-xs text-slate-400 font-semibold">•</span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    {new Date(activeOrder.createdAt).toLocaleDateString('en-IN', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
                 </div>
-                <div>
-                  <h4 className="font-mono font-black text-slate-900 text-sm">#{activeOrder.id}</h4>
-                  <p className="text-[10px] text-slate-400 font-semibold">Aug 29, 10:47 PM</p>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <span className="text-sm sm:text-base font-black text-slate-900">
-                  ₹{activeOrder.totalAmount}.00
-                </span>
-                <span className="block text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full mt-0.5">
-                  PROCESSING
-                </span>
-              </div>
-            </div>
-
-            {/* Items Summary with Thumbnail */}
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-              <img
-                src={activeOrder.items[0]?.product.image || "https://images.unsplash.com/photo-1572448862527-d3c904757de6?auto=format&fit=crop&w=120&q=80"}
-                alt="Order item"
-                className="w-12 h-12 rounded-xl object-contain bg-white shrink-0 border border-slate-200"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-black text-slate-900 truncate">
-                  {activeOrder.items[0]?.product.name || "Dr. Oetker Funfoods Pizza Topping..."}
+                <p className="text-xs font-black text-slate-900 mt-0.5">
+                  ₹{activeOrder.totalAmount?.toLocaleString('en-IN')} • 
+                  <span className="ml-1 uppercase text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    {activeOrder.orderStatus}
+                  </span>
                 </p>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {activeOrder.items.length > 1 ? `${activeOrder.items.length} Items` : "1 Item"} • Payment Verified (COD)
-                </p>
-              </div>
-            </div>
-
-            {/* Delivery Slot Pill matching screenshot: 🌙 NEXT MORNING DELIVERY (9 AM - 12 PM) */}
-            <div className="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-xs font-bold text-indigo-900 flex items-center gap-2">
-              <span>🌙</span>
-              <span>NEXT MORNING DELIVERY (9 AM - 12 PM)</span>
-            </div>
-
-            {/* Delivery OTP Box matching screenshot:
-                DELIVERY OTP
-                5 7 7 4 4 8
-                Share this OTP only after receiving your order. */}
-            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/90 space-y-1 text-center">
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-800 block">
-                🔒 DELIVERY OTP
-              </span>
-              <div className="flex items-center justify-center gap-2">
-                <span className="font-mono text-2xl font-black tracking-widest text-slate-950">
-                  {activeOrder.otp || "577448"}
-                </span>
-                <button
-                  onClick={() => handleCopyOtp(activeOrder.otp || "577448")}
-                  className="p-1 rounded text-amber-800 hover:bg-amber-100 cursor-pointer"
-                  title="Copy OTP"
-                >
-                  {copiedOtp ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium">
-                Share this OTP only after receiving your order.
-              </p>
-            </div>
-
-            {/* Action Buttons matching screenshot:
-                - Track Live Delivery (Yellow pill button)
-                - Cancel Order 04:43 (Pink pill button)
-                - View Invoice */}
-            <div className="space-y-2 pt-1">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={onOpenTrackOrder}
-                  className="py-2.5 px-4 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Track Live Delivery</span>
-                </button>
-
-                <button
-                  onClick={() => alert("Cancellation window active. Your order #ORD-9721 has been marked for review.")}
-                  className="py-2.5 px-4 rounded-full bg-rose-100 hover:bg-rose-200 text-rose-800 font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <span>Cancel Order</span>
-                  <span className="font-mono bg-white/70 px-1 py-0.2 rounded text-[10px]">04:43</span>
-                </button>
               </div>
 
               <button
                 onClick={() => onViewInvoice(activeOrder)}
-                className="w-full py-2 text-center text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer"
               >
-                View Invoice
+                <FileText className="w-4 h-4" />
+                <span>Invoice</span>
+              </button>
+            </div>
+
+            {/* Delivery Details */}
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-xs">
+                <Truck className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-black text-slate-900">
+                  {activeOrder.estimatedDeliveryDate || '15-Minute Express Delivery'}
+                </p>
+                <p className="text-[11px] text-slate-500 truncate">
+                  Deliver to: {activeOrder.address?.fullName}, {activeOrder.address?.streetAddress}, {activeOrder.address?.city}
+                </p>
+              </div>
+            </div>
+
+            {/* 6-Digit Delivery Confirmation OTP */}
+            {activeOrder.otp && (
+              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-300 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-900 flex items-center gap-1.5">
+                    <KeyRound className="w-4 h-4 text-amber-700" />
+                    <span>6-Digit Delivery Confirmation OTP</span>
+                  </span>
+                  <button
+                    onClick={() => handleCopyOtp(activeOrder.otp!)}
+                    className="text-xs font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedOtp ? <Check className="w-4 h-4 text-amber-700" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedOtp ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  {activeOrder.otp.split('').map((digit, idx) => (
+                    <span
+                      key={idx}
+                      className="w-9 h-11 bg-white border border-amber-300 rounded-xl font-mono text-lg font-black text-slate-950 flex items-center justify-center shadow-xs"
+                    >
+                      {digit}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[11px] text-amber-800">
+                  Share this OTP with the delivery associate upon receiving your parcel to verify delivery.
+                </p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={() => onOpenTrackOrder(activeOrder)}
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-400/20 active:scale-98 cursor-pointer"
+              >
+                <Eye className="w-4 h-4" />
+                <span>Track Live Order &amp; Map</span>
+              </button>
+
+              <button
+                onClick={onOpenOrders}
+                className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors cursor-pointer"
+              >
+                All Orders
               </button>
             </div>
 
@@ -325,7 +263,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           
           <button
             onClick={onOpenAddresses}
-            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 transition-all text-left space-y-2 group cursor-pointer"
+            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-amber-400 transition-all text-left space-y-2 group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center group-hover:scale-105 transition-transform">
               <MapPin className="w-4 h-4" />
@@ -338,40 +276,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={onOpenRefer}
-            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-amber-300 transition-all text-left space-y-2 group cursor-pointer"
+            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-amber-400 transition-all text-left space-y-2 group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <Gift className="w-4 h-4" />
             </div>
             <div>
               <p className="text-xs font-black text-slate-900">Refer &amp; Earn</p>
-              <p className="text-[10px] text-emerald-600 font-bold">Earn ₹200 credits</p>
+              <p className="text-[10px] text-amber-700 font-bold">Earn ₹200 credits</p>
             </div>
           </button>
 
           <button
             onClick={onOpenSupport}
-            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 transition-all text-left space-y-2 group cursor-pointer"
+            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-amber-400 transition-all text-left space-y-2 group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <AlertCircle className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-xs font-black text-slate-900">Lodge Complaint</p>
+              <p className="text-xs font-black text-slate-900">Help &amp; Returns</p>
               <p className="text-[10px] text-slate-400">24-hr resolution</p>
             </div>
           </button>
 
           <button
             onClick={onOpenCatalogue}
-            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 transition-all text-left space-y-2 group cursor-pointer"
+            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-amber-400 transition-all text-left space-y-2 group cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
               <ShoppingBag className="w-4 h-4" />
             </div>
             <div>
               <p className="text-xs font-black text-slate-900">Shop Catalog</p>
-              <p className="text-[10px] text-slate-400">700+ fresh items</p>
+              <p className="text-[10px] text-slate-400">40+ trending styles</p>
             </div>
           </button>
 

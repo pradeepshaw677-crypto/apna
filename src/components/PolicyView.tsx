@@ -20,10 +20,10 @@ export const PolicyView: React.FC<PolicyViewProps> = ({ policyType, onBackToShop
                 Welcome to Apna Bazar
               </h3>
               <p>
-                Apna Bazar is your trusted neighborhood superstore, committed to providing high-quality products at affordable prices. Located at Dadu Complex, Near Shitla Mandir, Baharagora, Jharkhand - 832101, we offer a wide range of groceries, daily essentials, packaged foods, beverages, personal care products, household items, and much more - all under one roof.
+                Apna Bazar is your trusted neighborhood superstore, committed to providing high-quality products at affordable prices. Located at Dadu Complex, Near Shitla Mandir, Baharagora, Jharkhand - 832101, we offer a curated range of trending apparel, footwear, toys, lifestyle accessories, and daily essentials - all under one roof.
               </p>
               <p>
-                Our goal is simple: to make grocery shopping easy, convenient, and affordable for every family. Whether you visit our store or order online, we focus on delivering genuine products, competitive prices, and excellent customer service.
+                Our goal is simple: to make fashion, footwear, and lifestyle shopping easy, convenient, and affordable for every family. Whether you visit our store or order online, we focus on delivering genuine products, competitive prices, 5-day returns, and excellent customer service.
               </p>
               <h4 className="font-bold text-slate-900 pt-2">Why Shop With Us?</h4>
               <ul className="list-disc pl-5 space-y-1.5 text-slate-600">
@@ -97,7 +97,7 @@ export const PolicyView: React.FC<PolicyViewProps> = ({ policyType, onBackToShop
               <div>
                 <h4 className="font-bold text-slate-900">3. Doorstep Inspection</h4>
                 <p className="text-slate-600 mt-1">
-                  Customers are encouraged to inspect all groceries at the time of delivery before sharing the 6-digit delivery OTP with our courier associate.
+                  Customers are encouraged to inspect all packages and apparel/shoes at the time of delivery before sharing the 6-digit delivery OTP with our courier associate.
                 </p>
               </div>
             </div>
@@ -112,7 +112,7 @@ export const PolicyView: React.FC<PolicyViewProps> = ({ policyType, onBackToShop
           content: (
             <div className="space-y-4">
               <p className="font-semibold text-slate-800">
-                Welcome to Apna Bazar. We are committed to delivering your grocery orders safely, hygienically, and swiftly.
+                Welcome to Apna Bazar. We are committed to delivering your fashion, footwear, toys & accessories orders safely, securely, and swiftly.
               </p>
               <div>
                 <h4 className="font-bold text-slate-900">1. Delivery Service Areas</h4>

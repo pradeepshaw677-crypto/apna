@@ -15,14 +15,14 @@ app.use(express.json({ limit: "20mb" }));
 // Official Store Details for Apna Bazar
 const STORE_INFO = {
   name: "Apna Bazar",
-  tagline: "Quality Groceries. Wholesale Prices. 15-Minute Express Delivery. Everything your family needs - from daily staples to personal care.",
+  tagline: "Trending Fashion, Footwear, Toys & Accessories. Wholesale Prices. 15-Minute Express Delivery. Cash on Delivery & 5-Day Returns.",
   phone: "+91 6207462800",
   email: "support@apnabazar.in",
   address: "Apna Bazar Express Hub, Dadu Complex, Near Shitla Mandir, Baharagora, Jharkhand - 832101",
   freeDeliveryThreshold: 499,
-  returnWindowDays: 7,
+  returnWindowDays: 5,
   plusDeliveryAvailable: true,
-  statusNotice: "Live in Baharagora • Express 15-Minute Doorstep Grocery Delivery",
+  statusNotice: "Live in Baharagora • Express 15-Minute Doorstep Fashion & Footwear Delivery",
 };
 
 // -------------------------------------------------------------
@@ -33,18 +33,18 @@ let serverReviews: ProductReview[] = [...SAMPLE_REVIEWS];
 
 let serverOrders: Order[] = [
   {
-    id: "TGH-92817",
+    id: "AB-92817",
     createdAt: Date.now() - 1000 * 60 * 25, // 25 mins ago
     items: [
-      { product: PRODUCTS[0], quantity: 1, selectedSize: PRODUCTS[0].unit || "Standard Pack" },
-      { product: PRODUCTS[1], quantity: 2, selectedSize: PRODUCTS[1].unit || "Standard Pack" },
+      { product: PRODUCTS[0], quantity: 1, selectedSize: "L", selectedColor: "Pitch Black" },
+      { product: PRODUCTS[10], quantity: 1, selectedSize: "UK 8", selectedColor: "Flame Red" },
     ],
-    itemTotal: 345,
+    itemTotal: 1398,
     deliveryFee: 0,
     packagingFee: 0,
-    discount: 25,
+    discount: 200,
     tipAmount: 0,
-    totalAmount: 320,
+    totalAmount: 1198,
     address: {
       fullName: "Bhabani Shit",
       phoneNumber: "9771762719",
@@ -61,28 +61,29 @@ let serverOrders: Order[] = [
     paymentStatus: "pending",
     orderStatus: "shipped",
     estimatedDeliveryDate: "Today within 15 mins",
-    appliedCoupon: "GROCERY50",
+    appliedCoupon: "APNAFIRST",
     otp: "482910",
     cancellationAllowed: true,
     trackingSteps: [
       { title: "Order Placed", description: "Cash on delivery confirmed", completed: true, active: false, timestamp: Date.now() - 1000 * 60 * 25 },
       { title: "Packed at Hub", description: "Packed fresh from Baharagora Hub", completed: true, active: false, timestamp: Date.now() - 1000 * 60 * 15 },
-      { title: "Out for Delivery", description: "Rider on the way via Express Hub", completed: true, active: true, timestamp: Date.now() - 1000 * 60 * 5 },
-      { title: "Delivered", description: "Expected delivery", completed: false, active: false },
+      { title: "Out for Delivery", description: "Rider Raju Kumar on the way with parcel", completed: true, active: true, timestamp: Date.now() - 1000 * 60 * 5 },
+      { title: "Delivered", description: "Expected delivery via 6-digit OTP", completed: false, active: false },
     ],
   },
   {
-    id: "TGH-81042",
+    id: "AB-81042",
     createdAt: Date.now() - 1000 * 60 * 60 * 28, // Yesterday
+    deliveredAt: Date.now() - 1000 * 60 * 60 * 24, // Delivered yesterday
     items: [
-      { product: PRODUCTS[2], quantity: 1, selectedSize: PRODUCTS[2].unit || "Standard Pack" },
+      { product: PRODUCTS[2], quantity: 1, selectedSize: "32", selectedColor: "Deep Indigo" },
     ],
-    itemTotal: 240,
+    itemTotal: 899,
     deliveryFee: 0,
     packagingFee: 0,
     discount: 0,
-    tipAmount: 10,
-    totalAmount: 1219,
+    tipAmount: 0,
+    totalAmount: 899,
     address: {
       fullName: "Bhabani Shit",
       phoneNumber: "9876543210",
@@ -107,7 +108,7 @@ let serverOrders: Order[] = [
       { title: "Packed", description: "Quality verified", completed: true, active: false },
       { title: "Shipped", description: "Arrived at local hub", completed: true, active: false },
       { title: "Out for Delivery", description: "Handed to courier", completed: true, active: false },
-      { title: "Delivered", description: "Delivered securely with OTP", completed: true, active: true },
+      { title: "Delivered", description: "Delivered securely with OTP 719302", completed: true, active: true },
     ],
   },
 ];
@@ -356,47 +357,49 @@ app.post("/api/cloudinary/upload", async (req, res) => {
   }
 });
 
-// 6. Pincode Delivery Check API
+// 6. Pincode Delivery Check API (Strict Jharkhand Verification)
 app.post("/api/check-pincode", (req, res) => {
   const { pincode } = req.body;
   if (!pincode || String(pincode).length !== 6) {
-    return res.status(400).json({ eligible: false, message: "Please enter a valid 6-digit PIN code." });
+    return res.status(400).json({ eligible: false, message: "Please enter a valid 6-digit Indian PIN code." });
   }
 
-  const pin = String(pincode);
-  const isJharkhandOrBaharagora = pin.startsWith("83") || pin === "832101";
-  const isMetro = ["110", "400", "560", "700", "600", "500"].some((prefix) => pin.startsWith(prefix));
+  const pin = String(pincode).trim();
+  // Jharkhand postal circles strictly start with 81, 82, or 83
+  const isJharkhand = pin.startsWith("81") || pin.startsWith("82") || pin.startsWith("83");
 
-  let estimatedDays = 3;
-  let expressAvailable = true;
-
-  if (pin === "832101") {
-    estimatedDays = 1; // Baharagora local express delivery!
-  } else if (isMetro) {
-    estimatedDays = 2;
-  } else if (isJharkhandOrBaharagora) {
-    estimatedDays = 2;
-  } else {
-    estimatedDays = 3;
+  if (!isJharkhand) {
+    return res.json({
+      eligible: false,
+      isJharkhand: false,
+      pincode: pin,
+      message: `Delivery temporarily unavailable for PIN ${pin}. Apna Bazar currently delivers exclusively across Jharkhand state (Baharagora Hub, Ranchi, Jamshedpur, Dhanbad, Bokaro).`,
+    });
   }
 
-  const deliveryDate = new Date(Date.now() + estimatedDays * 24 * 60 * 60 * 1000);
-  const dateFormatted = deliveryDate.toLocaleDateString("en-IN", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
+  const isBaharagora = pin === "832101";
+  const estimatedDays = isBaharagora ? 0 : 1;
+
+  const deliveryDate = new Date(Date.now() + (isBaharagora ? 15 * 60 * 1000 : 24 * 60 * 60 * 1000));
+  const dateFormatted = isBaharagora
+    ? "Today within 15 - 30 mins"
+    : deliveryDate.toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      }) + " by 7:00 PM";
 
   return res.json({
     eligible: true,
+    isJharkhand: true,
     pincode: pin,
     estimatedDays,
-    deliveryDate: `${dateFormatted} by 7:00 PM`,
+    deliveryDate: dateFormatted,
     freeDelivery: true,
     cashOnDelivery: true,
-    message: pin === "832101"
-      ? "Express 1-day delivery available for Baharagora with Apna Bazar Plus!"
-      : `Delivery expected by ${dateFormatted}. Free delivery available.`,
+    message: isBaharagora
+      ? "15-Minute Doorstep Express Delivery Active in Baharagora (PIN: 832101)!"
+      : `Express Jharkhand Delivery available. Delivery expected ${dateFormatted}. 100% Cash on Delivery & 5-Day Returns.`,
   });
 });
 
@@ -613,7 +616,18 @@ app.patch("/api/admin/orders/:id/status", (req, res) => {
     return res.status(404).json({ error: "Order not found" });
   }
 
-  const validStatuses = ["placed", "confirmed", "packing", "shipped", "out_for_delivery", "delivered", "cancelled"];
+  const validStatuses = [
+    "placed", 
+    "confirmed", 
+    "packing", 
+    "shipped", 
+    "out_for_delivery", 
+    "delivered", 
+    "return_requested", 
+    "return_pickup_scheduled", 
+    "returned", 
+    "cancelled"
+  ];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ error: "Invalid status value" });
   }

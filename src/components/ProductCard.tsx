@@ -1,12 +1,13 @@
-import React from 'react';
-import { Star, Heart, Share2, Plus, Minus, ShoppingBag, Check, Banknote, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Star, Heart, Share2, Plus, Minus, ShoppingBag, Banknote, Sparkles, RotateCcw } from 'lucide-react';
 import { Product } from '../types';
+import { getSizePriceDelta, formatINR } from '../utils/pricing';
 
 interface ProductCardProps {
   product: Product;
   quantityInCart: number;
   isWishlisted: boolean;
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (product: Product, size?: string, color?: string, priceOverride?: number) => void;
   onUpdateQuantity: (product: Product, newQty: number) => void;
   onToggleWishlist: (productId: string) => void;
   onSelectProduct: (product: Product) => void;
@@ -21,19 +22,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   onSelectProduct,
 }) => {
-  const savings = Math.max(0, product.originalPrice - product.price);
+  const [selectedSize, setSelectedSize] = useState<string>(
+    product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Standard'
+  );
+  const [selectedColor, setSelectedColor] = useState<string>(
+    product.colors && product.colors.length > 0 ? product.colors[0].name : ''
+  );
+
+  // Dynamic Size Price Adjustment
+  const sizeDelta = getSizePriceDelta(selectedSize);
+  const currentPrice = product.price + sizeDelta;
+  const currentOriginalPrice = product.originalPrice + sizeDelta;
+  const savings = Math.max(0, currentOriginalPrice - currentPrice);
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (navigator.share) {
       navigator.share({
         title: product.name,
-        text: `Buy ${product.name} on Apna Bazar for only ₹${product.price}! 100% Cash on Delivery.`,
+        text: `Check out ${product.name} on Apna Bazar for only ${formatINR(currentPrice)}! 100% Cash on Delivery & 5-Day Returns.`,
         url: window.location.href,
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert("Link copied to clipboard!");
     }
   };
 
@@ -45,7 +56,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       {/* Top Bar: Discount Badge & Actions (Wishlist + Share) */}
       <div className="flex items-center justify-between z-10">
         {product.discountPercent > 0 ? (
-          <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-red-500 text-white text-[10px] font-black tracking-wider flex items-center gap-0.5 shadow-xs">
+          <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-rose-500 to-amber-600 text-white text-[10px] font-black tracking-wider flex items-center gap-0.5 shadow-xs">
             ⚡ {product.discountPercent}% OFF
           </span>
         ) : !product.inStock ? (
@@ -53,8 +64,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             SOLD OUT
           </span>
         ) : (
-          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black">
-            FRESH
+          <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black">
+            NEW DROP
           </span>
         )}
 
@@ -87,24 +98,48 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* Product Image */}
-      <div className="relative py-2 sm:py-3 flex items-center justify-center overflow-hidden">
+      <div className="relative py-2 sm:py-3 flex items-center justify-center overflow-hidden rounded-2xl bg-slate-50/70 my-1">
         <img
           src={product.image}
           alt={product.name}
-          className="h-32 sm:h-40 w-full object-contain group-hover:scale-108 transition-transform duration-300"
+          className="h-36 sm:h-44 w-full object-cover rounded-xl group-hover:scale-108 transition-transform duration-300"
           loading="lazy"
         />
 
-        {/* Scarcity badge if stock is low */}
+        {/* Stock Scarcity Badge */}
         {product.inStock && product.stockCount && product.stockCount < 10 && (
-          <span className="absolute bottom-1 left-1 bg-amber-500/90 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full backdrop-blur-2xs shadow-xs">
+          <span className="absolute bottom-1.5 left-1.5 bg-amber-500/95 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full backdrop-blur-xs shadow-xs border border-amber-300">
             🔥 Only {product.stockCount} Left!
           </span>
         )}
       </div>
 
+      {/* Color Swatch Dots Preview */}
+      {product.colors && product.colors.length > 0 && (
+        <div className="flex items-center gap-1.5 py-1">
+          {product.colors.slice(0, 4).map((c, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedColor(c.name);
+              }}
+              className={`w-3.5 h-3.5 rounded-full border shadow-2xs shrink-0 cursor-pointer transition-transform ${
+                selectedColor === c.name ? 'scale-125 border-amber-500 ring-1 ring-amber-400' : 'border-slate-300'
+              }`}
+              style={{ backgroundColor: c.hex }}
+              title={c.name}
+            />
+          ))}
+          {product.colors.length > 4 && (
+            <span className="text-[10px] text-slate-400 font-bold">+{product.colors.length - 4}</span>
+          )}
+        </div>
+      )}
+
       {/* Product Details */}
-      <div className="space-y-1.5 pt-1 text-left">
+      <div className="space-y-1.5 text-left">
         
         {/* Star Rating Line */}
         <div className="flex items-center gap-1 text-[11px] text-amber-500 font-bold">
@@ -113,8 +148,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
             ))}
           </div>
-          <span className="text-slate-700 ml-0.5">{product.rating || 5}</span>
+          <span className="text-slate-800 ml-0.5">{product.rating || 4.8}</span>
           <span className="text-slate-400 font-normal">({product.reviewsCount || 120})</span>
+        </div>
+
+        {/* Product Brand & Category */}
+        <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-amber-700">
+          <span>{product.brand}</span>
+          <span>•</span>
+          <span className="text-slate-500">{product.subcategory || product.category}</span>
         </div>
 
         {/* Product Name */}
@@ -122,38 +164,60 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {product.name}
         </h4>
 
-        {/* Weight / Pack Size */}
-        <p className="text-[11px] text-slate-500 font-semibold">
-          {product.unit || 'Standard Pack'}
-        </p>
+        {/* Interactive Size Selector Pills with Dynamic Price Bump */}
+        {product.sizes && product.sizes.length > 0 && (
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 overflow-hidden text-[10px] text-slate-500 font-semibold flex-wrap pt-0.5"
+          >
+            <span className="text-slate-400 text-[10px]">Size:</span>
+            {product.sizes.slice(0, 4).map((s, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setSelectedSize(s)}
+                className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold cursor-pointer transition-all border ${
+                  selectedSize === s
+                    ? 'bg-slate-900 text-amber-300 border-slate-900 shadow-2xs'
+                    : 'bg-slate-100 text-slate-700 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+            {product.sizes.length > 4 && (
+              <span className="text-[9px] text-slate-400 font-bold">+{product.sizes.length - 4}</span>
+            )}
+          </div>
+        )}
 
-        {/* Social Proof Line: "19 people bought this recently" */}
-        <p className="text-[10px] text-slate-500 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>{Math.floor(14 + (product.reviewsCount % 22))} ordered today in Baharagora</span>
-        </p>
-
-        {/* Price Row: Current Price, MRP, Save amount */}
+        {/* Price Row: Dynamic Price with Indian Rupees, MRP, Savings */}
         <div className="flex items-baseline gap-1.5 pt-1">
-          <span className="text-sm sm:text-base font-black text-slate-950">
-            ₹{product.price}
+          <span className="text-base sm:text-lg font-black text-slate-950">
+            {formatINR(currentPrice)}
           </span>
-          {product.originalPrice > product.price && (
+          {currentOriginalPrice > currentPrice && (
             <span className="text-xs text-slate-400 line-through">
-              ₹{product.originalPrice}
+              {formatINR(currentOriginalPrice)}
             </span>
           )}
           {savings > 0 && (
-            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-              SAVE ₹{savings}
+            <span className="text-[10px] font-black text-amber-900 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+              SAVE {formatINR(savings)}
             </span>
           )}
         </div>
 
-        {/* COD Reassurance micro-tag */}
-        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 pt-0.5">
-          <Banknote className="w-3 h-3 text-emerald-600" />
-          <span>Pay Cash on Delivery</span>
+        {/* 5-Day Return & COD Reassurance */}
+        <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 pt-0.5">
+          <span className="flex items-center gap-1 text-slate-600">
+            <Banknote className="w-3 h-3 text-amber-600" />
+            <span>Cash on Delivery</span>
+          </span>
+          <span className="flex items-center gap-1 text-amber-700 font-extrabold">
+            <RotateCcw className="w-3 h-3 text-amber-600" />
+            <span>5-Day Return</span>
+          </span>
         </div>
       </div>
 
@@ -162,18 +226,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {quantityInCart > 0 ? (
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-between bg-emerald-700 text-white rounded-full p-1 shadow-md shadow-emerald-700/20"
+            className="flex items-center justify-between bg-slate-900 text-amber-300 rounded-full p-1 shadow-md shadow-slate-900/20 border border-slate-800"
           >
             <button
               onClick={() => onUpdateQuantity(product, quantityInCart - 1)}
-              className="w-7 h-7 rounded-full bg-emerald-800 hover:bg-emerald-900 flex items-center justify-center transition-colors cursor-pointer active:scale-90"
+              className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90"
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
-            <span className="text-xs font-black px-2">{quantityInCart} in Cart</span>
+            <span className="text-xs font-black px-2">{quantityInCart} in Bag</span>
             <button
               onClick={() => onUpdateQuantity(product, quantityInCart + 1)}
-              className="w-7 h-7 rounded-full bg-emerald-800 hover:bg-emerald-900 flex items-center justify-center transition-colors cursor-pointer active:scale-90"
+              className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -189,12 +253,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onAddToCart(product);
+              onAddToCart(product, selectedSize, selectedColor, currentPrice);
             }}
             className="w-full py-2.5 px-3 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-500 hover:to-yellow-500 text-slate-950 text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-md shadow-amber-400/20 border border-amber-300 hover:scale-102 active:scale-98 cursor-pointer"
           >
             <ShoppingBag className="w-3.5 h-3.5 text-slate-950" />
-            <span>Add to Cart</span>
+            <span>Add to Bag ({formatINR(currentPrice)})</span>
           </button>
         )}
       </div>

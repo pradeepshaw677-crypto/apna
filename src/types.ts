@@ -1,14 +1,9 @@
 export type CategoryId = 
   | 'all'
-  | 'bathing-soaps'
-  | 'cookies'
-  | 'dry-fruits'
-  | 'oil-ghee'
-  | 'beverages'
-  | 'snacks'
-  | 'atta-rice-dal'
-  | 'personal-care'
-  | 'household'
+  | 'fashion'
+  | 'footwear'
+  | 'toys'
+  | 'accessories'
   | string;
 
 export interface Category {
@@ -17,7 +12,7 @@ export interface Category {
   hindiName?: string;
   icon: string;
   description: string;
-  image?: string;
+  image: string;
   itemCount?: number;
   featuredSubcategories?: string[];
 }
@@ -25,6 +20,7 @@ export interface Category {
 export interface ColorOption {
   name: string;
   hex: string;
+  imageUrl?: string;
   imageIndex?: number;
 }
 
@@ -68,6 +64,8 @@ export interface CartItem {
   quantity: number;
   selectedSize?: string;
   selectedColor?: string;
+  unitPrice?: number;
+  originalUnitPrice?: number;
 }
 
 export interface DeliveryAddress {
@@ -100,6 +98,9 @@ export type OrderStatus =
   | 'shipped' 
   | 'out_for_delivery' 
   | 'delivered'
+  | 'return_requested'
+  | 'return_pickup_scheduled'
+  | 'returned'
   | 'cancelled';
 
 export interface TrackingStep {
@@ -127,10 +128,25 @@ export interface Order {
   estimatedDeliveryDate?: string;
   estimatedDeliveryTime?: number;
   appliedCoupon?: string;
-  otp?: string;
+  otp?: string; // 6-digit delivery confirmation OTP
   cancellationAllowed?: boolean;
   trackingSteps?: TrackingStep[];
   userId?: string;
+  // 5-Day Return & Live Rider system
+  deliveredAt?: number;
+  returnEligibleUntil?: number;
+  returnRequested?: boolean;
+  returnOtp?: string; // 6-digit return pickup OTP
+  returnReason?: string;
+  returnComments?: string;
+  returnRequestedAt?: number;
+  deliveryRider?: {
+    name: string;
+    phone: string;
+    rating: number;
+    vehicle: string;
+    photo: string;
+  };
 }
 
 export interface UserProfile {

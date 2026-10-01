@@ -20,8 +20,10 @@ import {
   LayoutDashboard, 
   Check, 
   Package,
-  Banknote
+  Banknote,
+  MapPin
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { 
   CategoryId, 
   Product, 
@@ -44,6 +46,7 @@ import {
   getSavedAddress, 
   saveAddress 
 } from './utils/storage';
+import { getSizePriceDelta, formatINR } from './utils/pricing';
 
 import { Header } from './components/Header';
 import { TopCategoryStrip } from './components/TopCategoryStrip';
@@ -56,6 +59,9 @@ import { TrackOrderModal } from './components/TrackOrderModal';
 import { WishlistModal } from './components/WishlistModal';
 import { OffersModal } from './components/OffersModal';
 import { PincodeModal } from './components/PincodeModal';
+import { LocationPermissionModal } from './components/LocationPermissionModal';
+import { PromoNotificationToast } from './components/PromoNotificationToast';
+import { CartToast, CartToastItem } from './components/CartToast';
 import { LoginModal } from './components/LoginModal';
 import { DashboardView } from './components/DashboardView';
 import { OrdersView } from './components/OrdersView';
@@ -63,6 +69,7 @@ import { AddressesView } from './components/AddressesView';
 import { ReferView } from './components/ReferView';
 import { SupportView } from './components/SupportView';
 import { PolicyView } from './components/PolicyView';
+import { WhyShopSection } from './components/WhyShopSection';
 import { CustomerReviewsSection } from './components/CustomerReviewsSection';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { DashboardOptionsModal } from './components/DashboardOptionsModal';
@@ -98,11 +105,11 @@ export default function App() {
       return saved ? JSON.parse(saved) : {
         id: 'usr-bhabani-2026',
         name: 'Bhabani Shit',
-        email: 'thegroceryhub2025@gmail.com',
+        email: 'apnabazar.support@gmail.com',
         phone: '6207462800',
         avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
         isLoggedIn: true,
-        membership: 'Grocery Hub Gold Member',
+        membership: 'Apna Bazar VIP Plus',
         referralCode: 'BHABANI2026',
         totalOrders: 6,
         totalSpent: 2203,
@@ -110,6 +117,14 @@ export default function App() {
     } catch {
       return null;
     }
+  });
+
+  // Delivery Location & Verification State
+  const [deliveryLocation, setDeliveryLocation] = useState(() => {
+    return localStorage.getItem('ab_delivery_location') || 'Baharagora 832101 (Jharkhand)';
+  });
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(() => {
+    return !localStorage.getItem('ab_location_verified');
   });
 
   // Modals & Drawers
@@ -125,6 +140,9 @@ export default function App() {
   const [isDashboardOptionsOpen, setIsDashboardOptionsOpen] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  // Cart animation toast
+  const [cartToastItem, setCartToastItem] = useState<CartToastItem | null>(null);
 
   // Cart, Wishlist, Orders & Address
   const [cartItems, setCartItems] = useState<CartItem[]>(() => getSavedCart());
@@ -142,9 +160,22 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'deals' | 'bestsellers' | 'rating4plus' | 'under999'>('all');
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc' | 'discount' | 'rating'>('popular');
-  const [visibleCount, setVisibleCount] = useState(16);
+  
+  // 8 Products per batch pagination & infinite scroll
+  const [visibleCount, setVisibleCount] = useState(8);
 
   const productSectionRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Auto-clear cart toast after 3.5s
+  useEffect(() => {
+    if (cartToastItem) {
+      const timer = setTimeout(() => {
+        setCartToastItem(null);
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [cartToastItem]);
 
   // Test Firebase connection on boot (Mandatory Skill requirement)
   useEffect(() => {
@@ -153,7 +184,7 @@ export default function App() {
     });
   }, []);
 
-  // Fetch live products from backend
+  // Fetch live products from backend with fallback
   useEffect(() => {
     let isMounted = true;
     api.getProducts().then((res) => {
@@ -193,9 +224,9 @@ export default function App() {
   useEffect(() => { saveOrders(orders); }, [orders]);
   useEffect(() => { saveAddress(savedAddress); }, [savedAddress]);
 
-  // Reset pagination on filter change
+  // Reset pagination to 8 on filter change
   useEffect(() => {
-    setVisibleCount(16);
+    setVisibleCount(8);
   }, [selectedCategory, searchQuery, filterType, sortBy]);
 
   // Set latest order to tracked
@@ -205,11 +236,17 @@ export default function App() {
     }
   }, [orders, activeTrackedOrder]);
 
-  // Cart actions
-  const handleAddToCart = (product: Product, size?: string, color?: string) => {
+  // Dynamic Add to Cart with size adjustment & animation
+  const handleAddToCart = (product: Product, size?: string, color?: string, priceOverride?: number) => {
+    const targetSize = size || (product.sizes?.[0]) || 'Standard';
+    const targetColor = color || (product.colors?.[0]?.name);
+    const sizeDelta = getSizePriceDelta(targetSize);
+    const finalUnitPrice = priceOverride ?? (product.price + sizeDelta);
+    const finalOriginalUnitPrice = product.originalPrice + sizeDelta;
+
     setCartItems((prev) => {
       const matchIndex = prev.findIndex(
-        (it) => it.product.id === product.id && it.selectedSize === size
+        (it) => it.product.id === product.id && it.selectedSize === targetSize && it.selectedColor === targetColor
       );
       if (matchIndex > -1) {
         const next = [...prev];
@@ -221,11 +258,30 @@ export default function App() {
         {
           product,
           quantity: 1,
-          selectedSize: size || product.unit || (product.sizes?.[0]),
-          selectedColor: color,
+          selectedSize: targetSize,
+          selectedColor: targetColor,
+          unitPrice: finalUnitPrice,
+          originalUnitPrice: finalOriginalUnitPrice,
         },
       ];
     });
+
+    // Cart animation toast & celebration confetti
+    setCartToastItem({
+      product,
+      size: targetSize,
+      color: targetColor,
+      price: finalUnitPrice,
+    });
+
+    try {
+      confetti({
+        particleCount: 30,
+        spread: 60,
+        origin: { y: 0.8 },
+        colors: ['#f59e0b', '#fb923c', '#e11d48']
+      });
+    } catch {}
   };
 
   const handleUpdateQuantity = (product: Product, newQty: number) => {
@@ -250,8 +306,8 @@ export default function App() {
     );
   };
 
-  const handleBuyNow = (product: Product, size?: string, color?: string) => {
-    handleAddToCart(product, size, color);
+  const handleBuyNow = (product: Product, size?: string, color?: string, priceOverride?: number) => {
+    handleAddToCart(product, size, color, priceOverride);
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
@@ -261,6 +317,8 @@ export default function App() {
     setCartItems([]);
     setActiveTrackedOrder(order);
     setOrderSuccessBanner(order);
+    // Real-time map & delivery OTP auto open on COD confirmation
+    setIsTrackOrderOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -280,6 +338,15 @@ export default function App() {
     setIsCartOpen(true);
   };
 
+  // Location verified callback
+  const handleLocationConfirmed = (pin: string, city: string, isJh: boolean) => {
+    localStorage.setItem('ab_location_verified', 'true');
+    const locStr = `${city} (${pin})`;
+    setDeliveryLocation(locStr);
+    localStorage.setItem('ab_delivery_location', locStr);
+    setSelectedPincode(pin);
+  };
+
   // Filtered & Sorted products computation
   const filteredProducts = useMemo(() => {
     let result = [...productsList];
@@ -293,33 +360,27 @@ export default function App() {
           p.category.toLowerCase().includes(q) ||
           p.subcategory?.toLowerCase().includes(q) ||
           p.brand?.toLowerCase().includes(q) ||
-          (p.hindiName && p.hindiName.toLowerCase().includes(q))
+          p.description.toLowerCase().includes(q)
       );
     }
 
     // Category filter
-    if (selectedCategory !== 'all') {
-      if (selectedCategory === 'deals') {
-        result = result.filter((p) => p.isFlashDeal || p.discountPercent >= 10);
-      } else if (selectedCategory === 'bestseller') {
-        result = result.filter((p) => p.isBestSeller);
-      } else {
-        result = result.filter((p) => p.category === selectedCategory);
-      }
+    if (selectedCategory && selectedCategory !== 'all') {
+      result = result.filter((p) => p.category === selectedCategory);
     }
 
-    // Secondary filter chips
+    // Chips filter
     if (filterType === 'deals') {
-      result = result.filter((p) => p.discountPercent >= 10 || p.isFlashDeal);
+      result = result.filter((p) => p.discountPercent >= 50 || p.isFlashDeal);
     } else if (filterType === 'bestsellers') {
       result = result.filter((p) => p.isBestSeller);
     } else if (filterType === 'rating4plus') {
       result = result.filter((p) => p.rating >= 4.5);
     } else if (filterType === 'under999') {
-      result = result.filter((p) => p.price <= 200);
+      result = result.filter((p) => p.price <= 999);
     }
 
-    // Sorting
+    // Sort
     if (sortBy === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price-desc') {
@@ -329,34 +390,57 @@ export default function App() {
     } else if (sortBy === 'rating') {
       result.sort((a, b) => b.rating - a.rating);
     } else {
-      result.sort(
-        (a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0) || b.reviewsCount - a.reviewsCount
-      );
+      result.sort((a, b) => (b.isBestSeller ? 1 : 0) - (a.isBestSeller ? 1 : 0));
     }
 
     return result;
   }, [productsList, selectedCategory, searchQuery, filterType, sortBy]);
 
-  const visibleProducts = filteredProducts.slice(0, visibleCount);
+  // Paginated visible products
+  const visibleProducts = useMemo(() => {
+    return filteredProducts.slice(0, visibleCount);
+  }, [filteredProducts, visibleCount]);
+
+  // Infinite scroll observer: Automatically load next 8 products
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => {
+            if (prev < filteredProducts.length) {
+              return prev + 8;
+            }
+            return prev;
+          });
+        }
+      },
+      { threshold: 0.1, rootMargin: '250px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [filteredProducts.length]);
 
   const wishlistedProducts = useMemo(() => {
     return productsList.filter((p) => wishlistIds.includes(p.id));
   }, [productsList, wishlistIds]);
 
-  const totalCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const totalCartCount = useMemo(() => {
+    return cartItems.reduce((acc, it) => acc + it.quantity, 0);
+  }, [cartItems]);
 
-  // Bottom Nav active tab computation
-  const currentBottomTab = useMemo<'dashboard' | 'home' | 'orders' | 'profile' | 'more'>(() => {
-    if (activeView === 'home') return 'home';
-    if (activeView === 'orders') return 'orders';
-    if (activeView === 'dashboard') return 'dashboard';
-    return 'more';
-  }, [activeView]);
+  const currentBottomTab = 
+    activeView === 'home' ? 'home' :
+    activeView === 'orders' ? 'orders' :
+    activeView === 'dashboard' ? 'dashboard' : 'home';
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/70 text-slate-900 font-sans selection:bg-amber-100 selection:text-amber-900 pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900 pb-16 md:pb-0">
       
-      {/* 1. Header Navigation - Light Theme with Glowing Gradients & Voice Search */}
+      {/* 1. Header with Search, Category Dropdown, Location & Auth */}
       <Header
         cartItems={cartItems}
         wishlistCount={wishlistIds.length}
@@ -385,26 +469,18 @@ export default function App() {
           setActiveView(view);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-      />
-
-      {/* Top Image Category Carousel matching modern shopping apps */}
-      <TopCategoryStrip
-        selectedCategory={selectedCategory}
-        onSelectCategory={(catId) => {
-          setSelectedCategory(catId);
-          setActiveView('home');
-          productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }}
+        onOpenLocationModal={() => setIsLocationModalOpen(true)}
+        deliveryLocation={deliveryLocation}
       />
 
       {/* Order Success Top Banner (if recently ordered) */}
       {orderSuccessBanner && (
-        <div className="bg-emerald-600 text-white py-3 px-4 shadow-md animate-fadeIn">
+        <div className="bg-slate-900 border-b border-amber-500/40 text-white py-3 px-4 shadow-md animate-fadeIn">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-2.5 text-xs sm:text-sm font-semibold">
-              <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0" />
               <span>
-                Order Placed! <strong>{orderSuccessBanner.id}</strong> confirmed via Cash on Delivery. Share OTP <strong className="font-mono bg-emerald-800 px-2 py-0.5 rounded tracking-wider">{orderSuccessBanner.otp}</strong> with delivery associate.
+                Order Placed! <strong>{orderSuccessBanner.id}</strong> confirmed via Cash on Delivery. Share OTP <strong className="font-mono bg-amber-400 text-slate-950 px-2 py-0.5 rounded tracking-wider">{orderSuccessBanner.otp}</strong> with delivery associate.
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -413,13 +489,13 @@ export default function App() {
                   setActiveTrackedOrder(orderSuccessBanner);
                   setIsTrackOrderOpen(true);
                 }}
-                className="px-3.5 py-1 bg-white text-emerald-900 text-xs font-black rounded-lg hover:bg-emerald-50 transition-colors cursor-pointer"
+                className="px-3.5 py-1 bg-amber-400 text-slate-950 text-xs font-black rounded-lg hover:bg-amber-500 transition-colors cursor-pointer"
               >
                 Track Live
               </button>
               <button
                 onClick={() => setOrderSuccessBanner(null)}
-                className="text-emerald-200 hover:text-white p-1 cursor-pointer"
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
               >
                 ✕
               </button>
@@ -478,7 +554,7 @@ export default function App() {
         />
       )}
 
-      {/* Policy Pages (About Us, Cancellation, Refund/Returns, Shipping, Terms, Privacy, Disclaimer) */}
+      {/* Policy Pages */}
       {(activeView === 'about' || 
         activeView === 'shipping' || 
         activeView === 'returns' || 
@@ -494,7 +570,7 @@ export default function App() {
 
       {activeView === 'home' && (
         <>
-          {/* Hero Banner with Countdown & Spotlight Deals */}
+          {/* 1. Hero Banner with Countdown & Spotlight Deals */}
           <HeroBanner
             onSelectCategory={(catId) => {
               setSelectedCategory(catId);
@@ -506,7 +582,16 @@ export default function App() {
             onOpenCouponModal={() => setIsOffersOpen(true)}
           />
 
-          {/* Catalog Section with Filter & Sort Controls */}
+          {/* 2. User Explicit Request: "isme banner ke baad shop by category do" */}
+          <TopCategoryStrip
+            selectedCategory={selectedCategory}
+            onSelectCategory={(catId) => {
+              setSelectedCategory(catId);
+              productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
+
+          {/* 3. Catalog Section with Filter & Sort Controls */}
           <main ref={productSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
             
             {/* Section Title & Live Stats */}
@@ -515,15 +600,15 @@ export default function App() {
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                     {selectedCategory === 'all'
-                      ? 'All Fresh Groceries & Essentials'
-                      : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Catalog'}
+                      ? 'Trending Fashion, Footwear, Toys & Accessories'
+                      : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Collections'}
                   </h2>
-                  <span className="text-xs font-black text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200">
-                    {filteredProducts.length} Items Available
+                  <span className="text-xs font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                    {filteredProducts.length} Styles Available
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  100% Genuine Quality • 15-Minute Doorstep Express in Baharagora • Cash on Delivery Available
+                  100% Genuine Branded Quality • 15-Minute Express in Jharkhand • Cash on Delivery &amp; 5-Day Returns
                 </p>
               </div>
 
@@ -535,7 +620,7 @@ export default function App() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 shadow-xs cursor-pointer"
+                  className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
                 >
                   <option value="popular">Popularity &amp; Bestsellers</option>
                   <option value="price-asc">Price: Low to High</option>
@@ -554,10 +639,10 @@ export default function App() {
 
               {[
                 { id: 'all', label: 'All Items' },
-                { id: 'deals', label: '⚡ Big Deals & Offers' },
+                { id: 'deals', label: '⚡ Flash Deals (60%+ OFF)' },
                 { id: 'bestsellers', label: '⭐ Bestsellers' },
-                { id: 'rating4plus', label: '★ 4.5+ Rated' },
-                { id: 'under999', label: '🏷️ Under ₹200' },
+                { id: 'rating4plus', label: '★ 4.7+ Rated' },
+                { id: 'under999', label: '🏷️ Under ₹799' },
               ].map((chip) => (
                 <button
                   key={chip.id}
@@ -600,7 +685,7 @@ export default function App() {
                 <Package className="w-12 h-12 text-slate-300 mx-auto" />
                 <h3 className="font-bold text-slate-800 text-base">No matching products found</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Try adjusting your search query, selecting &quot;All Categories&quot;, or clearing active filters.
+                  Try adjusting your search query, selecting &quot;All Collections&quot;, or clearing active filters.
                 </p>
                 <button
                   onClick={() => {
@@ -615,32 +700,42 @@ export default function App() {
               </div>
             )}
 
-            {/* Load More Button if more available */}
+            {/* Sentinel for Infinite Scroll (loads 8 products on scroll) */}
+            <div ref={sentinelRef} className="h-6 w-full" />
+
+            {/* 8-Product Increment Button ("product load 8per produch scroll pri se load 8 product") */}
             {visibleProducts.length < filteredProducts.length && (
-              <div className="text-center pt-6 pb-2">
+              <div className="text-center pt-4 pb-2">
                 <button
-                  onClick={() => setVisibleCount((prev) => prev + 12)}
+                  onClick={() => setVisibleCount((prev) => prev + 8)}
                   className="px-8 py-3 rounded-2xl bg-white hover:bg-slate-50 border-2 border-slate-900 text-slate-900 font-black text-xs transition-all shadow-xs cursor-pointer active:scale-98"
                 >
-                  Load More Products ({filteredProducts.length - visibleProducts.length} remaining)
+                  Load Next 8 Styles ({filteredProducts.length - visibleProducts.length} remaining)
                 </button>
               </div>
             )}
 
           </main>
 
-          {/* Customer Reviews Section matching screenshot */}
+          {/* User Explicit Request: "Why Shop From Apna Bazar" placed AFTER products & Load More */}
+          <WhyShopSection
+            onExploreShop={() => {
+              productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
+
+          {/* Customer Reviews Section */}
           <CustomerReviewsSection />
         </>
       )}
 
-      {/* 3. Floating Quick Actions (WhatsApp, Call, Bag, Scroll to Top) */}
+      {/* Floating Quick Actions (WhatsApp, Bag, Scroll to Top) */}
       <FloatingActions
         onOpenCart={() => setIsCartOpen(true)}
         cartCount={totalCartCount}
       />
 
-      {/* 4. Footer matching screenshot layout */}
+      {/* Footer */}
       <Footer
         onSelectCategory={(catId) => {
           setActiveView('home');
@@ -657,37 +752,34 @@ export default function App() {
         }}
       />
 
-      {/* 5. Mobile Bottom Navigation matching screenshot */}
+      {/* Mobile Bottom Navigation */}
       <MobileBottomNav
         activeTab={currentBottomTab}
         onSelectTab={(tab) => {
           if (tab === 'home') {
             setActiveView('home');
             window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (tab === 'categories') {
+            setActiveView('home');
+            productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+          } else if (tab === 'cart') {
+            setIsCartOpen(true);
           } else if (tab === 'orders') {
             setActiveView('orders');
             window.scrollTo({ top: 0, behavior: 'smooth' });
-          } else if (tab === 'dashboard') {
+          } else if (tab === 'profile') {
             if (currentUser?.isLoggedIn) {
               setActiveView('dashboard');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
               setIsLoginOpen(true);
             }
-          } else if (tab === 'profile') {
-            if (currentUser?.isLoggedIn) {
-              setActiveView('dashboard');
-            } else {
-              setIsLoginOpen(true);
-            }
-          } else if (tab === 'more') {
-            setIsDashboardOptionsOpen(true);
           }
         }}
         cartCount={totalCartCount}
       />
 
-      {/* 6. Dashboard Options Modal (Triggered by 'More' on mobile or header) */}
+      {/* Dashboard Options Modal */}
       <DashboardOptionsModal
         isOpen={isDashboardOptionsOpen}
         onClose={() => setIsDashboardOptionsOpen(false)}
@@ -703,7 +795,7 @@ export default function App() {
         }}
       />
 
-      {/* 7. Modals & Drawers */}
+      {/* Modals & Drawers */}
       <ProductDetailModal
         product={selectedProduct}
         quantityInCart={
@@ -780,6 +872,29 @@ export default function App() {
         onClose={() => setIsPincodeOpen(false)}
         currentPincode={selectedPincode}
         onPincodeSelected={setSelectedPincode}
+      />
+
+      {/* User Request: Visual Card Location Permission Check Modal */}
+      <LocationPermissionModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        currentPincode={selectedPincode}
+        onConfirmPincode={handleLocationConfirmed}
+      />
+
+      {/* User Request: Subtle Floating Promo Code Notification Toast */}
+      <PromoNotificationToast
+        onApplyCoupon={(c) => {
+          setAppliedCoupon(c);
+        }}
+        appliedCoupon={appliedCoupon}
+      />
+
+      {/* User Request: Cart Added Animation Toast */}
+      <CartToast
+        item={cartToastItem}
+        onClose={() => setCartToastItem(null)}
+        onOpenCart={() => setIsCartOpen(true)}
       />
 
       <LoginModal

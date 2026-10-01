@@ -18,6 +18,11 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideRight {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 @keyframes pulseGlow {
   0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.25); }
   50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.5); }
@@ -29,6 +34,10 @@
 
 .animate-slideDown {
   animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideRight {
+  animation: slideRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-pulse-glow {

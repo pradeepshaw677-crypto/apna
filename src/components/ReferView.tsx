@@ -31,7 +31,7 @@ export const ReferView: React.FC<ReferViewProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const shareText = `Hey! Use my referral code ${referralCode} on Apna Bazar to get flat ₹200 OFF on your first grocery basket! Get fresh groceries delivered in 15 mins with 100% Cash on Delivery: https://apnabazar.in`;
+  const shareText = `Hey! Use my referral code ${referralCode} on Apna Bazar to get flat ₹200 OFF on your first fashion & footwear order! 15-minute express delivery in Jharkhand with 100% Cash on Delivery & 5-Day Returns: https://apnabazar.in`;
 
   const shareOnWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');

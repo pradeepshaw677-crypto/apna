@@ -57,7 +57,7 @@ export const CustomerReviewsSection: React.FC<CustomerReviewsSectionProps> = ({
             Hundreds of Happy Customers in Baharagora ⭐
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
-            Real feedback from verified buyers who enjoy fresh organic groceries every day.
+            Real feedback from verified shoppers who enjoy trending fashion, sneakers &amp; toys with 15-minute doorstep delivery!
           </p>
         </div>
 
