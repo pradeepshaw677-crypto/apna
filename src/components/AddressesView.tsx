@@ -19,6 +19,7 @@ import {
 import { DeliveryAddress } from '../types';
 import { getSavedAddressesList, saveAddressesList, saveAddress, getSavedAddress } from '../utils/storage';
 import { LocationPermissionModal } from './LocationPermissionModal';
+import { api } from '../utils/api';
 
 interface AddressesViewProps {
   onSelectAddress?: (addr: DeliveryAddress) => void;
@@ -62,64 +63,110 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
   }, [addresses]);
 
   const handleLocationConfirmedFromMap = (pin: string, detectedAddr: string, isExpressZone: boolean) => {
+    // Parse address parts or use detected address
+    const parts = detectedAddr.split(',').map(s => s.trim());
+    const road = parts[1] || parts[0] || 'Main Road';
+    const locality = parts[2] || 'Local Area';
+    const city = parts[3] || 'Local City';
+    const landmark = parts[4] || `Near ${locality}`;
+
     setFormData(prev => ({
       ...prev,
-      pincode: pin,
+      pincode: pin || '832101',
       streetAddress: detectedAddr,
-      area: isExpressZone ? 'Baharagora Express Hub' : 'Jharkhand Delivery District',
-      city: 'Baharagora',
+      landmark: landmark,
+      area: `${locality}, ${city}`,
+      city: city,
       state: 'Jharkhand',
     }));
     setIsAdding(true);
   };
 
-  const handleUseCurrentLocation = () => {
+  const handleUseCurrentLocation = async () => {
     setDetectingGps(true);
-    setGpsMessage(null);
+    setGpsMessage('📍 Requesting location from browser... Please allow on popup');
 
-    if (!navigator.geolocation) {
-      setDetectingGps(false);
-      setGpsMessage('Geolocation not supported by browser. Pre-filled Baharagora Hub.');
+    const applyLiveCoords = async (latitude: number, longitude: number, source: string) => {
+      try {
+        const res = await api.reverseGeocode(latitude, longitude);
+        if (res && res.fullFormatted) {
+          setFormData(prev => ({
+            ...prev,
+            city: res.city || 'Local Area',
+            state: res.state || 'Jharkhand',
+            pincode: res.pincode || '832101',
+            landmark: res.landmark || '',
+            area: `${res.locality || res.city}`,
+            streetAddress: res.fullFormatted,
+          }));
+          setGpsMessage(`✓ Real Live Address Detected (${source})! ${res.city || ''}`);
+          setDetectingGps(false);
+          setIsAdding(true);
+          setTimeout(() => setGpsMessage(null), 6000);
+          return;
+        }
+      } catch {}
+
+      // Fallback
       setFormData(prev => ({
         ...prev,
-        city: 'Baharagora',
+        city: 'Local Area',
         state: 'Jharkhand',
         pincode: '832101',
-        streetAddress: prev.streetAddress || 'Main Chowk, Dadu Complex Area',
+        landmark: '',
+        area: 'Delivery Point',
+        streetAddress: `GPS Location Point (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
       }));
-      return;
+      setGpsMessage(`Live Location Set: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      setDetectingGps(false);
+      setIsAdding(true);
+      setTimeout(() => setGpsMessage(null), 5000);
+    };
+
+    const getGPS = (highAccuracy: boolean, timeoutMs: number): Promise<{ latitude: number; longitude: number }> => {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation unsupported'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: highAccuracy, timeout: timeoutMs, maximumAge: 30000 }
+        );
+      });
+    };
+
+    if (navigator.geolocation) {
+      try {
+        let coords: { latitude: number; longitude: number };
+        try {
+          coords = await getGPS(true, 7000);
+        } catch {
+          coords = await getGPS(false, 5000);
+        }
+        await applyLiveCoords(coords.latitude, coords.longitude, 'High-Accuracy Device GPS');
+        return;
+      } catch (err: any) {
+        if (err?.code === 1) {
+          setGpsMessage('⚠️ Location permission was denied in browser. Please allow in browser settings.');
+          setDetectingGps(false);
+          return;
+        }
+      }
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setDetectingGps(false);
-        const { latitude, longitude } = pos.coords;
-        setFormData(prev => ({
-          ...prev,
-          city: 'Baharagora',
-          state: 'Jharkhand',
-          pincode: '832101',
-          area: 'Dadu Complex / Main Chowk',
-          streetAddress: prev.streetAddress || `GPS Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)}) - Baharagora Hub Entrance`,
-        }));
-        setGpsMessage('GPS Location Confirmed for 3-Day Express Delivery!');
-        setTimeout(() => setGpsMessage(null), 4000);
-      },
-      () => {
-        setDetectingGps(false);
-        setFormData(prev => ({
-          ...prev,
-          city: 'Baharagora',
-          state: 'Jharkhand',
-          pincode: '832101',
-          area: 'Dadu Complex Area',
-          streetAddress: prev.streetAddress || 'Dadu Complex, Near Shitla Mandir',
-        }));
-        setGpsMessage('Defaulted to Baharagora, Jharkhand Hub (832101)');
-        setTimeout(() => setGpsMessage(null), 4000);
-      },
-      { timeout: 8000 }
-    );
+    // IP Geolocation Fallback
+    try {
+      const geoData = await api.getGeoIP();
+      if (geoData && geoData.lat && geoData.lon) {
+        await applyLiveCoords(geoData.lat, geoData.lon, `Network IP: ${geoData.city}`);
+        return;
+      }
+    } catch {}
+
+    // Fallback Baharagora Hub
+    await applyLiveCoords(22.2815, 86.7198, 'Baharagora Central Hub');
   };
 
   const handleAddAddress = (e: React.FormEvent) => {

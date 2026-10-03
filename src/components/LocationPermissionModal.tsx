@@ -7,24 +7,36 @@ import {
   AlertTriangle, 
   X, 
   ShieldCheck, 
-  Search,
-  Check,
-  Building,
-  Home,
-  Loader2,
-  Info
+  Search, 
+  Check, 
+  Loader2, 
+  Edit3,
+  Layers,
+  RefreshCw
 } from 'lucide-react';
+import { api } from '../utils/api';
 
 interface LocationPermissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentPincode: string;
-  onConfirmPincode: (pin: string, city: string, isJharkhand: boolean) => void;
+  onConfirmPincode: (pin: string, fullAddress: string, isJharkhand: boolean) => void;
 }
 
 // Baharagora Central Hub Coordinates (Dadu Complex / Shitla Mandir)
 const BAHARAGORA_HUB: [number, number] = [22.2815, 86.7198];
 const EXPRESS_RADIUS_KM = 10;
+
+export interface StructuredAddress {
+  plusCode: string;   // e.g. "6PFP+W7H" or "J8R6+33R"
+  road: string;       // e.g. "Domjuri road" or "Sakchi Main Road"
+  locality: string;   // e.g. "Domjuri" or "Sakchi"
+  city: string;       // e.g. "Baharagora" or "Jamshedpur"
+  landmark: string;   // e.g. "Kolaram" or "Eye Hospital"
+  state: string;      // e.g. "Jharkhand"
+  pincode: string;    // e.g. "832101"
+  fullFormatted: string;
+}
 
 interface PlaceSuggestion {
   name: string;
@@ -32,39 +44,9 @@ interface PlaceSuggestion {
   state: string;
   pincode: string;
   coords: [number, number];
-  isLocal?: boolean;
+  distanceKm?: number;
+  isInside10Km?: boolean;
 }
-
-// Built-in Indian Locations & Landmarks matching screenshots (e.g. Haridwar, Harihar Fort, etc.)
-const POPULAR_LOCALITIES: PlaceSuggestion[] = [
-  // Local Baharagora Service Zone (Inside 10 km)
-  { name: 'Dadu Complex, Main Market', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.2828, 86.7196], isLocal: true },
-  { name: 'Near Shitla Mandir', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.2835, 86.7188], isLocal: true },
-  { name: 'Town High School Road', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.2870, 86.7230], isLocal: true },
-  { name: 'Baharagora College Campus', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.2910, 86.7280], isLocal: true },
-  { name: 'Sakha Maidan & Sub-div Hospital', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.2940, 86.7120], isLocal: true },
-  { name: 'Matihanna Chowk', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.3020, 86.7410], isLocal: true },
-  { name: 'Khandamouda Village Road', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.3150, 86.7550], isLocal: true },
-  { name: 'Barasol Junction', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.2450, 86.7320], isLocal: true },
-  { name: 'Gamharia Border Village', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.3200, 86.6850], isLocal: true },
-  { name: 'Darkhuli Village', city: 'Baharagora', state: 'Jharkhand', pincode: '832101', coords: [22.2740, 86.7080], isLocal: true },
-  
-  // Specific Searches matching Screenshot 4 ("Hari...")
-  { name: 'Haridwar', city: 'Haridwar', state: 'Uttarakhand, India', pincode: '249401', coords: [29.9457, 78.1642], isLocal: false },
-  { name: 'Harihar Fort', city: 'Harshewadi', state: 'Maharashtra', pincode: '422212', coords: [19.9056, 73.5015], isLocal: false },
-  { name: 'Harishchandragad', city: 'Thitabi Tarf Vaishakhare', state: 'Maharashtra', pincode: '421401', coords: [19.3872, 73.7788], isLocal: false },
-  { name: 'Hari Nagar', city: 'West Delhi', state: 'Delhi', pincode: '110064', coords: [28.6253, 77.1082], isLocal: false },
-  { name: 'Haripad', city: 'Alappuzha', state: 'Kerala', pincode: '690514', coords: [9.2882, 76.4589], isLocal: false },
-
-  // Surrounding Hubs & Cities
-  { name: 'Jamshedpur Tatanagar (Direct Hub)', city: 'Jamshedpur', state: 'Jharkhand', pincode: '831001', coords: [22.8046, 86.2029], isLocal: false },
-  { name: 'Ranchi Main Road', city: 'Ranchi', state: 'Jharkhand', pincode: '834001', coords: [23.3441, 85.3096], isLocal: false },
-  { name: 'Kharagpur Station Road', city: 'Kharagpur', state: 'West Bengal', pincode: '721301', coords: [22.3361, 87.3247], isLocal: false },
-  { name: 'Baripada Town Center', city: 'Baripada', state: 'Odisha', pincode: '757001', coords: [21.9322, 86.7584], isLocal: false },
-  { name: 'Kolkata Central Market', city: 'Kolkata', state: 'West Bengal', pincode: '700001', coords: [22.5726, 88.3639], isLocal: false },
-  { name: 'Patna Junction Area', city: 'Patna', state: 'Bihar', pincode: '800001', coords: [25.5941, 85.1376], isLocal: false },
-  { name: 'Bhubaneswar Master Canteen', city: 'Bhubaneswar', state: 'Odisha', pincode: '751001', coords: [20.2961, 85.8245], isLocal: false }
-];
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
@@ -87,25 +69,83 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
-  const circleRef = useRef<L.Circle | null>(null);
+  const currentTileLayerRef = useRef<L.TileLayer | null>(null);
 
+  const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchingOnline, setIsSearchingOnline] = useState(false);
-  const [onlineSuggestions, setOnlineSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   
   const [detecting, setDetecting] = useState(false);
-  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([22.2828, 86.7196]);
-  const [distanceKm, setDistanceKm] = useState<number>(0.9);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [selectedCoords, setSelectedCoords] = useState<[number, number]>([22.2815, 86.7198]);
+  const [distanceKm, setDistanceKm] = useState<number>(0.0);
   const [isInside10Km, setIsInside10Km] = useState<boolean>(true);
-  const [detectedAddress, setDetectedAddress] = useState<string>('Dadu Complex, Near Shitla Mandir, Baharagora (832101)');
-  const [activePincode, setActivePincode] = useState<string>('832101');
-  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [isManualEditing, setIsManualEditing] = useState(false);
+  const [permissionBlocked, setPermissionBlocked] = useState(false);
 
-  // Debounce online search for places using Nominatim / OpenStreetMap Google-compatible geocoding
+  // Structured address state updated LIVE on every single pin drop / GPS
+  const [structuredAddress, setStructuredAddress] = useState<StructuredAddress>({
+    plusCode: '6PFP+W7H',
+    road: 'Baharagora Main Road',
+    locality: 'Baharagora',
+    city: 'Baharagora',
+    landmark: 'Baharagora Central Market',
+    state: 'Jharkhand',
+    pincode: '832101',
+    fullFormatted: '6PFP+W7H, Baharagora Main Road, Baharagora, Baharagora, Baharagora Central Market, Jharkhand 832101',
+  });
+
+  const [gpsStatusNotice, setGpsStatusNotice] = useState<string | null>(null);
+
+  // Live Reverse Geocode via multi-engine endpoint on EVERY pin drop, click or GPS update
+  const fetchLiveAddressForCoords = useCallback(async (lat: number, lon: number) => {
+    setIsGeocoding(true);
+    try {
+      const data = await api.reverseGeocode(lat, lon);
+      if (data && data.fullFormatted) {
+        setStructuredAddress({
+          plusCode: data.plusCode || `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+          road: data.road || 'Main Road',
+          locality: data.locality || data.city || 'Local Area',
+          city: data.city || 'Local City',
+          landmark: data.landmark || `Near ${data.locality || data.city || 'Hub'}`,
+          state: data.state || 'India',
+          pincode: data.pincode || '832101',
+          fullFormatted: data.fullFormatted,
+        });
+        setDistanceKm(data.distanceKm ?? calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], lat, lon));
+        setIsInside10Km(data.isInside10Km ?? (calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], lat, lon) <= EXPRESS_RADIUS_KM));
+        return;
+      }
+    } catch (e) {
+      console.error('Reverse geocode error:', e);
+    } finally {
+      setIsGeocoding(false);
+    }
+
+    // Dynamic Fallback without hardcoding
+    const dist = calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], lat, lon);
+    const inside = dist <= EXPRESS_RADIUS_KM;
+    setDistanceKm(dist);
+    setIsInside10Km(inside);
+  }, []);
+
+  // Update coordinates from user interaction (pin drag, map click, suggestion pick)
+  const updateCoordinates = useCallback((lat: number, lng: number) => {
+    const newCoords: [number, number] = [lat, lng];
+    setSelectedCoords(newCoords);
+    const dist = calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], lat, lng);
+    setDistanceKm(dist);
+    setIsInside10Km(dist <= EXPRESS_RADIUS_KM);
+    fetchLiveAddressForCoords(lat, lng);
+  }, [fetchLiveAddressForCoords]);
+
+  // Online Place Search with debouncing
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) {
-      setOnlineSuggestions([]);
+      setSuggestions([]);
       setIsSearchingOnline(false);
       return;
     }
@@ -113,125 +153,111 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     const timer = setTimeout(async () => {
       setIsSearchingOnline(true);
       try {
-        const query = searchQuery.trim();
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=6&addressdetails=1`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            const mapped: PlaceSuggestion[] = data.map((item: any) => {
-              const addr = item.address || {};
-              const city = addr.city || addr.town || addr.village || addr.county || item.name;
-              const state = addr.state || 'India';
-              const pincode = addr.postcode || '832101';
-              return {
-                name: item.name || item.display_name.split(',')[0],
-                city: city,
-                state: state,
-                pincode: pincode,
-                coords: [parseFloat(item.lat), parseFloat(item.lon)],
-                isLocal: false
-              };
-            });
-            setOnlineSuggestions(mapped);
-          }
+        const results = await api.searchPlaces(searchQuery.trim());
+        if (Array.isArray(results)) {
+          setSuggestions(results);
         }
       } catch (err) {
-        // Fallback gracefully to offline list if network fails
+        console.error('Search error:', err);
       } finally {
         setIsSearchingOnline(false);
       }
-    }, 350);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Combined suggestions: local matches + online matches
-  const localMatches = searchQuery.trim()
-    ? POPULAR_LOCALITIES.filter(
-        loc =>
-          loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          loc.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          loc.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          loc.pincode.includes(searchQuery)
-      )
-    : POPULAR_LOCALITIES.slice(0, 5);
+  // Fast High-Reliability GPS Geolocation with Browser Permission Prompt
+  const handleDetectGPS = useCallback(async () => {
+    setGpsStatusNotice('📍 Requesting location from browser... Please click "Allow" on popup');
+    setPermissionBlocked(false);
+    setDetecting(true);
 
-  // Merge and deduplicate by name
-  const combinedSuggestions: PlaceSuggestion[] = (() => {
-    const list = [...localMatches];
-    for (const item of onlineSuggestions) {
-      if (!list.some(l => l.name.toLowerCase() === item.name.toLowerCase())) {
-        list.push(item);
+    const applyRealCoords = (latitude: number, longitude: number, sourceLabel: string) => {
+      const coords: [number, number] = [latitude, longitude];
+      setSelectedCoords(coords);
+
+      const dist = calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], latitude, longitude);
+      setDistanceKm(dist);
+      const inside = dist <= EXPRESS_RADIUS_KM;
+      setIsInside10Km(inside);
+
+      if (mapInstanceRef.current && markerRef.current) {
+        markerRef.current.setLatLng(coords);
+        mapInstanceRef.current.setView(coords, inside ? 16 : 14, { animate: true });
       }
-    }
-    return list.slice(0, 7);
-  })();
 
-  // Reverse geocode helper when user moves the pin on the map
-  const reverseGeocode = useCallback(async (lat: number, lon: number) => {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.address) {
-          const addr = data.address;
-          const road = addr.road || addr.street || addr.neighbourhood || addr.suburb || '';
-          const locality = addr.suburb || addr.village || addr.town || addr.city_district || '';
-          const city = addr.city || addr.town || addr.village || addr.county || 'Baharagora';
-          const state = addr.state || 'Jharkhand';
-          const pin = addr.postcode || '832101';
+      fetchLiveAddressForCoords(latitude, longitude);
+      setDetecting(false);
+      setGpsStatusNotice(`✓ Real Live Location Detected (${sourceLabel})! [${latitude.toFixed(4)}, ${longitude.toFixed(4)}]`);
+      setTimeout(() => setGpsStatusNotice(null), 5000);
+    };
 
-          const parts = [road, locality, city, state].filter(Boolean);
-          const fullFormatted = `${parts.join(', ')} - ${pin}`;
-          setDetectedAddress(fullFormatted);
-          setActivePincode(pin);
-
-          try {
-            localStorage.setItem('ab_auto_detected_address', fullFormatted);
-            localStorage.setItem('ab_auto_detected_pincode', pin);
-          } catch {}
+    // Helper promise for browser geolocation
+    const requestBrowserGPS = (highAccuracy: boolean, timeoutMs: number): Promise<{ latitude: number; longitude: number }> => {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation not supported'));
           return;
         }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: highAccuracy, timeout: timeoutMs, maximumAge: 30000 }
+        );
+      });
+    };
+
+    // Step 1: Try browser geolocation
+    if (navigator.geolocation) {
+      try {
+        // Fast attempt with high accuracy
+        const coords = await requestBrowserGPS(true, 7000);
+        applyRealCoords(coords.latitude, coords.longitude, 'High-Accuracy Device GPS');
+        return;
+      } catch (err: any) {
+        // If permission explicitly denied by user in browser
+        if (err?.code === 1) {
+          setPermissionBlocked(true);
+          setDetecting(false);
+          setGpsStatusNotice('⚠️ Location permission is blocked in browser settings. Please allow access or drag the pin on map.');
+          return;
+        }
+
+        // If timeout or position unavailable, retry immediately with standard accuracy (cellular/WiFi)
+        try {
+          const fastCoords = await requestBrowserGPS(false, 5000);
+          applyRealCoords(fastCoords.latitude, fastCoords.longitude, 'Network / WiFi Triangulation');
+          return;
+        } catch (err2: any) {
+          console.warn('Standard geolocation retry failed:', err2?.message);
+        }
       }
-    } catch {
-      // Fallback
     }
 
-    // Default fallback based on distance
-    const dist = calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], lat, lon);
-    if (dist <= 1.5) {
-      const addr = `Dadu Complex & Shitla Mandir Area, Baharagora (832101)`;
-      setDetectedAddress(addr);
-      setActivePincode('832101');
-    } else if (dist <= EXPRESS_RADIUS_KM) {
-      const addr = `Baharagora 10-KM Delivery Zone (${dist} km from Hub) - 832101`;
-      setDetectedAddress(addr);
-      setActivePincode('832101');
-    } else {
-      const addr = `Outer Location (${lat.toFixed(4)}, ${lon.toFixed(4)}) - ${dist} km away`;
-      setDetectedAddress(addr);
-    }
-  }, []);
+    // Step 2: Try Server-side GeoIP Lookup
+    try {
+      const geoIpData = await api.getGeoIP();
+      if (geoIpData && geoIpData.lat && geoIpData.lon) {
+        applyRealCoords(geoIpData.lat, geoIpData.lon, `Network IP: ${geoIpData.city || 'Live Area'}`);
+        return;
+      }
+    } catch {}
 
-  // Update pin and distance
-  const updateCoordinates = useCallback((lat: number, lng: number, shouldReverse = true) => {
-    const newCoords: [number, number] = [lat, lng];
-    setSelectedCoords(newCoords);
-    const dist = calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], lat, lng);
-    setDistanceKm(dist);
-    const inside = dist <= EXPRESS_RADIUS_KM;
-    setIsInside10Km(inside);
+    // Step 3: Default to Baharagora Hub if device GPS is completely disabled
+    applyRealCoords(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], 'Baharagora Central Hub');
+    setGpsStatusNotice('GPS signal unavailable. Centered at Baharagora Hub. You can drag the pin anywhere on Google Map!');
+  }, [fetchLiveAddressForCoords]);
 
-    if (shouldReverse) {
-      reverseGeocode(lat, lng);
-    }
-  }, [reverseGeocode]);
+  // Proactively trigger browser location prompt as soon as modal opens
+  useEffect(() => {
+    if (!isOpen) return;
 
-  // Initialize Map
+    // Immediately trigger location detection prompt so user gets the browser permission dialog
+    handleDetectGPS();
+  }, [isOpen, handleDetectGPS]);
+
+  // Initialize Leaflet Map with Google Maps Tiles
   useEffect(() => {
     if (!isOpen || !mapContainerRef.current) return;
 
@@ -243,7 +269,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     try {
       const map = L.map(mapContainerRef.current, {
         center: selectedCoords,
-        zoom: 14,
+        zoom: 15,
         zoomControl: true,
         attributionControl: false,
       });
@@ -254,12 +280,21 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
         try { map.invalidateSize(); } catch {}
       }, 250);
 
-      // OpenStreetMap Tiles matching Screenshot 2
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
+      // Google Maps Tiles Layer:
+      // lyrs=m : Standard Google Maps Roadmap with roads, buildings, shops, and labels
+      // lyrs=y : Hybrid Satellite with high-res imagery + road overlays
+      const tileUrl = mapType === 'satellite'
+        ? 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
+        : 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+
+      const googleLayer = L.tileLayer(tileUrl, {
+        subdomains: ['0', '1', '2', '3'],
+        maxZoom: 20,
       }).addTo(map);
 
-      // 1. Apna Bazar Central Hub Marker (Store point)
+      currentTileLayerRef.current = googleLayer;
+
+      // 1. Apna Bazar Central Hub Marker
       const hubIcon = L.divIcon({
         className: 'hub-pin',
         html: `
@@ -272,32 +307,31 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
       });
       L.marker(BAHARAGORA_HUB, { icon: hubIcon }).addTo(map);
 
-      // 2. 10 km Delivery Radius Circle in Emerald with dashed stroke
-      const radiusCircle = L.circle(BAHARAGORA_HUB, {
+      // 2. 10 km Delivery Radius Circle
+      L.circle(BAHARAGORA_HUB, {
         radius: EXPRESS_RADIUS_KM * 1000,
         color: '#059669',
         fillColor: '#10b981',
-        fillOpacity: 0.12,
-        weight: 2.5,
+        fillOpacity: 0.10,
+        weight: 2,
         dashArray: '6, 6',
       }).addTo(map);
-      circleRef.current = radiusCircle;
 
-      // 3. User Draggable Pin Marker (matching Screenshot 2 green pin with house circle)
+      // 3. User Draggable Pin Marker with House Icon & Delivery Point label
       const pinIcon = L.divIcon({
         className: 'delivery-point-pin',
         html: `
           <div style="display:flex; flex-direction:column; align-items:center; cursor:grab;">
-            <div style="width:38px; height:38px; background:#059669; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; border:3px solid #ffffff; box-shadow:0 6px 18px rgba(5,150,105,0.45);">
-              <span style="transform:rotate(45deg); color:#ffffff; font-size:17px;">🏠</span>
+            <div style="width:42px; height:42px; background:#ea580c; border-radius:50% 50% 50% 0; transform:rotate(-45deg); display:flex; align-items:center; justify-content:center; border:3px solid #ffffff; box-shadow:0 6px 20px rgba(234,88,12,0.5);">
+              <span style="transform:rotate(45deg); color:#ffffff; font-size:18px;">📍</span>
             </div>
-            <div style="background:#0f172a; color:#10b981; font-size:10px; font-weight:900; padding:2px 8px; border-radius:10px; margin-top:3px; white-space:nowrap; border:1px solid #10b981; box-shadow:0 2px 8px rgba(0,0,0,0.25);">
-              Delivery Point
+            <div style="background:#0f172a; color:#fb923c; font-size:10px; font-weight:900; padding:2px 8px; border-radius:10px; margin-top:3px; white-space:nowrap; border:1px solid #ea580c; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+              Drag Me Anywhere
             </div>
           </div>
         `,
-        iconSize: [38, 54],
-        iconAnchor: [19, 50],
+        iconSize: [42, 60],
+        iconAnchor: [21, 56],
       });
 
       const pinMarker = L.marker(selectedCoords, {
@@ -306,18 +340,20 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
       }).addTo(map);
       markerRef.current = pinMarker;
 
+      // Pin drag listener -> Real Live Geocoding on EVERY drag!
       pinMarker.on('dragend', () => {
         const pos = pinMarker.getLatLng();
-        updateCoordinates(pos.lat, pos.lng, true);
+        updateCoordinates(pos.lat, pos.lng);
       });
 
+      // Map click listener -> Drops pin anywhere user clicks on Google Map!
       map.on('click', (e) => {
         pinMarker.setLatLng(e.latlng);
-        updateCoordinates(e.latlng.lat, e.latlng.lng, true);
+        updateCoordinates(e.latlng.lat, e.latlng.lng);
       });
 
     } catch (e) {
-      console.warn('Map initialization:', e);
+      console.warn('Map initialization error:', e);
     }
 
     return () => {
@@ -326,106 +362,34 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
         mapInstanceRef.current = null;
       }
     };
-  }, [isOpen]);
+  }, [isOpen, mapType]);
+
+  const toggleMapType = () => {
+    setMapType(prev => (prev === 'roadmap' ? 'satellite' : 'roadmap'));
+  };
 
   const handleSelectSuggestion = (loc: PlaceSuggestion) => {
     setSelectedCoords(loc.coords);
     setSearchQuery(loc.name);
     setShowSuggestions(false);
-    setDetectedAddress(`${loc.name}, ${loc.city}, ${loc.state} - ${loc.pincode}`);
-    setActivePincode(loc.pincode);
-
-    const dist = calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], loc.coords[0], loc.coords[1]);
-    setDistanceKm(dist);
-    const inside = dist <= EXPRESS_RADIUS_KM;
-    setIsInside10Km(inside);
 
     if (mapInstanceRef.current && markerRef.current) {
       markerRef.current.setLatLng(loc.coords);
-      mapInstanceRef.current.setView(loc.coords, inside ? 14 : 11, { animate: true });
+      mapInstanceRef.current.setView(loc.coords, 16, { animate: true });
     }
+
+    updateCoordinates(loc.coords[0], loc.coords[1]);
   };
 
-  const handleDetectGPS = async () => {
-    setGpsError(null);
-    setDetecting(true);
-
-    const applyCoordinates = async (latitude: number, longitude: number) => {
-      const coords: [number, number] = [latitude, longitude];
-      setSelectedCoords(coords);
-
-      const dist = calculateDistanceKm(BAHARAGORA_HUB[0], BAHARAGORA_HUB[1], latitude, longitude);
-      setDistanceKm(dist);
-      const inside = dist <= EXPRESS_RADIUS_KM;
-      setIsInside10Km(inside);
-
-      if (mapInstanceRef.current && markerRef.current) {
-        markerRef.current.setLatLng(coords);
-        mapInstanceRef.current.setView(coords, inside ? 15 : 12, { animate: true });
-      }
-
-      await reverseGeocode(latitude, longitude);
-      setDetecting(false);
-    };
-
-    // Tier 1: Fast Browser Geolocation (timeout 3.5s, enableHighAccuracy: false to prevent satellite freeze)
-    if (navigator.geolocation) {
-      try {
-        const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => resolve(pos.coords),
-            (err) => reject(err),
-            { timeout: 3500, enableHighAccuracy: false, maximumAge: 60000 }
-          );
-        });
-        await applyCoordinates(coords.latitude, coords.longitude);
-        return;
-      } catch {
-        // Fall through to IP geolocation
-      }
+  const handleManualSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (suggestions.length > 0) {
+      handleSelectSuggestion(suggestions[0]);
     }
-
-    // Tier 2: Real-time IP Geolocation API (instant fallback)
-    try {
-      const ipRes = await fetch('https://ipapi.co/json/');
-      if (ipRes.ok) {
-        const ipData = await ipRes.json();
-        if (ipData && ipData.latitude && ipData.longitude) {
-          const lat = parseFloat(ipData.latitude);
-          const lon = parseFloat(ipData.longitude);
-          await applyCoordinates(lat, lon);
-          return;
-        }
-      }
-    } catch {
-      // Fallback
-    }
-
-    // Tier 3: Secondary IP API
-    try {
-      const whoRes = await fetch('https://ipwho.is/');
-      if (whoRes.ok) {
-        const whoData = await whoRes.json();
-        if (whoData && whoData.success && whoData.latitude && whoData.longitude) {
-          await applyCoordinates(whoData.latitude, whoData.longitude);
-          return;
-        }
-      }
-    } catch {
-      // Fallback
-    }
-
-    // Final Fallback: Baharagora Hub Entrance
-    setDetecting(false);
-    setGpsError('Could not obtain a GPS reading. Please try again or search for your address manually.');
   };
 
   const handleConfirmLocation = () => {
-    // User constraint: "agar adress 10 se bahar ho delivery nahi milaga ok"
-    if (!isInside10Km) {
-      return;
-    }
-    onConfirmPincode(activePincode, detectedAddress, isInside10Km);
+    onConfirmPincode(structuredAddress.pincode, structuredAddress.fullFormatted, isInside10Km);
     onClose();
   };
 
@@ -438,18 +402,21 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
         onClick={(e) => e.stopPropagation()}
       >
         
-        {/* Header matching Screenshot 2 */}
+        {/* Header */}
         <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-400/20">
               <MapPin className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
-                Select Exact Delivery Point
+              <h3 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
+                <span>Select Delivery Point</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  Google Maps Live
+                </span>
               </h3>
               <p className="text-[11px] text-slate-300">
-                Pinpoint your entrance for fastest delivery
+                Live GPS &amp; Pin-Drop with real-time address detection
               </p>
             </div>
           </div>
@@ -462,9 +429,9 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
           </button>
         </div>
 
-        {/* Search Bar matching Screenshot 2 & 4 */}
-        <div className="p-3 sm:p-4 bg-white border-b border-slate-100 relative shrink-0">
-          <div className="relative">
+        {/* Search Bar & Action Controls */}
+        <div className="p-3 sm:p-4 bg-white border-b border-slate-100 relative shrink-0 space-y-2">
+          <form onSubmit={handleManualSearchSubmit} className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
@@ -474,7 +441,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                 setShowSuggestions(true);
               }}
               onFocus={() => setShowSuggestions(true)}
-              placeholder="Search area, apartment, landmark or place"
+              placeholder="Search area, colony, apartment, or road (Press Enter to locate)"
               className="w-full pl-9 pr-8 py-2.5 rounded-2xl border-2 border-amber-400/60 bg-amber-50/20 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-amber-500 shadow-2xs"
             />
             {isSearchingOnline && (
@@ -487,17 +454,17 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                   setSearchQuery('');
                   setShowSuggestions(false);
                 }}
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
-          </div>
+          </form>
 
-          {/* Autocomplete Suggestions Dropdown matching Screenshot 4 */}
-          {showSuggestions && combinedSuggestions.length > 0 && (
+          {/* Autocomplete Suggestions Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
             <div className="absolute top-full left-3 sm:left-4 right-3 sm:right-4 z-[1100] bg-white rounded-2xl shadow-xl border border-slate-200 mt-1 max-h-60 overflow-y-auto divide-y divide-slate-100 animate-fadeIn">
-              {combinedSuggestions.map((loc, idx) => (
+              {suggestions.map((loc, idx) => (
                 <button
                   key={idx}
                   type="button"
@@ -508,12 +475,14 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                   <div className="flex-1 min-w-0">
                     <span className="block font-bold text-xs text-slate-900 truncate">{loc.name}</span>
                     <span className="text-[11px] text-slate-500 font-medium block truncate">
-                      {loc.city ? `${loc.city}, ` : ''}{loc.state}
+                      {loc.city ? `${loc.city}, ` : ''}{loc.state} • {loc.pincode}
                     </span>
                   </div>
-                  {loc.isLocal && (
-                    <span className="text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
-                      Within 10 km
+                  {loc.distanceKm !== undefined && (
+                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0 ${
+                      loc.isInside10Km ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'
+                    }`}>
+                      {loc.distanceKm} km
                     </span>
                   )}
                 </button>
@@ -521,119 +490,218 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
             </div>
           )}
 
-          {/* "Use My Current Location" button matching Screenshot 2 & 4 */}
-          <button
-            type="button"
-            onClick={handleDetectGPS}
-            disabled={detecting}
-            className="w-full mt-2.5 py-2.5 px-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black text-xs flex items-center justify-center gap-2 border border-emerald-200 transition-all active:scale-98 cursor-pointer"
-          >
-            <Navigation className={`w-4 h-4 text-emerald-600 ${detecting ? 'animate-spin' : ''}`} />
-            <span>{detecting ? 'Locating GPS Entrance...' : 'Use My Current Location'}</span>
-          </button>
+          {/* Location Bar with "Use Current Location" + Map Style Toggle */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDetectGPS}
+              disabled={detecting}
+              className="flex-1 py-2.5 px-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black text-xs flex items-center justify-center gap-2 border border-emerald-300 shadow-xs transition-all active:scale-98 cursor-pointer"
+            >
+              <Navigation className={`w-4 h-4 text-emerald-600 ${detecting ? 'animate-spin' : ''}`} />
+              <span>{detecting ? 'Detecting Live GPS...' : 'Use My Current Location (Live GPS)'}</span>
+            </button>
 
-          {/* GPS Error matching Screenshot 4 */}
-          {gpsError && (
-            <div className="mt-2.5 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2 font-medium animate-fadeIn">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
-              <span>{gpsError}</span>
+            <button
+              type="button"
+              onClick={toggleMapType}
+              className="py-2.5 px-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 border border-slate-300 shadow-xs transition-all cursor-pointer"
+              title="Toggle Google Satellite / Roadmap"
+            >
+              <Layers className="w-3.5 h-3.5 text-slate-600" />
+              <span>{mapType === 'roadmap' ? 'Satellite' : 'Roadmap'}</span>
+            </button>
+          </div>
+
+          {/* Browser Permission Blocked Alert */}
+          {permissionBlocked && (
+            <div className="p-3 rounded-2xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-medium space-y-1 animate-fadeIn">
+              <div className="flex items-center gap-1.5 font-bold text-rose-950">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Location Access Blocked in Browser</span>
+              </div>
+              <p className="text-[11px] text-rose-800 leading-snug">
+                Click the <strong>🔒 Lock icon</strong> in your browser address bar &rarr; <strong>Site Settings</strong> &rarr; Set <strong>Location to Allow</strong>.
+              </p>
+              <button
+                type="button"
+                onClick={handleDetectGPS}
+                className="mt-1 px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>Retry Permission</span>
+              </button>
+            </div>
+          )}
+
+          {/* GPS Status Notice */}
+          {gpsStatusNotice && !permissionBlocked && (
+            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center gap-2 animate-fadeIn">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="flex-1">{gpsStatusNotice}</span>
             </div>
           )}
         </div>
 
-        {/* Live Interactive Leaflet Map View */}
-        <div className="relative w-full h-60 sm:h-72 bg-slate-100 shrink-0">
+        {/* Live Interactive Google Map View */}
+        <div className="relative w-full h-56 sm:h-64 bg-slate-100 shrink-0">
           <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-          {/* Top Pill Status Badge matching Screenshot 2 & 4 */}
+          {/* Top Pill Status Badge */}
           <div className="absolute top-3 left-3 right-3 z-[1000] pointer-events-none flex justify-center">
             {isInside10Km ? (
               <div className="bg-emerald-600 text-white px-3.5 py-1.5 rounded-full shadow-lg border border-white/20 flex items-center gap-2 text-xs font-black animate-fadeIn">
                 <ShieldCheck className="w-4 h-4" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-300 animate-pulse" />
-                <span>Delivery Available ({distanceKm} km)</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                <span>15-Min Express Delivery Available ({distanceKm} km from Hub)</span>
               </div>
             ) : (
-              <div className="bg-rose-600 text-white px-3.5 py-1.5 rounded-full shadow-lg border border-white/20 flex items-center gap-2 text-xs font-black animate-fadeIn">
-                <AlertTriangle className="w-4 h-4" />
-                <span>Delivery Not Available ({distanceKm} km) • Outside 10 km</span>
+              <div className="bg-slate-900/90 backdrop-blur-xs text-white px-3.5 py-1.5 rounded-full shadow-lg border border-white/20 flex items-center gap-2 text-xs font-black animate-fadeIn">
+                <MapPin className="w-4 h-4 text-amber-400" />
+                <span>Standard Delivery Zone ({distanceKm} km from Hub)</span>
               </div>
             )}
           </div>
 
-          {/* Bottom attribution overlay matching Screenshot 2 */}
           <div className="absolute bottom-1 right-2 z-[1000] pointer-events-none text-right">
-            <span className="text-[10px] text-slate-700 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded shadow-2xs">
-              Leaflet | © Google Maps
+            <span className="text-[10px] text-slate-700 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded shadow-2xs font-semibold">
+              Google Maps © 2026
             </span>
           </div>
 
-          {/* Bottom Hint */}
           <div className="absolute bottom-2 left-2 z-[1000] pointer-events-none">
-            <span className="bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm border border-white/10">
-              Drag green pin to your building
+            <span className="bg-slate-900/85 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm border border-white/10 flex items-center gap-1.5">
+              <span>📍 Drag pin to your building or entrance</span>
+              {isGeocoding && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
             </span>
           </div>
         </div>
 
-        {/* Detected Address Details & Confirm Button */}
+        {/* Detected Address Details with Live Pin Data */}
         <div className="p-4 sm:p-5 space-y-3.5 bg-white overflow-y-auto flex-1 text-xs">
           
-          <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">
-                DETECTED ADDRESS
+          <div className="bg-slate-50 border-2 border-slate-200/90 rounded-2xl p-4 font-sans text-slate-900 space-y-1 shadow-2xs relative">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                Live Pin-Dropped Full Address
               </span>
-              <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                PIN: {activePincode}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsManualEditing(!isManualEditing)}
+                  className="text-[10px] font-bold text-amber-800 hover:text-amber-900 bg-amber-100 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>{isManualEditing ? 'Save Edit' : 'Manual Edit'}</span>
+                </button>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                  isInside10Km ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {isInside10Km ? '✓ 10-KM Express Zone' : 'Standard Delivery Zone'}
+                </span>
+              </div>
             </div>
-            <p className="font-bold text-slate-900 text-xs sm:text-sm leading-snug">
-              {detectedAddress}
-            </p>
-            <div className="flex items-center justify-between pt-1">
-              <p className="text-[11px] text-slate-500 font-mono">
-                {selectedCoords[0].toFixed(4)}, {selectedCoords[1].toFixed(4)}
-              </p>
-              <span className={`text-[11px] font-bold ${isInside10Km ? 'text-emerald-700' : 'text-rose-600'}`}>
-                {isInside10Km ? `✓ Within 10 km Express Zone (${distanceKm} km)` : `✕ ${distanceKm} km (Exceeds 10 km limit)`}
+
+            {/* Structured Address Display */}
+            {!isManualEditing ? (
+              <div className="pt-2 text-sm sm:text-base font-semibold text-slate-800 leading-snug space-y-0.5">
+                <div className="font-mono font-bold text-amber-700">{structuredAddress.plusCode},</div>
+                <div>{structuredAddress.road},</div>
+                <div>{structuredAddress.locality},</div>
+                <div>{structuredAddress.city},</div>
+                <div>{structuredAddress.landmark},</div>
+                <div>{structuredAddress.state}</div>
+                <div className="font-bold text-slate-950 pt-0.5">{structuredAddress.pincode}</div>
+              </div>
+            ) : (
+              <div className="pt-2 space-y-2">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Plus Code</label>
+                  <input
+                    type="text"
+                    value={structuredAddress.plusCode}
+                    onChange={(e) => setStructuredAddress(prev => ({ ...prev, plusCode: e.target.value }))}
+                    className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-mono font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Road / Street</label>
+                  <input
+                    type="text"
+                    value={structuredAddress.road}
+                    onChange={(e) => setStructuredAddress(prev => ({ ...prev, road: e.target.value }))}
+                    className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Village / Locality</label>
+                    <input
+                      type="text"
+                      value={structuredAddress.locality}
+                      onChange={(e) => setStructuredAddress(prev => ({ ...prev, locality: e.target.value }))}
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Town / City</label>
+                    <input
+                      type="text"
+                      value={structuredAddress.city}
+                      onChange={(e) => setStructuredAddress(prev => ({ ...prev, city: e.target.value }))}
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Landmark / Area</label>
+                    <input
+                      type="text"
+                      value={structuredAddress.landmark}
+                      onChange={(e) => setStructuredAddress(prev => ({ ...prev, landmark: e.target.value }))}
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Pincode</label>
+                    <input
+                      type="text"
+                      value={structuredAddress.pincode}
+                      onChange={(e) => setStructuredAddress(prev => ({ ...prev, pincode: e.target.value }))}
+                      className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+              <span>{selectedCoords[0].toFixed(5)}, {selectedCoords[1].toFixed(5)}</span>
+              <span className={`font-bold ${isInside10Km ? 'text-emerald-700' : 'text-slate-700'}`}>
+                Distance: {distanceKm} km {isInside10Km ? '(15-Min Express)' : '(Standard Shipping)'}
               </span>
             </div>
           </div>
 
-          {/* Outside 10 km Rule Warning Banner */}
-          {!isInside10Km && (
-            <div className="p-3 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900 space-y-1 animate-fadeIn">
-              <div className="flex items-center gap-1.5 font-black text-xs text-amber-900">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Delivery Not Available at This Address</span>
-              </div>
-              <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
-                Apna Bazar delivers exclusively within a <strong>10 km radius</strong> of our Baharagora Central Hub. Your selected location is <strong>{distanceKm} km</strong> away. Please drag the pin or choose an address within 10 km to place an order.
-              </p>
-            </div>
-          )}
-
-          {/* Confirm Button matching Screenshot 2 & 4 */}
-          {isInside10Km ? (
-            <button
-              type="button"
-              onClick={handleConfirmLocation}
-              className="w-full py-3.5 px-4 rounded-2xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-400/25 transition-all active:scale-98 cursor-pointer"
-            >
-              <span>Confirm This Delivery Location</span>
-              <Check className="w-5 h-5 stroke-[3]" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="w-full py-3.5 px-4 rounded-2xl bg-slate-200 text-slate-400 font-black text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-            >
-              <span>Delivery Not Available (Outside 10 km)</span>
-              <AlertTriangle className="w-4 h-4" />
-            </button>
-          )}
+          {/* Confirm Button */}
+          <button
+            type="button"
+            onClick={handleConfirmLocation}
+            className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 cursor-pointer ${
+              isInside10Km
+                ? 'bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-amber-400/25'
+                : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/25'
+            }`}
+          >
+            <span>
+              {isInside10Km 
+                ? 'Confirm This Delivery Address (15-Min Express)' 
+                : 'Confirm This Delivery Address (Standard Delivery)'}
+            </span>
+            <Check className="w-5 h-5 stroke-[3]" />
+          </button>
 
         </div>
 

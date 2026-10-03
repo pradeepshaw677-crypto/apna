@@ -150,20 +150,48 @@ export default function App() {
   const [activeTrackedOrder, setActiveTrackedOrder] = useState<Order | null>(null);
   const [orderSuccessBanner, setOrderSuccessBanner] = useState<Order | null>(null);
 
-  // Catalog, Filter & Search
-  const [productsList, setProductsList] = useState<Product[]>(PRODUCTS);
+  // Catalog, Filter & Search with High-Speed Local Caching
+  const [productsList, setProductsList] = useState<Product[]>(() => {
+    try {
+      const cached = localStorage.getItem('ab_cached_products_v2');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return PRODUCTS;
+  });
+
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'deals' | 'bestsellers' | 'rating4plus' | 'under999'>('all');
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc' | 'discount' | 'rating'>('popular');
   
-  // 8 Products per batch pagination & infinite scroll
-  const [visibleCount, setVisibleCount] = useState(8);
+  // 8 Products per batch pagination & persistence across refresh (fixes "refresh fir se suru se load ho raha hai")
+  const [visibleCount, setVisibleCount] = useState<number>(() => {
+    try {
+      const savedCount = sessionStorage.getItem('ab_visible_count');
+      if (savedCount) {
+        const parsed = parseInt(savedCount, 10);
+        if (!isNaN(parsed) && parsed >= 8) return parsed;
+      }
+    } catch {}
+    return 8;
+  });
+
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>('home');
+  const isFirstMountFilter = useRef(true);
 
   const productSectionRef = useRef<HTMLDivElement>(null);
   const categorySectionRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Auto-save visibleCount to sessionStorage
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('ab_visible_count', visibleCount.toString());
+    } catch {}
+  }, [visibleCount]);
 
   // Auto-clear cart toast after 3.5s
   useEffect(() => {
@@ -182,12 +210,15 @@ export default function App() {
     });
   }, []);
 
-  // Fetch live products from backend with fallback
+  // Fetch live products from backend with high-speed local caching
   useEffect(() => {
     let isMounted = true;
     api.getProducts().then((res) => {
       if (isMounted && res.products && res.products.length > 0) {
         setProductsList(res.products);
+        try {
+          localStorage.setItem('ab_cached_products_v2', JSON.stringify(res.products));
+        } catch {}
       }
     }).catch(() => {
       // Fallback to static PRODUCTS
@@ -222,9 +253,16 @@ export default function App() {
   useEffect(() => { saveOrders(orders); }, [orders]);
   useEffect(() => { saveAddress(savedAddress); }, [savedAddress]);
 
-  // Reset pagination to 8 on filter change
+  // Reset pagination to 8 ONLY when user explicitly changes category, search or filters (prevents reset on refresh)
   useEffect(() => {
+    if (isFirstMountFilter.current) {
+      isFirstMountFilter.current = false;
+      return;
+    }
     setVisibleCount(8);
+    try {
+      sessionStorage.setItem('ab_visible_count', '8');
+    } catch {}
   }, [selectedCategory, searchQuery, filterType, sortBy]);
 
   // Set latest order to tracked
@@ -395,13 +433,19 @@ export default function App() {
 
     // Auto-fill savedAddress for seamless checkout
     setSavedAddress((prev) => {
+      const parts = addressStr.split(',').map(s => s.trim());
+      const detectedCity = parts[3] || (addressStr.includes('Baharagora') ? 'Baharagora' : (prev.city || 'Local Area'));
+      const detectedArea = parts[2] || (isExpressZone ? 'Baharagora 10-KM Hub Zone' : (prev.area || 'Delivery Zone'));
+      const detectedLandmark = parts[4] || prev.landmark || '';
+
       const updated: DeliveryAddress = {
         ...prev,
         streetAddress: addressStr,
-        pincode: pin,
-        city: addressStr.includes('Baharagora') ? 'Baharagora' : (prev.city || 'Baharagora'),
-        state: 'Jharkhand',
-        area: isExpressZone ? 'Baharagora 10-KM Hub Zone' : (prev.area || 'Baharagora Central Area'),
+        pincode: pin || prev.pincode,
+        city: detectedCity,
+        state: prev.state || 'Jharkhand',
+        landmark: detectedLandmark,
+        area: detectedArea,
       };
       saveAddress(updated);
       return updated;

@@ -60,6 +60,38 @@ export const api = {
     }
   },
 
+  // Live Geocoding & GPS Reverse Geocode
+  async reverseGeocode(lat: number, lng: number) {
+    try {
+      const res = await fetch(`/api/geocode/reverse?lat=${lat}&lng=${lng}`);
+      if (res.ok) return await res.json();
+    } catch (e) {
+      console.error('Reverse geocode API error:', e);
+    }
+    return null;
+  },
+
+  async searchPlaces(query: string) {
+    try {
+      const res = await fetch(`/api/geocode/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.suggestions || [];
+      }
+    } catch (e) {
+      console.error('Search places API error:', e);
+    }
+    return [];
+  },
+
+  async getGeoIP() {
+    try {
+      const res = await fetch('/api/geoip');
+      if (res.ok) return await res.json();
+    } catch {}
+    return null;
+  },
+
   // Reviews
   async getReviews(productId: string): Promise<ProductReview[]> {
     try {

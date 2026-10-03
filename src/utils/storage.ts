@@ -6,11 +6,11 @@ const ORDERS_KEY = 'apnabazar_orders_v1';
 const ADDRESS_KEY = 'apnabazar_address_v1';
 
 export const DEFAULT_ADDRESS: DeliveryAddress = {
-  fullName: '',
-  phoneNumber: '',
-  streetAddress: '',
-  landmark: '',
-  area: 'Baharagora',
+  fullName: 'Bhabani Shit',
+  phoneNumber: '9771762719',
+  streetAddress: '6PFP+W7H, Domjuri road, Domjuri',
+  landmark: 'Kolaram',
+  area: 'Domjuri, Baharagora',
   city: 'Baharagora',
   state: 'Jharkhand',
   pincode: '832101',

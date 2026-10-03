@@ -17,6 +17,7 @@ import { CartItem, Coupon, DeliveryAddress, Order } from '../types';
 import { formatINR, getSizePriceDelta } from '../utils/pricing';
 import { api } from '../utils/api';
 import { AbCoinLogo } from './AbCoinLogo';
+import { LocationPermissionModal } from './LocationPermissionModal';
 import confetti from 'canvas-confetti';
 
 interface CheckoutModalProps {
@@ -46,12 +47,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 }) => {
   const [address, setAddress] = useState<DeliveryAddress>(savedAddress);
   const [isEditingAddress, setIsEditingAddress] = useState(!savedAddress.fullName || !savedAddress.streetAddress);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ab_coins'>('cod');
-  const [useAbCoins, setUseAbCoins] = useState(true);
+  // User explicit instruction: "tum koi default me tick mat lagana user khud choose karega"
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ab_coins' | null>(null);
+  const [useAbCoins, setUseAbCoins] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [detectingGps, setDetectingGps] = useState(false);
   const [gpsSuccessMsg, setGpsSuccessMsg] = useState<string | null>(null);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
   // Sync savedAddress changes
   useEffect(() => {
@@ -67,72 +70,104 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handleUseCurrentLocation = async () => {
     setDetectingGps(true);
     setGpsSuccessMsg(null);
+    setErrorMessage(null);
 
-    const applyAddress = (street: string, city: string, state: string, pincode: string) => {
+    const applyAddress = (street: string, city: string, state: string, pincode: string, landmark: string, fullFormatted?: string) => {
       setAddress((prev) => ({
         ...prev,
-        streetAddress: street,
-        city: city || 'Baharagora',
-        state: state || 'Jharkhand',
+        streetAddress: street || 'Live GPS Location Point',
+        landmark: landmark || '',
+        area: `${city || ''}, ${state || ''}`,
+        city: city || 'Local Area',
+        state: state || 'India',
         pincode: pincode || '832101',
-        area: 'Baharagora Service Zone',
       }));
-      setGpsSuccessMsg(`✓ Address Auto-Filled: ${street.slice(0, 30)}... (${pincode})`);
+      setGpsSuccessMsg(`✓ Live Address Detected: ${street || city} (${pincode})`);
       setIsEditingAddress(true);
       setDetectingGps(false);
       setTimeout(() => setGpsSuccessMsg(null), 5000);
     };
 
-    // Tier 1: Fast Browser GPS
+    // Helper for fast browser geolocation
+    const getGPS = (highAccuracy: boolean, timeoutMs: number): Promise<{ latitude: number; longitude: number }> => {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('Geolocation unsupported'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: highAccuracy, timeout: timeoutMs, maximumAge: 30000 }
+        );
+      });
+    };
+
+    // Tier 1: Real Device Browser GPS
     if (navigator.geolocation) {
       try {
-        const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => resolve(pos.coords),
-            (err) => reject(err),
-            { timeout: 3500, enableHighAccuracy: false, maximumAge: 60000 }
-          );
-        });
-
-        // Reverse geocode
+        let coords: { latitude: number; longitude: number };
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&addressdetails=1`
-          );
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.address) {
-              const addr = data.address;
-              const road = addr.road || addr.street || addr.neighbourhood || addr.suburb || 'Main Market Road';
-              const locality = addr.suburb || addr.village || addr.town || 'Baharagora';
-              const city = addr.city || addr.town || addr.village || 'Baharagora';
-              const state = addr.state || 'Jharkhand';
-              const pin = addr.postcode || '832101';
-              applyAddress(`${road}, ${locality}`, city, state, pin);
-              return;
-            }
+          coords = await getGPS(true, 7000);
+        } catch {
+          // Fast fallback to network/cell tower triangulation
+          coords = await getGPS(false, 5000);
+        }
+
+        // Live Server-side reverse geocode
+        try {
+          const res = await api.reverseGeocode(coords.latitude, coords.longitude);
+          if (res && res.fullFormatted) {
+            applyAddress(
+              `${res.plusCode || ''}, ${res.road || ''}, ${res.locality || ''}`.replace(/^, |, $/g, ''),
+              res.city,
+              res.state,
+              res.pincode,
+              res.landmark,
+              res.fullFormatted
+            );
+            return;
           }
-        } catch {}
+        } catch (e) {
+          console.error('Reverse geocode error in checkout:', e);
+        }
 
-        applyAddress(`GPS Location (${coords.latitude.toFixed(3)}, ${coords.longitude.toFixed(3)})`, 'Baharagora', 'Jharkhand', '832101');
+        applyAddress(`GPS Location (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`, 'Local City', 'Jharkhand', '832101', '');
         return;
-      } catch {}
-    }
-
-    // Tier 2: Real-time IP Geolocation
-    try {
-      const ipRes = await fetch('https://ipapi.co/json/');
-      if (ipRes.ok) {
-        const ipData = await ipRes.json();
-        if (ipData && ipData.latitude && ipData.longitude) {
-          applyAddress(`${ipData.city || 'Main Road'}, ${ipData.region || 'Jharkhand'}`, ipData.city || 'Baharagora', ipData.region || 'Jharkhand', ipData.postal || '832101');
+      } catch (err: any) {
+        if (err?.code === 1) {
+          setErrorMessage('⚠️ Location permission was denied in your browser. Please allow location in browser settings or type address manually.');
+          setDetectingGps(false);
           return;
         }
       }
+    }
+
+    // Tier 2: Real-time GeoIP Lookup
+    try {
+      const geoIpData = await api.getGeoIP();
+      if (geoIpData && geoIpData.lat && geoIpData.lon) {
+        try {
+          const res = await api.reverseGeocode(geoIpData.lat, geoIpData.lon);
+          if (res && res.fullFormatted) {
+            applyAddress(
+              `${res.plusCode || ''}, ${res.road || ''}, ${res.locality || ''}`.replace(/^, |, $/g, ''),
+              res.city || geoIpData.city,
+              res.state || geoIpData.state,
+              res.pincode || geoIpData.pincode,
+              res.landmark,
+              res.fullFormatted
+            );
+            return;
+          }
+        } catch {}
+        applyAddress('Live Area', geoIpData.city || 'Local Area', geoIpData.state || 'India', geoIpData.pincode || '832101', '');
+        return;
+      }
     } catch {}
 
-    // Fallback: Baharagora Central Hub
-    applyAddress('Dadu Complex, Near Shitla Mandir', 'Baharagora', 'Jharkhand', '832101');
+    setErrorMessage('Could not auto-detect location. Please enter your address details below.');
+    setDetectingGps(false);
   };
 
   if (!isOpen) return null;
@@ -280,15 +315,25 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </span>
                 <span>Delivery Address (India Doorstep)</span>
               </div>
-              <button
-                type="button"
-                onClick={handleUseCurrentLocation}
-                disabled={detectingGps}
-                className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>{detectingGps ? 'Detecting...' : '📍 Auto-Detect GPS & Address'}</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={detectingGps}
+                  className="text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{detectingGps ? 'Detecting...' : 'Auto-Detect GPS'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMapModalOpen(true)}
+                  className="text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <span>🗺️ Drop Pin on Map</span>
+                </button>
+              </div>
             </div>
 
             {gpsSuccessMsg && (
@@ -432,140 +477,134 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </span>
             </div>
 
-            {/* AB Coins Redeem Card with Conversion Notice (2 AB Coins = ₹1) */}
-            <div 
-              onClick={() => {
-                setUseAbCoins(!useAbCoins);
-              }}
-              className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-2 ${
-                useAbCoins
-                  ? 'border-amber-500 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-100 shadow-xs'
-                  : 'border-slate-200 hover:border-slate-300 bg-white'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <AbCoinLogo size="lg" />
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-black text-slate-950 text-xs sm:text-sm">Pay / Redeem AB Coins</h4>
-                      <span className="text-[10px] bg-amber-200 text-amber-950 font-black px-2 py-0.5 rounded-full">
-                        {walletBalance} Coins (₹{walletRupeesValue} Value)
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-amber-950 font-bold mt-1">
-                      ⚡ Rate: <strong>2 AB Coins = ₹1</strong>
-                    </p>
-                    {useAbCoins ? (
-                      <p className="text-xs text-emerald-800 font-bold mt-1">
-                        ✓ Redeeming {coinsToDeduct} Coins → ₹{coinsDiscountInRs} Discount Applied!
-                      </p>
-                    ) : (
-                      <p className="text-xs text-slate-500 mt-1">
-                        Click to apply {Math.min(walletBalance, subtotalAfterCoupon * 2)} AB Coins and save ₹{Math.min(walletRupeesValue, subtotalAfterCoupon)}.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <input
-                  type="checkbox"
-                  checked={useAbCoins}
-                  onChange={(e) => setUseAbCoins(e.target.checked)}
-                  className="w-5 h-5 rounded accent-amber-500 cursor-pointer mt-1"
-                />
-              </div>
-            </div>
-
-            {/* 100% AB Coins Full Payment Card (if sufficient coins) */}
-            {walletRupeesValue >= subtotalAfterCoupon && (
+            {/* User explicit instruction: "and check out me ab coin ya to cod agar ab coin hai to ab se karaga agar cod to cod and tum koi default me tick mat lagana user khud choose karega" */}
+            <div className="space-y-3">
+              {/* Option 1: Cash on Delivery (COD) Card */}
               <div 
                 onClick={() => {
-                  setSelectedPaymentMethod('ab_coins');
-                  setUseAbCoins(true);
+                  setSelectedPaymentMethod('cod');
+                  setUseAbCoins(false);
+                  setErrorMessage(null);
                 }}
-                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-2 ${
-                  selectedPaymentMethod === 'ab_coins'
-                    ? 'border-emerald-500 bg-emerald-50/70 shadow-xs'
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-3 ${
+                  selectedPaymentMethod === 'cod'
+                    ? 'border-amber-500 bg-gradient-to-br from-amber-50/80 via-white to-amber-50/50 shadow-md ring-2 ring-amber-400/30'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
-                      <Sparkles className="w-5 h-5" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-md transition-colors ${
+                      selectedPaymentMethod === 'cod' ? 'bg-amber-500 text-slate-950' : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      <Banknote className="w-5 h-5 stroke-[2.5]" />
                     </div>
                     <div>
-                      <h4 className="font-black text-slate-950 text-sm flex items-center gap-1.5">
-                        <span>100% AB Coins Payment</span>
-                        <span className="text-[10px] bg-emerald-100 text-emerald-900 font-black px-1.5 py-0.5 rounded">
-                          Zero Cash Needed
+                      <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                        <span>Cash on Delivery (COD)</span>
+                        <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">
+                          Doorstep Cash / UPI
                         </span>
                       </h4>
                       <p className="text-xs text-slate-600 mt-0.5">
-                        Your entire order of {formatINR(subtotalAfterCoupon)} will be paid using {subtotalAfterCoupon * 2} AB Coins (2 Coins = ₹1). Pay ₹0 at delivery!
+                        Pay {formatINR(subtotalAfterCoupon)} via Cash or QR code directly to rider at doorstep delivery. Zero advance risk!
                       </p>
                     </div>
                   </div>
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
-                    selectedPaymentMethod === 'ab_coins' ? 'bg-emerald-600 text-white' : 'border border-slate-300'
+
+                  {/* Radio Selection: Empty circle by default; Tick only when user chooses! */}
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 transition-all ${
+                    selectedPaymentMethod === 'cod' 
+                      ? 'bg-amber-500 text-slate-950 shadow-sm border-2 border-amber-600' 
+                      : 'border-2 border-slate-300 bg-slate-50'
                   }`}>
-                    {selectedPaymentMethod === 'ab_coins' && '✓'}
+                    {selectedPaymentMethod === 'cod' ? '✓' : ''}
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Cash on Delivery (COD) Card */}
-            <div 
-              onClick={() => setSelectedPaymentMethod('cod')}
-              className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-3 ${
-                selectedPaymentMethod === 'cod'
-                  ? 'border-amber-500 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 shadow-xs'
-                  : 'border-slate-200 hover:border-slate-300 bg-white'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-md shadow-amber-500/30">
-                    <Banknote className="w-5 h-5 stroke-[2.5]" />
+                {/* Verified COD Features */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-amber-200/60 text-[11px] text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>No Advance Risk</span>
                   </div>
-                  <div>
-                    <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
-                      <span>Cash on Delivery (COD)</span>
-                      <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">
-                        100% Safe
-                      </span>
-                    </h4>
-                    <p className="text-xs text-slate-600 mt-0.5">
-                      {finalTotal === 0
-                        ? 'Your order is 100% covered by AB Coins! ₹0 cash needed.'
-                        : `Pay ${formatINR(finalTotal)} via cash or UPI directly when your package is delivered.`}
-                    </p>
+                  <div className="flex items-center gap-1.5">
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>5-Day Returns</span>
                   </div>
-                </div>
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
-                  selectedPaymentMethod === 'cod' ? 'bg-amber-500 text-slate-950' : 'border border-slate-300'
-                }`}>
-                  {selectedPaymentMethod === 'cod' && '✓'}
+                  <div className="flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>3-Day Express</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Verified Features */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-amber-200/60 text-[11px] text-slate-600">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>No Advance Bank Risk</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>5-Day Easy Returns</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Truck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>3-Day Express Delivery</span>
+              {/* Option 2: Apna Bazar (AB) Coins Card */}
+              <div 
+                onClick={() => {
+                  if (walletBalance <= 0) {
+                    setErrorMessage('Aapke wallet me 0 AB Coins hain. Please Cash on Delivery (COD) select karein ya order returns se coins earn karein.');
+                    return;
+                  }
+                  setSelectedPaymentMethod('ab_coins');
+                  setUseAbCoins(true);
+                  setErrorMessage(null);
+                }}
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-2.5 ${
+                  selectedPaymentMethod === 'ab_coins'
+                    ? 'border-emerald-500 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100/60 shadow-md ring-2 ring-emerald-400/30'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <AbCoinLogo size="lg" />
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-black text-slate-950 text-xs sm:text-sm">Pay with AB Coins</h4>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                          walletBalance > 0 ? 'bg-amber-200 text-amber-950' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          Available: {walletBalance} Coins (₹{walletRupeesValue} Value)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-950 font-bold mt-1">
+                        ⚡ Rate: <strong>2 AB Coins = ₹1</strong>
+                      </p>
+                      {walletBalance <= 0 ? (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Wallet balance: 0 AB Coins. Select Cash on Delivery (COD) to place this order.
+                        </p>
+                      ) : selectedPaymentMethod === 'ab_coins' ? (
+                        <p className="text-xs text-emerald-800 font-bold mt-1">
+                          ✓ Selected: {coinsToDeduct} Coins will be deducted ({formatINR(coinsDiscountInRs)} shopping value applied).
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Click to select AB Coins and pay {Math.min(walletBalance, subtotalAfterCoupon * 2)} Coins.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Radio Selection: Empty circle by default; Tick only when user chooses! */}
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 transition-all ${
+                    selectedPaymentMethod === 'ab_coins' 
+                      ? 'bg-emerald-600 text-white shadow-sm border-2 border-emerald-700' 
+                      : 'border-2 border-slate-300 bg-slate-50'
+                  }`}>
+                    {selectedPaymentMethod === 'ab_coins' ? '✓' : ''}
+                  </div>
                 </div>
               </div>
+
+              {/* Notice if no option selected yet */}
+              {!selectedPaymentMethod && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-medium flex items-center gap-2 animate-pulse">
+                  <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Kripya upar diye gaye options me se <strong>Cash on Delivery (COD)</strong> ya <strong>AB Coins</strong> par click karein.</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -597,7 +636,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             )}
 
-            {coinsDiscountInRs > 0 && (
+            {coinsDiscountInRs > 0 && selectedPaymentMethod === 'ab_coins' && (
               <div className="flex justify-between text-amber-800 font-bold bg-amber-100/60 p-1.5 rounded-lg border border-amber-200">
                 <span>AB Coins Redeemed ({coinsToDeduct} Coins @ 2 Coins = ₹1):</span>
                 <span>-{formatINR(coinsDiscountInRs)}</span>
@@ -620,13 +659,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           {/* Place Order Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-400/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+            disabled={isSubmitting || !selectedPaymentMethod}
+            className={`w-full py-4 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all ${
+              !selectedPaymentMethod
+                ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
+                : 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 shadow-amber-400/25 active:scale-98 cursor-pointer'
+            }`}
           >
             {isSubmitting ? (
               <span>Placing Your Order...</span>
-            ) : finalTotal === 0 ? (
-              <span>Place Order with AB Coins (₹0 Cash) →</span>
+            ) : !selectedPaymentMethod ? (
+              <span>👆 Choose COD or AB Coins Above →</span>
+            ) : selectedPaymentMethod === 'ab_coins' ? (
+              <span>Place Order with AB Coins ({coinsToDeduct} Coins) →</span>
             ) : (
               <span>Confirm Order with 100% COD ({formatINR(finalTotal)}) →</span>
             )}
@@ -636,6 +681,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             🔒 Safe &amp; Encrypted • Dispatched within 24 hours with SMS/WhatsApp updates
           </p>
         </form>
+
+        <LocationPermissionModal
+          isOpen={isMapModalOpen}
+          onClose={() => setIsMapModalOpen(false)}
+          currentPincode={address.pincode}
+          onConfirmPincode={(pin, fullAddress, isJharkhand) => {
+            setIsMapModalOpen(false);
+            setAddress(prev => ({
+              ...prev,
+              streetAddress: fullAddress,
+              pincode: pin,
+            }));
+            setGpsSuccessMsg(`✓ Google Map Delivery Point Confirmed!`);
+            setIsEditingAddress(true);
+            setTimeout(() => setGpsSuccessMsg(null), 5000);
+          }}
+        />
       </div>
     </div>
   );
