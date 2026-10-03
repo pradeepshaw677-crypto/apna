@@ -109,6 +109,8 @@ export const api = {
     appliedCoupon?: Coupon | null;
     tipAmount?: number;
     userId?: string;
+    abCoinsUsed?: number;
+    coinsDiscount?: number;
   }): Promise<{ success: boolean; order: Order; message?: string }> {
     const res = await fetch('/api/orders', {
       method: 'POST',

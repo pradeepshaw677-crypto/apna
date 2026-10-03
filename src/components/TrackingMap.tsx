@@ -172,28 +172,25 @@ export const TrackingMap: React.FC<TrackingMapProps> = ({
       const bounds = L.latLngBounds(fullRoutePoints);
       map.fitBounds(bounds, { padding: [50, 50] });
 
-      // Live Rider Simulation along Route Line
+      // Steady, realistic 3-Day Express delivery tracking
+      const remainingSteps = fullRoutePoints.length - 1 - progressIndex;
+      setDistanceKm('2.8');
+      setEtaMinutes(24);
+      setCurrentSpeed(35);
+
+      // Realistic slow tracking update (gentle progress every 20 seconds, no crazy loop)
       const interval = setInterval(() => {
-        if (progressIndex < fullRoutePoints.length - 1) {
+        if (progressIndex < fullRoutePoints.length - 2) {
           progressIndex += 1;
-        } else {
-          progressIndex = 12; // loop for demo continuous movement
+          const nextPos = fullRoutePoints[progressIndex];
+          riderMarker.setLatLng(nextPos);
+          coveredRoute.setLatLngs(fullRoutePoints.slice(0, progressIndex + 1));
+          remainingRoute.setLatLngs(fullRoutePoints.slice(progressIndex));
+          const stepsLeft = fullRoutePoints.length - 1 - progressIndex;
+          setDistanceKm((stepsLeft * 0.15).toFixed(1));
+          setEtaMinutes(Math.max(5, Math.round(stepsLeft * 1.2)));
         }
-
-        const nextPos = fullRoutePoints[progressIndex];
-        riderMarker.setLatLng(nextPos);
-
-        // Update polylines
-        coveredRoute.setLatLngs(fullRoutePoints.slice(0, progressIndex + 1));
-        remainingRoute.setLatLngs(fullRoutePoints.slice(progressIndex));
-
-        // Update speed and distance
-        const remainingSteps = fullRoutePoints.length - 1 - progressIndex;
-        const dist = (remainingSteps * 0.12).toFixed(1);
-        setDistanceKm(dist);
-        setEtaMinutes(Math.max(3, Math.round(remainingSteps * 0.9)));
-        setCurrentSpeed(Math.floor(25 + Math.random() * 10));
-      }, 2400);
+      }, 20000);
 
       return () => {
         clearInterval(interval);

@@ -471,10 +471,12 @@ app.post("/api/orders", (req, res) => {
   const {
     items,
     address,
-    paymentMethod = "upi",
+    paymentMethod = "cod",
     appliedCoupon,
     tipAmount = 0,
     userId,
+    abCoinsUsed = 0,
+    coinsDiscount = 0,
   } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -506,7 +508,10 @@ app.post("/api/orders", (req, res) => {
     else if (code === "FREESHIP") discount = 49;
   }
 
-  const finalTotal = Math.max(0, itemTotal + deliveryFee + packagingFee + (Number(tipAmount) || 0) - discount);
+  // 2 AB Coins = ₹1 Discount
+  const coinDiscountVal = Number(coinsDiscount) || (Number(abCoinsUsed) ? Math.floor(Number(abCoinsUsed) / 2) : 0);
+
+  const finalTotal = Math.max(0, itemTotal + deliveryFee + packagingFee + (Number(tipAmount) || 0) - discount - coinDiscountVal);
 
   // 6-digit OTP for secure courier verification
   const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -519,6 +524,8 @@ app.post("/api/orders", (req, res) => {
     month: "short",
   });
 
+  const resolvedPaymentMethod = paymentMethod === "ab_coins" || finalTotal === 0 ? "ab_coins" : paymentMethod === "cod" ? "cod" : paymentMethod === "card" ? "card" : "upi";
+
   const newOrder: Order = {
     id: orderId,
     createdAt: Date.now(),
@@ -528,10 +535,12 @@ app.post("/api/orders", (req, res) => {
     packagingFee,
     discount,
     tipAmount: Number(tipAmount) || 0,
+    abCoinsUsed: Number(abCoinsUsed) || (coinDiscountVal * 2),
+    coinsDiscount: coinDiscountVal,
     totalAmount: finalTotal,
     address,
-    paymentMethod: paymentMethod === "cod" ? "cod" : paymentMethod === "card" ? "card" : "upi",
-    paymentStatus: paymentMethod === "cod" ? "pending" : "completed",
+    paymentMethod: resolvedPaymentMethod,
+    paymentStatus: resolvedPaymentMethod === "ab_coins" ? "completed" : paymentMethod === "cod" ? "pending" : "completed",
     orderStatus: "confirmed",
     estimatedDeliveryDate: `${formattedDate} by 7 PM`,
     appliedCoupon: appliedCoupon?.code,

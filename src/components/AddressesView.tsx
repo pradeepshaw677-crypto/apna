@@ -210,26 +210,29 @@ export const AddressesView: React.FC<AddressesViewProps> = ({ onSelectAddress, o
           </div>
         </div>
 
-        {/* 1. Map Point Banner matching Screenshot 12 */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs text-center space-y-4 max-w-lg mx-auto">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs border border-emerald-200">
-            <Compass className="w-8 h-8" />
+        {/* 1. Map Point Banner matching Screenshot 1 */}
+        <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs max-w-lg mx-auto">
+          <div className="border-2 border-dashed border-slate-200 rounded-3xl p-6 sm:p-8 text-center space-y-5">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto text-emerald-600 shadow-xs">
+              <MapPin className="w-10 h-10 stroke-[2.5]" />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Where should we deliver?
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed max-w-xs mx-auto">
+                Please select your exact delivery location on the map to continue.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMapModalOpen(true)}
+              className="w-full py-4 px-5 rounded-2xl bg-[#00875a] hover:bg-[#00734c] text-white font-black text-sm inline-flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-700/25 transition-all active:scale-98 cursor-pointer"
+            >
+              <Navigation className="w-4 h-4 -rotate-45" />
+              <span>🎯 Select Exact Delivery Point</span>
+            </button>
           </div>
-          <div className="space-y-1">
-            <h2 className="text-lg sm:text-xl font-black text-slate-900">
-              Where should we deliver?
-            </h2>
-            <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto">
-              Please select your exact delivery location on the map to continue.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsMapModalOpen(true)}
-            className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all active:scale-98 cursor-pointer"
-          >
-            <span>🎯 Select Exact Delivery Point on Map</span>
-          </button>
         </div>
 
         {/* Add Address Form Modal Card */}

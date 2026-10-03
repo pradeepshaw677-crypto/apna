@@ -24,7 +24,7 @@ export const CartToast: React.FC<CartToastProps> = ({
   if (!item) return null;
 
   return (
-    <div className="fixed top-20 right-4 sm:right-6 z-50 max-w-sm w-full animate-slideIn">
+    <div className="fixed top-20 left-3 right-3 sm:left-auto sm:right-6 z-50 max-w-sm w-auto sm:w-full mx-auto sm:mx-0 animate-slideIn">
       <div className="bg-slate-950/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-amber-500/40 flex items-center gap-3 relative overflow-hidden">
         
         {/* Amber Glow Background */}

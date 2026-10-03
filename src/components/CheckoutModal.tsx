@@ -1,24 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   MapPin, 
   Banknote, 
   ShieldCheck, 
-  RotateCcw, 
   CheckCircle2, 
-  Lock, 
-  Truck, 
+  RotateCcw, 
   AlertCircle,
-  Clock,
+  Truck,
   Sparkles,
-  Edit2,
-  Coins
+  Lock,
+  ArrowRight,
+  Info
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { CartItem, Coupon, DeliveryAddress, Order } from '../types';
+import { formatINR, getSizePriceDelta } from '../utils/pricing';
 import { api } from '../utils/api';
-import { getSizePriceDelta, formatINR } from '../utils/pricing';
 import { AbCoinLogo } from './AbCoinLogo';
+import confetti from 'canvas-confetti';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -42,64 +41,98 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onSaveAddress,
   onOrderPlaced,
   userId,
-  walletBalance = 0,
+  walletBalance = 0, // Welcome / default AB coins set to 0
   onDeductWalletCoins,
 }) => {
   const [address, setAddress] = useState<DeliveryAddress>(savedAddress);
   const [isEditingAddress, setIsEditingAddress] = useState(!savedAddress.fullName || !savedAddress.streetAddress);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ab_coins'>(walletBalance >= 100 ? 'ab_coins' : 'cod');
-  const [useAbCoins, setUseAbCoins] = useState(walletBalance > 0);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ab_coins'>('cod');
+  const [useAbCoins, setUseAbCoins] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [detectingGps, setDetectingGps] = useState(false);
   const [gpsSuccessMsg, setGpsSuccessMsg] = useState<string | null>(null);
 
-  const handleUseCurrentLocation = () => {
+  // Sync savedAddress changes
+  useEffect(() => {
+    if (savedAddress && savedAddress.streetAddress) {
+      setAddress(savedAddress);
+      if (savedAddress.fullName && savedAddress.streetAddress) {
+        setIsEditingAddress(false);
+      }
+    }
+  }, [savedAddress]);
+
+  // Fast multi-tier GPS / IP Geolocation detection
+  const handleUseCurrentLocation = async () => {
     setDetectingGps(true);
     setGpsSuccessMsg(null);
-    if (!navigator.geolocation) {
-      setDetectingGps(false);
+
+    const applyAddress = (street: string, city: string, state: string, pincode: string) => {
       setAddress((prev) => ({
         ...prev,
-        city: 'Baharagora',
-        state: 'Jharkhand',
-        pincode: '832101',
-        streetAddress: prev.streetAddress || 'Main Chowk, Near Shitla Mandir',
+        streetAddress: street,
+        city: city || 'Baharagora',
+        state: state || 'Jharkhand',
+        pincode: pincode || '832101',
+        area: 'Baharagora Service Zone',
       }));
-      setGpsSuccessMsg('✓ Pre-filled Baharagora, Jharkhand Hub (832101)');
-      setTimeout(() => setGpsSuccessMsg(null), 4000);
-      return;
+      setGpsSuccessMsg(`✓ Address Auto-Filled: ${street.slice(0, 30)}... (${pincode})`);
+      setIsEditingAddress(true);
+      setDetectingGps(false);
+      setTimeout(() => setGpsSuccessMsg(null), 5000);
+    };
+
+    // Tier 1: Fast Browser GPS
+    if (navigator.geolocation) {
+      try {
+        const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve(pos.coords),
+            (err) => reject(err),
+            { timeout: 3500, enableHighAccuracy: false, maximumAge: 60000 }
+          );
+        });
+
+        // Reverse geocode
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.latitude}&lon=${coords.longitude}&addressdetails=1`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.address) {
+              const addr = data.address;
+              const road = addr.road || addr.street || addr.neighbourhood || addr.suburb || 'Main Market Road';
+              const locality = addr.suburb || addr.village || addr.town || 'Baharagora';
+              const city = addr.city || addr.town || addr.village || 'Baharagora';
+              const state = addr.state || 'Jharkhand';
+              const pin = addr.postcode || '832101';
+              applyAddress(`${road}, ${locality}`, city, state, pin);
+              return;
+            }
+          }
+        } catch {}
+
+        applyAddress(`GPS Location (${coords.latitude.toFixed(3)}, ${coords.longitude.toFixed(3)})`, 'Baharagora', 'Jharkhand', '832101');
+        return;
+      } catch {}
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setDetectingGps(false);
-        const { latitude, longitude } = pos.coords;
-        setAddress((prev) => ({
-          ...prev,
-          city: 'Baharagora',
-          state: 'Jharkhand',
-          pincode: '832101',
-          area: 'Dadu Complex / Main Chowk',
-          streetAddress: prev.streetAddress || `GPS Auto-Filled (${latitude.toFixed(3)}, ${longitude.toFixed(3)}) - Near Baharagora Center`,
-        }));
-        setGpsSuccessMsg('✓ Current GPS Location Auto-Filled (Baharagora 832101)!');
-        setTimeout(() => setGpsSuccessMsg(null), 4000);
-      },
-      () => {
-        setDetectingGps(false);
-        setAddress((prev) => ({
-          ...prev,
-          city: 'Baharagora',
-          state: 'Jharkhand',
-          pincode: '832101',
-          streetAddress: prev.streetAddress || 'Dadu Complex, Near Shitla Mandir',
-        }));
-        setGpsSuccessMsg('✓ Set to Baharagora Central Hub (Jharkhand - 832101)');
-        setTimeout(() => setGpsSuccessMsg(null), 4000);
-      },
-      { timeout: 7000 }
-    );
+    // Tier 2: Real-time IP Geolocation
+    try {
+      const ipRes = await fetch('https://ipapi.co/json/');
+      if (ipRes.ok) {
+        const ipData = await ipRes.json();
+        if (ipData && ipData.latitude && ipData.longitude) {
+          applyAddress(`${ipData.city || 'Main Road'}, ${ipData.region || 'Jharkhand'}`, ipData.city || 'Baharagora', ipData.region || 'Jharkhand', ipData.postal || '832101');
+          return;
+        }
+      }
+    } catch {}
+
+    // Fallback: Baharagora Central Hub
+    applyAddress('Dadu Complex, Near Shitla Mandir', 'Baharagora', 'Jharkhand', '832101');
   };
 
   if (!isOpen) return null;
@@ -132,12 +165,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const subtotalAfterCoupon = Math.max(0, itemTotal + deliveryFee - discountAmount);
 
-  // AB Coins Calculation
-  const coinsApplicable = (useAbCoins || selectedPaymentMethod === 'ab_coins')
-    ? Math.min(walletBalance, subtotalAfterCoupon)
+  // User Explicit Rule: "2 AB Coin = 1 RS"
+  const COIN_CONVERSION_RATE = 2; // 2 Coins = ₹1
+  const walletRupeesValue = Math.floor(walletBalance / COIN_CONVERSION_RATE);
+
+  const isUsingCoins = useAbCoins || selectedPaymentMethod === 'ab_coins';
+  const coinsDiscountInRs = isUsingCoins
+    ? Math.min(walletRupeesValue, subtotalAfterCoupon)
     : 0;
 
-  const finalTotal = Math.max(0, subtotalAfterCoupon - coinsApplicable);
+  const coinsToDeduct = coinsDiscountInRs * COIN_CONVERSION_RATE;
+  const finalTotal = Math.max(0, subtotalAfterCoupon - coinsDiscountInRs);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,8 +199,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       // Save current address to user profile
       onSaveAddress(address);
 
-      if (coinsApplicable > 0 && onDeductWalletCoins) {
-        onDeductWalletCoins(coinsApplicable);
+      if (coinsToDeduct > 0 && onDeductWalletCoins) {
+        onDeductWalletCoins(coinsToDeduct);
       }
 
       const response = await api.createOrder({
@@ -172,23 +210,28 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         appliedCoupon,
         tipAmount: 0,
         userId,
+        abCoinsUsed: isUsingCoins ? coinsToDeduct : 0,
+        coinsDiscount: isUsingCoins ? coinsDiscountInRs : 0,
       });
 
       if (response && response.order) {
         const orderWithCoins: Order = {
           ...response.order,
-          abCoinsUsed: coinsApplicable,
+          abCoinsUsed: coinsToDeduct,
+          coinsDiscount: coinsDiscountInRs,
           totalAmount: finalTotal,
           estimatedDeliveryDate: '⚡ 3-Day Express Doorstep Delivery',
         };
 
         // Trigger celebratory confetti
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#f59e0b', '#fb923c', '#e11d48', '#0f172a'],
-        });
+        try {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#f59e0b', '#fb923c', '#e11d48', '#0f172a'],
+          });
+        } catch {}
 
         onOrderPlaced(orderWithCoins);
         onClose();
@@ -203,7 +246,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn overflow-y-auto">
       <div 
-        className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92dvh] flex flex-col"
+        className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92dvh] flex flex-col mx-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -214,7 +257,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
             <div>
               <h2 className="font-black text-base sm:text-lg text-slate-950 tracking-tight">Checkout: Apna Bazar Superstore</h2>
-              <p className="text-[11px] font-bold text-slate-900/80">⚡ 3-Day Doorstep Express Delivery • 100% Cash on Delivery &amp; AB Coins</p>
+              <p className="text-[11px] font-bold text-slate-900/80">⚡ 3-Day Doorstep Delivery • 100% COD &amp; AB Coins (2 Coins = ₹1)</p>
             </div>
           </div>
           <button
@@ -244,128 +287,139 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
               >
                 <MapPin className="w-3.5 h-3.5" />
-                <span>{detectingGps ? 'Detecting...' : '📍 Use Current GPS Location'}</span>
+                <span>{detectingGps ? 'Detecting...' : '📍 Auto-Detect GPS & Address'}</span>
               </button>
             </div>
 
             {gpsSuccessMsg && (
-              <p className="text-xs font-bold text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>{gpsSuccessMsg}</span>
-              </p>
+              </div>
             )}
 
-            {/* Saved Address One-Tap View */}
-            {!isEditingAddress && address.fullName && address.streetAddress ? (
-              <div className="p-4 rounded-2xl bg-amber-50/70 border-2 border-amber-400 flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
-                      ✓ Saved Delivery Address
-                    </span>
-                    <span className="font-black text-slate-900 text-xs sm:text-sm">{address.fullName}</span>
+            {isEditingAddress ? (
+              <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 animate-fadeIn">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rahul Sharma"
+                      value={address.fullName}
+                      onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:border-amber-500 outline-none"
+                    />
                   </div>
-                  <p className="text-xs text-slate-700 font-medium">
-                    {address.streetAddress} {address.landmark ? `(Near ${address.landmark})` : ''}
-                  </p>
-                  <p className="text-xs text-slate-600">
-                    {address.city}, {address.state || 'Jharkhand'} - {address.pincode}
-                  </p>
-                  <p className="text-xs font-bold text-slate-900 pt-0.5">
-                    Phone: {address.phoneNumber}
-                  </p>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">10-Digit Mobile Number *</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">+91</span>
+                      <input
+                        type="tel"
+                        required
+                        maxLength={10}
+                        placeholder="9876543210"
+                        value={address.phoneNumber}
+                        onChange={(e) => setAddress({ ...address, phoneNumber: e.target.value.replace(/\D/g, '') })}
+                        className="w-full text-xs p-2.5 pl-11 rounded-xl border border-slate-300 bg-white focus:border-amber-500 outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Flat / House No. &amp; Building / Street Address *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Flat 302, Royal Residency, Near Main Market"
+                    value={address.streetAddress}
+                    onChange={(e) => setAddress({ ...address, streetAddress: e.target.value })}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:border-amber-500 outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Nearby Landmark</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Near Shitla Mandir"
+                      value={address.landmark || ''}
+                      onChange={(e) => setAddress({ ...address, landmark: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:border-amber-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">City / Town *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Baharagora"
+                      value={address.city}
+                      onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:border-amber-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Pincode (6 Digits) *</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      placeholder="832101"
+                      value={address.pincode}
+                      onChange={(e) => setAddress({ ...address, pincode: e.target.value.replace(/\D/g, '') })}
+                      className="w-full text-xs p-2.5 rounded-xl border border-slate-300 bg-white focus:border-amber-500 outline-none font-mono font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (address.fullName && address.phoneNumber && address.streetAddress && address.pincode) {
+                        setIsEditingAddress(false);
+                      }
+                    }}
+                    className="px-4 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 cursor-pointer"
+                  >
+                    Done Editing Address
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200 flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-xs text-slate-900">{address.fullName}</span>
+                    <span className="text-[10px] text-amber-800 font-bold bg-amber-100 px-2 py-0.5 rounded-full">
+                      +91 {address.phoneNumber}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-700">
+                    {address.streetAddress}{address.landmark ? `, Near ${address.landmark}` : ''}, {address.city}, {address.state} - <strong className="font-mono text-slate-900">{address.pincode}</strong>
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setIsEditingAddress(true)}
-                  className="px-3 py-1.5 rounded-xl bg-white border border-amber-300 text-amber-900 font-bold text-xs flex items-center gap-1 hover:bg-amber-100 transition-colors cursor-pointer shrink-0"
+                  className="text-xs font-black text-amber-800 hover:underline cursor-pointer shrink-0"
                 >
-                  <Edit2 className="w-3 h-3" />
-                  <span>Change</span>
+                  Change
                 </button>
               </div>
-            ) : (
-              /* Address Edit Form */
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Receiver&apos;s Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={address.fullName}
-                    onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
-                    placeholder="e.g. Rahul Sharma"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">Mobile Number (For Delivery OTP) *</label>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    value={address.phoneNumber}
-                    onChange={(e) => setAddress({ ...address, phoneNumber: e.target.value.replace(/\D/g, '') })}
-                    placeholder="10-digit mobile number"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="font-bold text-slate-700 block mb-1">House / Flat / Street / Landmark *</label>
-                  <input
-                    type="text"
-                    required
-                    value={address.streetAddress}
-                    onChange={(e) => setAddress({ ...address, streetAddress: e.target.value })}
-                    placeholder="e.g. Dadu Complex, Near Shitla Mandir, Main Road"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">6-Digit Pincode *</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    value={address.pincode}
-                    onChange={(e) => setAddress({ ...address, pincode: e.target.value.replace(/\D/g, '') })}
-                    placeholder="e.g. 832101"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-mono font-bold focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700 block mb-1">City / Town *</label>
-                  <input
-                    type="text"
-                    required
-                    value={address.city}
-                    onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                    placeholder="e.g. Baharagora"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
             )}
-
-            {/* Express Delivery Badge */}
-            <div className="p-3 rounded-2xl bg-slate-900 text-white flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-amber-400" />
-                <span className="font-bold">⚡ Fast 3-Day Express Doorstep Delivery</span>
-              </div>
-              <span className="text-[10px] text-amber-300 font-extrabold bg-white/10 px-2 py-0.5 rounded-full">
-                Guaranteed
-              </span>
-            </div>
           </div>
 
-          {/* Step 2: Payment Mode - COD & AB Coins */}
-          <div className="space-y-4">
+          {/* Step 2: Payment Mode with AB Coins (2 AB Coins = ₹1) */}
+          <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
                 <span className="w-5 h-5 rounded-full bg-slate-900 text-white font-black flex items-center justify-center text-xs">
@@ -378,38 +432,86 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </span>
             </div>
 
-            {/* AB Coins Option Card */}
-            {walletBalance > 0 && (
+            {/* AB Coins Redeem Card with Conversion Notice (2 AB Coins = ₹1) */}
+            <div 
+              onClick={() => {
+                setUseAbCoins(!useAbCoins);
+              }}
+              className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-2 ${
+                useAbCoins
+                  ? 'border-amber-500 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-100 shadow-xs'
+                  : 'border-slate-200 hover:border-slate-300 bg-white'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <AbCoinLogo size="lg" />
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-black text-slate-950 text-xs sm:text-sm">Pay / Redeem AB Coins</h4>
+                      <span className="text-[10px] bg-amber-200 text-amber-950 font-black px-2 py-0.5 rounded-full">
+                        {walletBalance} Coins (₹{walletRupeesValue} Value)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-amber-950 font-bold mt-1">
+                      ⚡ Rate: <strong>2 AB Coins = ₹1</strong>
+                    </p>
+                    {useAbCoins ? (
+                      <p className="text-xs text-emerald-800 font-bold mt-1">
+                        ✓ Redeeming {coinsToDeduct} Coins → ₹{coinsDiscountInRs} Discount Applied!
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-500 mt-1">
+                        Click to apply {Math.min(walletBalance, subtotalAfterCoupon * 2)} AB Coins and save ₹{Math.min(walletRupeesValue, subtotalAfterCoupon)}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <input
+                  type="checkbox"
+                  checked={useAbCoins}
+                  onChange={(e) => setUseAbCoins(e.target.checked)}
+                  className="w-5 h-5 rounded accent-amber-500 cursor-pointer mt-1"
+                />
+              </div>
+            </div>
+
+            {/* 100% AB Coins Full Payment Card (if sufficient coins) */}
+            {walletRupeesValue >= subtotalAfterCoupon && (
               <div 
-                onClick={() => setUseAbCoins(!useAbCoins)}
+                onClick={() => {
+                  setSelectedPaymentMethod('ab_coins');
+                  setUseAbCoins(true);
+                }}
                 className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-2 ${
-                  useAbCoins
-                    ? 'border-amber-500 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-100 shadow-xs'
+                  selectedPaymentMethod === 'ab_coins'
+                    ? 'border-emerald-500 bg-emerald-50/70 shadow-xs'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <AbCoinLogo size="lg" />
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-black text-slate-950 text-xs sm:text-sm">Pay with AB Coins</h4>
-                        <span className="text-[10px] bg-amber-200 text-amber-950 font-black px-1.5 py-0.5 rounded">
-                          {walletBalance} Coins Available
+                      <h4 className="font-black text-slate-950 text-sm flex items-center gap-1.5">
+                        <span>100% AB Coins Payment</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-900 font-black px-1.5 py-0.5 rounded">
+                          Zero Cash Needed
                         </span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 mt-0.5">
-                        Apply {coinsApplicable} AB Coins to save ₹{coinsApplicable} on this order.
+                      </h4>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        Your entire order of {formatINR(subtotalAfterCoupon)} will be paid using {subtotalAfterCoupon * 2} AB Coins (2 Coins = ₹1). Pay ₹0 at delivery!
                       </p>
                     </div>
                   </div>
-
-                  <input
-                    type="checkbox"
-                    checked={useAbCoins}
-                    onChange={(e) => setUseAbCoins(e.target.checked)}
-                    className="w-5 h-5 rounded accent-amber-500 cursor-pointer"
-                  />
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                    selectedPaymentMethod === 'ab_coins' ? 'bg-emerald-600 text-white' : 'border border-slate-300'
+                  }`}>
+                    {selectedPaymentMethod === 'ab_coins' && '✓'}
+                  </div>
                 </div>
               </div>
             )}
@@ -430,8 +532,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   </div>
                   <div>
                     <h4 className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
-                      Cash on Delivery (COD)
-                      <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.2 rounded">
+                      <span>Cash on Delivery (COD)</span>
+                      <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">
                         100% Safe
                       </span>
                     </h4>
@@ -460,75 +562,79 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <span>5-Day Easy Returns</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>6-Digit Secure OTP</span>
+                  <Truck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span>3-Day Express Delivery</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Order Summary & Pricing */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2">
-            <p className="font-bold text-slate-900 uppercase tracking-wider">Order Summary ({cartItems.length} items)</p>
+          {/* Step 3: Order Price Summary */}
+          <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs">
+            <span className="font-black text-slate-900 block mb-2 uppercase tracking-wider text-[11px]">
+              Payment Summary ({cartItems.reduce((acc, i) => acc + i.quantity, 0)} Items)
+            </span>
+
             <div className="flex justify-between text-slate-600">
-              <span>Item Subtotal</span>
+              <span>Total MRP:</span>
+              <span className="line-through">{formatINR(totalMRP)}</span>
+            </div>
+
+            <div className="flex justify-between text-slate-700 font-semibold">
+              <span>Items Subtotal:</span>
               <span>{formatINR(itemTotal)}</span>
             </div>
+
+            <div className="flex justify-between text-emerald-700 font-semibold">
+              <span>Doorstep Delivery:</span>
+              <span>{deliveryFee === 0 ? 'FREE' : formatINR(deliveryFee)}</span>
+            </div>
+
             {discountAmount > 0 && (
-              <div className="flex justify-between text-rose-600 font-bold">
-                <span>Coupon Savings ({appliedCoupon?.code})</span>
+              <div className="flex justify-between text-emerald-700 font-bold">
+                <span>Coupon Discount ({appliedCoupon?.code}):</span>
                 <span>-{formatINR(discountAmount)}</span>
               </div>
             )}
-            {coinsApplicable > 0 && (
-              <div className="flex justify-between text-amber-800 font-black items-center">
-                <span className="flex items-center gap-1">
-                  <AbCoinLogo size="xs" />
-                  <span>AB Coins Redeemed ({coinsApplicable} Coins)</span>
-                </span>
-                <span>-{formatINR(coinsApplicable)}</span>
+
+            {coinsDiscountInRs > 0 && (
+              <div className="flex justify-between text-amber-800 font-bold bg-amber-100/60 p-1.5 rounded-lg border border-amber-200">
+                <span>AB Coins Redeemed ({coinsToDeduct} Coins @ 2 Coins = ₹1):</span>
+                <span>-{formatINR(coinsDiscountInRs)}</span>
               </div>
             )}
-            <div className="flex justify-between text-slate-600">
-              <span>3-Day Express Delivery Charges</span>
-              <span>{deliveryFee === 0 ? <strong className="text-amber-700 uppercase">FREE</strong> : formatINR(deliveryFee)}</span>
-            </div>
-            <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
-              <span>Total Payable at Doorstep</span>
-              <span className={finalTotal === 0 ? 'text-emerald-700' : 'text-slate-950'}>
-                {finalTotal === 0 ? '₹0 (Paid with AB Coins)' : formatINR(finalTotal)}
-              </span>
+
+            <div className="pt-2 border-t border-slate-300 flex justify-between items-center text-sm font-black text-slate-950">
+              <span>Final Amount to Pay:</span>
+              <span className="text-base text-amber-800">{formatINR(finalTotal)}</span>
             </div>
           </div>
 
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-600 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700 font-semibold">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* Submit Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
-            >
-              <ShieldCheck className="w-5 h-5" />
-              <span>
-                {isSubmitting
-                  ? 'Securing Your Order...'
-                  : finalTotal === 0
-                  ? 'Confirm Order with AB Coins (₹0 Cash)'
-                  : `Confirm Order (${formatINR(finalTotal)})`}
-              </span>
-            </button>
-            <p className="text-[11px] text-center text-slate-400 mt-2">
-              By placing your order, you agree to Apna Bazar&apos;s Terms of Service and 5-Day Return Policy.
-            </p>
-          </div>
+          {/* Place Order Button */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-400/25 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <span>Placing Your Order...</span>
+            ) : finalTotal === 0 ? (
+              <span>Place Order with AB Coins (₹0 Cash) →</span>
+            ) : (
+              <span>Confirm Order with 100% COD ({formatINR(finalTotal)}) →</span>
+            )}
+          </button>
 
+          <p className="text-[11px] text-center text-slate-500 font-medium">
+            🔒 Safe &amp; Encrypted • Dispatched within 24 hours with SMS/WhatsApp updates
+          </p>
         </form>
       </div>
     </div>

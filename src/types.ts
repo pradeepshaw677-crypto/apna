@@ -134,6 +134,7 @@ export interface Order {
   userId?: string;
   // AB Coin Wallet & Return system
   abCoinsUsed?: number;
+  coinsDiscount?: number;
   walletRefundAmount?: number;
   returnApprovedAt?: number;
   returnStatus?: 'not_requested' | 'requested' | 'approved' | 'rejected';

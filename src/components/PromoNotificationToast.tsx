@@ -52,7 +52,7 @@ export const PromoNotificationToast: React.FC<PromoNotificationToastProps> = ({
   };
 
   return (
-    <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-40 max-w-sm animate-slideUp">
+    <div className="fixed bottom-20 sm:bottom-6 left-3 right-3 sm:left-6 sm:right-auto z-40 max-w-sm w-auto sm:w-full mx-auto sm:mx-0 animate-slideUp">
       <div className="bg-slate-950/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-amber-500/40 flex items-center gap-3 relative overflow-hidden group">
         
         {/* Amber Glow Accent */}

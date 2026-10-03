@@ -150,7 +150,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center justify-between">
               <AbCoinLogo size="md" />
               <span className="text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded">
-                1 Coin = ₹1
+                2 Coins = ₹1
               </span>
             </div>
             <div>
@@ -177,7 +177,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   AB Coin Wallet
                 </h3>
                 <p className="text-xs font-bold text-slate-900/80">
-                  Total Balance: <span className="font-mono text-base font-black text-slate-950">{currentUser.walletBalance || 0} AB Coins</span> (₹{(currentUser.walletBalance || 0).toLocaleString('en-IN')} Shopping Value)
+                  Total Balance: <span className="font-mono text-base font-black text-slate-950">{currentUser.walletBalance || 0} AB Coins</span> (₹{Math.floor((currentUser.walletBalance || 0) / 2).toLocaleString('en-IN')} Shopping Value)
                 </p>
               </div>
             </div>
@@ -199,7 +199,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>How Apna Bazar (AB) Coins Work:</span>
             </div>
             <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
-              • <strong>1 AB Coin = ₹1 Indian Rupee</strong>. When you request a return, our admin quality team confirms the request and the entire item value is deposited directly into your AB Coin wallet.
+              • <strong>2 AB Coins = ₹1 Indian Rupee</strong>. When you request a return, our admin quality team confirms the request and the entire item value is deposited directly into your AB Coin wallet.
             </p>
             <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
               • <strong>Instant Checkout Deduction</strong>: At checkout, you can select &quot;AB Coins&quot; to pay for orders with 0 cash required, or combine with Cash on Delivery (COD).

@@ -386,13 +386,26 @@ export default function App() {
     }
   };
 
-  // Location verified callback
-  const handleLocationConfirmed = (pin: string, city: string, isJh: boolean) => {
+  // Location verified callback & auto-fill
+  const handleLocationConfirmed = (pin: string, addressStr: string, isExpressZone: boolean) => {
     localStorage.setItem('ab_location_verified', 'true');
-    const locStr = `${city} (${pin})`;
-    setDeliveryLocation(locStr);
-    localStorage.setItem('ab_delivery_location', locStr);
+    setDeliveryLocation(addressStr);
+    localStorage.setItem('ab_delivery_location', addressStr);
     setSelectedPincode(pin);
+
+    // Auto-fill savedAddress for seamless checkout
+    setSavedAddress((prev) => {
+      const updated: DeliveryAddress = {
+        ...prev,
+        streetAddress: addressStr,
+        pincode: pin,
+        city: addressStr.includes('Baharagora') ? 'Baharagora' : (prev.city || 'Baharagora'),
+        state: 'Jharkhand',
+        area: isExpressZone ? 'Baharagora 10-KM Hub Zone' : (prev.area || 'Baharagora Central Area'),
+      };
+      saveAddress(updated);
+      return updated;
+    });
   };
 
   // Filtered & Sorted products computation
@@ -629,6 +642,13 @@ export default function App() {
               productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
             onOpenCouponModal={() => setIsOffersOpen(true)}
+            onSelectProductById={(prodId) => {
+              const p = productsList.find((x) => x.id === prodId);
+              if (p) {
+                setSelectedProduct(p);
+              }
+              productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }}
           />
 
           {/* 2. User Explicit Request: "isme banner ke baad shop by category do" */}
@@ -894,6 +914,8 @@ export default function App() {
         onSaveAddress={setSavedAddress}
         onOrderPlaced={handleOrderPlaced}
         userId={currentUser?.id}
+        walletBalance={currentUser?.walletBalance ?? 0}
+        onDeductWalletCoins={handleDeductWalletCoins}
       />
 
       <TrackOrderModal

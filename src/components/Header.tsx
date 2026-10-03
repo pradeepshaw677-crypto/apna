@@ -353,29 +353,6 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 text-slate-900 shadow-xs">
       
-      {/* 1. Top Bar */}
-      <div className="bg-[#0f172a] text-white py-1 px-3 sm:px-4 text-[11px] sm:text-xs font-semibold text-center tracking-wide flex items-center justify-between gap-3 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-3 mx-auto">
-          <span className="flex items-center gap-1.5 shrink-0 text-amber-300">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-            <span>Apna Bazar Fashion Bonanza</span>
-          </span>
-          <span className="text-slate-500 hidden sm:inline">•</span>
-          <span className="hidden md:inline-flex items-center gap-1 shrink-0 text-slate-200">
-            <Truck className="w-3.5 h-3.5 text-amber-400" />
-            <span>Free Express Delivery Above ₹499</span>
-          </span>
-          <span className="text-slate-500 hidden md:inline">•</span>
-          <a 
-            href="tel:6207462800"
-            className="inline-flex items-center gap-1.5 shrink-0 text-amber-400 hover:text-amber-300 transition-colors font-bold"
-          >
-            <Phone className="w-3 h-3 text-amber-400" />
-            <span>Jharkhand Helpline: 6207462800</span>
-          </a>
-        </div>
-      </div>
-
       {/* 2. Main Navigation Row */}
       <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-18 gap-1.5 sm:gap-6">

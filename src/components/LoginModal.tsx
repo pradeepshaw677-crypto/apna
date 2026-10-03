@@ -59,17 +59,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         role: 'customer',
         membership: 'Apna Bazar Member',
         referralCode: (user.displayName || 'APNA').replace(/\s+/g, '').toUpperCase().slice(0, 6) + '100',
-        walletBalance: 100, // 100 AB Coins welcome bonus
-        walletTransactions: [
-          {
-            id: 'tx-welcome',
-            type: 'credit',
-            amount: 100,
-            title: 'Welcome AB Coins Bonus',
-            description: 'Credited on successful account sign in',
-            date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-          }
-        ],
+        walletBalance: 0, // Welcome AB Coins set to 0
+        walletTransactions: [],
         totalOrders: 0,
         totalSpent: 0,
       };
@@ -132,17 +123,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         role: 'customer',
         membership: 'Apna Bazar Member',
         referralCode: (profileName.replace(/\s+/g, '').toUpperCase().slice(0, 5) || 'APNA') + Math.floor(1000 + Math.random() * 9000),
-        walletBalance: 100, // 100 AB Coins starter bonus
-        walletTransactions: [
-          {
-            id: `tx-${Date.now()}`,
-            type: 'credit',
-            amount: 100,
-            title: 'Welcome AB Coins Bonus',
-            description: '100 Coins credited on account creation',
-            date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-          }
-        ],
+        walletBalance: 0, // Welcome AB Coins set to 0
+        walletTransactions: [],
         totalOrders: 0,
         totalSpent: 0,
       };
@@ -178,17 +160,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         role: 'customer',
         membership: 'Apna Bazar Member',
         referralCode: (profileName.replace(/\s+/g, '').toUpperCase().slice(0, 5) || 'APNA') + '100',
-        walletBalance: 100,
-        walletTransactions: [
-          {
-            id: `tx-${Date.now()}`,
-            type: 'credit',
-            amount: 100,
-            title: 'Welcome AB Coins Bonus',
-            description: '100 Coins credited on account creation',
-            date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-          }
-        ],
+        walletBalance: 0,
+        walletTransactions: [],
         totalOrders: 0,
         totalSpent: 0,
       };
