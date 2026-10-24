@@ -516,7 +516,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn">
                       <div className="px-4 py-2 border-b border-slate-100">
                         <p className="text-xs font-black text-slate-900 truncate">{currentUser.name}</p>
-                        <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{currentUser.email || (currentUser.phone ? (currentUser.phone.startsWith('+91') ? currentUser.phone : `+91 ${currentUser.phone}`) : 'Verified Customer')}</p>
                         <span className="inline-block mt-1 text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
                           {currentUser.membership || 'Apna Bazar VIP Plus'}
                         </span>
@@ -744,7 +744,7 @@ export const Header: React.FC<HeaderProps> = ({
                     {currentUser?.name || 'Welcome, Guest'}
                   </p>
                   <p className="text-[11px] text-slate-300 truncate">
-                    {currentUser?.email || 'Sign in for VIP discounts & tracking'}
+                    {currentUser?.email || (currentUser?.phone ? (currentUser.phone.startsWith('+91') ? currentUser.phone : `+91 ${currentUser.phone}`) : 'Sign in for VIP discounts & tracking')}
                   </p>
                   <span className="inline-block text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 px-2 py-0.2 rounded-full mt-1">
                     {currentUser?.membership || 'Apna Bazar VIP Plus'}

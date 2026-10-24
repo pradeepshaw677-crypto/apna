@@ -1,9 +1,9 @@
 /**
  * Cloudinary Media Integration Utility for Apna Bazar
- * Handles ultra-fast image transformations (f_auto, q_auto), CDN URL creation, and upload handling.
+ * Enterprise Architecture: Backend Signed-Upload Signature Generator.
+ * ZERO API secrets exposed to frontend JavaScript.
  */
 
-// Cloudinary default demo cloud or configured environment cloud
 export const CLOUDINARY_CLOUD_NAME = "apnabazar-cdn";
 
 /**
@@ -42,8 +42,6 @@ export function getCloudinaryUrl(
 
   // If external URL (e.g. Unsplash or CDN), route through Cloudinary fetch endpoint for auto-format and edge caching
   if (urlOrPublicId.startsWith("http://") || urlOrPublicId.startsWith("https://")) {
-    // Cloudinary fetch CDN URL pattern:
-    // https://res.cloudinary.com/demo/image/fetch/f_auto,q_auto,w_800/<encoded-url>
     const encodedUrl = encodeURIComponent(urlOrPublicId);
     return `https://res.cloudinary.com/demo/image/fetch/f_${format},q_${quality},w_${width}${
       height ? `,h_${height}` : ""
@@ -57,33 +55,61 @@ export function getCloudinaryUrl(
 }
 
 /**
- * Uploads an image file or base64 data to Cloudinary via server proxy
+ * Request signed-upload parameters from backend signature generator
+ * CRITICAL: Zero secrets in frontend!
+ */
+export async function getSignedUploadParams(folder: string = "apnabazar_products"): Promise<{
+  signature: string;
+  timestamp: number;
+  apiKey: string;
+  cloudName: string;
+  folder: string;
+}> {
+  const res = await fetch("/api/v1/upload/cloudinary-sign", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ folder }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to generate secure upload signature");
+  }
+
+  return await res.json();
+}
+
+/**
+ * Uploads an image file or base64 data to Cloudinary via backend signed upload proxy
  */
 export async function uploadToCloudinary(
   fileOrBase64: File | string,
   folder: string = "apnabazar_products"
 ): Promise<{ url: string; publicId: string }> {
   try {
-    let payload: { data: string; folder: string; filename?: string };
+    // 1. Fetch secure signature from backend
+    const signData = await getSignedUploadParams(folder);
 
+    // 2. Prepare payload
+    let base64Data: string;
     if (fileOrBase64 instanceof File) {
-      const base64 = await fileToBase64(fileOrBase64);
-      payload = {
-        data: base64,
-        folder,
-        filename: fileOrBase64.name,
-      };
+      base64Data = await fileToBase64(fileOrBase64);
     } else {
-      payload = {
-        data: fileOrBase64,
-        folder,
-      };
+      base64Data = fileOrBase64;
     }
 
+    // 3. Dispatch through secure upload route with verified signature
     const response = await fetch("/api/cloudinary/upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      credentials: "include",
+      body: JSON.stringify({
+        data: base64Data,
+        folder: signData.folder,
+        timestamp: signData.timestamp,
+        signature: signData.signature,
+        apiKey: signData.apiKey,
+      }),
     });
 
     if (!response.ok) {
@@ -96,8 +122,7 @@ export async function uploadToCloudinary(
       publicId: data.public_id || `upload_${Date.now()}`,
     };
   } catch (error) {
-    console.error("Cloudinary upload failed, falling back to local base64/placeholder:", error);
-    // Graceful fallback to inline data or CDN fallback
+    console.error("Cloudinary signed upload failed, falling back to local fallback:", error);
     if (typeof fileOrBase64 === "string" && fileOrBase64.startsWith("data:")) {
       return { url: fileOrBase64, publicId: `fallback_${Date.now()}` };
     }

@@ -36,7 +36,6 @@ import {
 } from './types';
 import { CATEGORIES, PRODUCTS, AVAILABLE_COUPONS } from './data/products';
 import { api } from './utils/api';
-import { testConnection } from './firebase';
 import { 
   getSavedCart, 
   saveCart, 
@@ -100,15 +99,8 @@ export default function App() {
   // Navigation View State ('home' is the main ecommerce catalog)
   const [activeView, setActiveView] = useState<ViewType>('home');
 
-  // User Authentication State
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
-    try {
-      const saved = localStorage.getItem('ab_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  // User Authentication State (Secured via HttpOnly session cookies)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   // Bottom Navigation tab state
   const [activeBottomTab, setActiveBottomTab] = useState<MobileTab>('home');
@@ -203,11 +195,18 @@ export default function App() {
     }
   }, [cartToastItem]);
 
-  // Test Firebase connection on boot (Mandatory Skill requirement)
+
+  // Fetch active HttpOnly session from backend on app boot
   useEffect(() => {
-    testConnection().then(() => {
-      console.log("Firebase connection verified for Apna Bazar.");
+    let isMounted = true;
+    api.getSession().then((res) => {
+      if (isMounted && res.authenticated && res.user) {
+        setCurrentUser(res.user);
+      }
+    }).catch((err) => {
+      console.warn("Session check failed:", err);
     });
+    return () => { isMounted = false; };
   }, []);
 
   // Fetch live products from backend with high-speed local caching
@@ -272,8 +271,8 @@ export default function App() {
     }
   }, [orders, activeTrackedOrder]);
 
-  // Dynamic Add to Cart with size adjustment & animation
-  const handleAddToCart = (product: Product, size?: string, color?: string, priceOverride?: number) => {
+  // Core Add to Cart executor with size adjustment, cart animation & confetti
+  const executeAddToCart = (product: Product, size?: string, color?: string, priceOverride?: number) => {
     const targetSize = size || (product.sizes?.[0]) || 'Standard';
     const targetColor = color || (product.colors?.[0]?.name);
     const sizeDelta = getSizePriceDelta(targetSize);
@@ -320,6 +319,59 @@ export default function App() {
     } catch {}
   };
 
+  // Enterprise Security Requirement: Force-Login on Add to Cart
+  // Intercepts unauthenticated customer, stores pending item in sessionStorage, prompts login modal
+  const handleAddToCart = (product: Product, size?: string, color?: string, priceOverride?: number) => {
+    const targetSize = size || (product.sizes?.[0]) || 'Standard';
+    const targetColor = color || (product.colors?.[0]?.name);
+
+    if (!currentUser || !currentUser.isLoggedIn) {
+      try {
+        sessionStorage.setItem('ab_pending_cart_action', JSON.stringify({
+          productId: product.id,
+          size: targetSize,
+          color: targetColor,
+          quantity: 1,
+          isBuyNow: false,
+          priceOverride,
+        }));
+      } catch (e) {
+        console.warn('Failed to store pending cart action:', e);
+      }
+      setIsLoginOpen(true);
+      return;
+    }
+
+    executeAddToCart(product, targetSize, targetColor, priceOverride);
+  };
+
+  // Force-Login on Buy Now: Intercepts unauthenticated customer, stores action in sessionStorage
+  const handleBuyNow = (product: Product, size?: string, color?: string, priceOverride?: number) => {
+    const targetSize = size || (product.sizes?.[0]) || 'Standard';
+    const targetColor = color || (product.colors?.[0]?.name);
+
+    if (!currentUser || !currentUser.isLoggedIn) {
+      try {
+        sessionStorage.setItem('ab_pending_cart_action', JSON.stringify({
+          productId: product.id,
+          size: targetSize,
+          color: targetColor,
+          quantity: 1,
+          isBuyNow: true,
+          priceOverride,
+        }));
+      } catch (e) {
+        console.warn('Failed to store pending buy-now action:', e);
+      }
+      setIsLoginOpen(true);
+      return;
+    }
+
+    executeAddToCart(product, targetSize, targetColor, priceOverride);
+    setIsCartOpen(false);
+    setIsCheckoutOpen(true);
+  };
+
   const handleUpdateQuantity = (product: Product, newQty: number) => {
     if (newQty <= 0) {
       handleRemoveFromCart(product.id);
@@ -342,10 +394,43 @@ export default function App() {
     );
   };
 
-  const handleBuyNow = (product: Product, size?: string, color?: string, priceOverride?: number) => {
-    handleAddToCart(product, size, color, priceOverride);
-    setIsCartOpen(false);
-    setIsCheckoutOpen(true);
+  // Handle successful login: update user session & automatically resume pending cart action
+  const handleLoginSuccess = (user: UserProfile) => {
+    setCurrentUser(user);
+    setIsLoginOpen(false);
+
+    try {
+      const rawPending = sessionStorage.getItem('ab_pending_cart_action');
+      if (rawPending) {
+        sessionStorage.removeItem('ab_pending_cart_action');
+        const pending = JSON.parse(rawPending);
+        const targetProd = productsList.find((p) => p.id === pending.productId);
+        if (targetProd) {
+          executeAddToCart(targetProd, pending.size, pending.color, pending.priceOverride);
+          if (pending.isBuyNow) {
+            setIsCartOpen(false);
+            setIsCheckoutOpen(true);
+          } else {
+            setIsCartOpen(true);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to resume pending cart action:', err);
+    }
+  };
+
+  // Handle Logout: Clears server-side HttpOnly session cookie & frontend state
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch {}
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('ab_user');
+      sessionStorage.removeItem('ab_pending_cart_action');
+    } catch {}
+    setActiveView('home');
   };
 
   const handleOrderPlaced = (order: Order) => {
@@ -399,7 +484,6 @@ export default function App() {
         walletTransactions: [newTx, ...(currentUser.walletTransactions || [])],
       };
       setCurrentUser(updatedUser);
-      localStorage.setItem('ab_user', JSON.stringify(updatedUser));
     }
   };
 
@@ -420,7 +504,6 @@ export default function App() {
         walletTransactions: [debitTx, ...(currentUser.walletTransactions || [])],
       };
       setCurrentUser(updatedUser);
-      localStorage.setItem('ab_user', JSON.stringify(updatedUser));
     }
   };
 
@@ -552,10 +635,7 @@ export default function App() {
         wishlistCount={wishlistIds.length}
         currentUser={currentUser}
         onOpenLogin={() => setIsLoginOpen(true)}
-        onLogout={() => {
-          localStorage.removeItem('ab_user');
-          setCurrentUser(null);
-        }}
+        onLogout={handleLogout}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         onSelectProduct={(p) => setSelectedProduct(p)}
@@ -1023,7 +1103,7 @@ export default function App() {
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        onLoginSuccess={(u) => setCurrentUser(u)}
+        onLoginSuccess={handleLoginSuccess}
       />
 
       <VoiceSearchModal

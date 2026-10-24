@@ -31,8 +31,10 @@ export interface StructuredAddress {
   plusCode: string;   // e.g. "6PFP+W7H" or "J8R6+33R"
   road: string;       // e.g. "Domjuri road" or "Sakchi Main Road"
   locality: string;   // e.g. "Domjuri" or "Sakchi"
+  village?: string;   // e.g. "Domjuri"
   city: string;       // e.g. "Baharagora" or "Jamshedpur"
   landmark: string;   // e.g. "Kolaram" or "Eye Hospital"
+  nearby?: string;    // e.g. "Near Shiv Mandir"
   state: string;      // e.g. "Jharkhand"
   pincode: string;    // e.g. "832101"
   fullFormatted: string;
@@ -90,8 +92,10 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     plusCode: '6PFP+W7H',
     road: 'Baharagora Main Road',
     locality: 'Baharagora',
+    village: 'Baharagora',
     city: 'Baharagora',
     landmark: 'Baharagora Central Market',
+    nearby: 'Near Central Market',
     state: 'Jharkhand',
     pincode: '832101',
     fullFormatted: '6PFP+W7H, Baharagora Main Road, Baharagora, Baharagora, Baharagora Central Market, Jharkhand 832101',
@@ -109,8 +113,10 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
           plusCode: data.plusCode || `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
           road: data.road || 'Main Road',
           locality: data.locality || data.city || 'Local Area',
+          village: data.village || data.locality || '',
           city: data.city || 'Local City',
           landmark: data.landmark || `Near ${data.locality || data.city || 'Hub'}`,
+          nearby: data.nearby || data.landmark || `Near ${data.village || data.locality || data.city || 'Hub'}`,
           state: data.state || 'India',
           pincode: data.pincode || '832101',
           fullFormatted: data.fullFormatted,
@@ -605,14 +611,25 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
 
             {/* Structured Address Display */}
             {!isManualEditing ? (
-              <div className="pt-2 text-sm sm:text-base font-semibold text-slate-800 leading-snug space-y-0.5">
-                <div className="font-mono font-bold text-amber-700">{structuredAddress.plusCode},</div>
-                <div>{structuredAddress.road},</div>
-                <div>{structuredAddress.locality},</div>
-                <div>{structuredAddress.city},</div>
-                <div>{structuredAddress.landmark},</div>
-                <div>{structuredAddress.state}</div>
-                <div className="font-bold text-slate-950 pt-0.5">{structuredAddress.pincode}</div>
+              <div className="pt-2 text-sm sm:text-base font-semibold text-slate-800 leading-snug space-y-1">
+                <div className="flex flex-wrap items-center gap-2 pb-1">
+                  <span className="font-mono font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-300 text-xs shadow-2xs">
+                    📍 Plus Code: {structuredAddress.plusCode}
+                  </span>
+                  {structuredAddress.village && (
+                    <span className="text-xs font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300">
+                      Village: {structuredAddress.village}
+                    </span>
+                  )}
+                </div>
+                <div className="text-slate-900 font-bold">{structuredAddress.road},</div>
+                <div className="text-xs font-bold text-amber-900">
+                  📍 Nearby Landmark: <span className="font-medium text-slate-800">{structuredAddress.nearby || structuredAddress.landmark}</span>
+                </div>
+                <div className="text-xs text-slate-600">
+                  {structuredAddress.locality !== structuredAddress.village ? `${structuredAddress.locality}, ` : ''}{structuredAddress.city}, {structuredAddress.state}
+                </div>
+                <div className="font-black text-slate-950 pt-0.5 text-sm">PIN: {structuredAddress.pincode}</div>
               </div>
             ) : (
               <div className="pt-2 space-y-2">

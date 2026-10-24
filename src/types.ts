@@ -168,8 +168,8 @@ export interface WalletTransaction {
 export interface UserProfile {
   id: string;
   name: string;
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
   avatar?: string;
   isLoggedIn: boolean;
   role: 'customer' | 'admin' | string;

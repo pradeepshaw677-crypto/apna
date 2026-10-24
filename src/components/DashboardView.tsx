@@ -251,7 +251,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
               <div className="space-y-1">
                 <h2 className="text-lg sm:text-xl font-black text-slate-950">{currentUser.name}</h2>
-                <p className="text-xs text-slate-500 font-medium">{currentUser.email || 'customer@apnabazar.in'}</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  {currentUser.email || (currentUser.phone ? (currentUser.phone.startsWith('+91') ? currentUser.phone : `+91 ${currentUser.phone}`) : 'Verified Customer')}
+                </p>
                 <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-bold">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Verified Account • Apna Bazar Gold Member</span>
@@ -285,7 +287,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span>Phone Number</span>
               </label>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-semibold font-mono truncate">
-                {currentUser.phone || '+91 6207462800'}
+                {currentUser.phone ? (currentUser.phone.startsWith('+91') ? currentUser.phone : `+91 ${currentUser.phone}`) : 'Not Provided'}
               </div>
             </div>
 
@@ -295,7 +297,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span>Email Address</span>
               </label>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-semibold truncate">
-                {currentUser.email || 'customer@apnabazar.in'}
+                {currentUser.email || 'Not Provided (WhatsApp Authenticated)'}
               </div>
             </div>
           </div>

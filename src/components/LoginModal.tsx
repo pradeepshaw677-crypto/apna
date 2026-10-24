@@ -1,26 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  Mail, 
   Lock, 
   User, 
   Phone, 
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
   AlertCircle, 
   ArrowRight,
   ShieldCheck,
-  Sparkles
+  CheckCircle2,
+  RefreshCw,
+  MessageSquare,
+  Edit2
 } from 'lucide-react';
 import { UserProfile } from '../types';
-import { auth, googleProvider } from '../firebase';
-import { 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  updateProfile 
-} from 'firebase/auth';
+import { api } from '../utils/api';
+import { validateIndianPhone, validateOtp } from '../utils/validation';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -29,169 +23,185 @@ interface LoginModalProps {
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  // Mode: 'whatsapp' (Mobile OTP) | 'google'
+  const [authMode, setAuthMode] = useState<'whatsapp'>('whatsapp');
+  
+  // WhatsApp OTP Flow State
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpStep, setOtpStep] = useState<'phone' | 'verify'>('phone');
+  const [resendTimer, setResendTimer] = useState(0);
+  const [attemptsLeft, setAttemptsLeft] = useState(3);
+
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Countdown timer effect for OTP resend
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [resendTimer]);
+
   if (!isOpen) return null;
 
-  // Real Firebase Google Login
+  // Google Sign-In with strict cryptographic verification (ZERO mock tokens allowed)
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError('');
 
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      const userProfile: UserProfile = {
-        id: user.uid,
-        name: user.displayName || user.email?.split('@')[0] || 'Apna Bazar Shopper',
-        email: user.email || '',
-        phone: user.phoneNumber || '',
-        avatar: user.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-        isLoggedIn: true,
-        role: 'customer',
-        membership: 'Apna Bazar Member',
-        referralCode: (user.displayName || 'APNA').replace(/\s+/g, '').toUpperCase().slice(0, 6) + '100',
-        walletBalance: 0, // Welcome AB Coins set to 0
-        walletTransactions: [],
-        totalOrders: 0,
-        totalSpent: 0,
-      };
-
-      localStorage.setItem('ab_user', JSON.stringify(userProfile));
-      onLoginSuccess(userProfile);
-      onClose();
+      const googleClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
+      if (typeof window !== 'undefined' && (window as any).google?.accounts?.id && googleClientId) {
+        (window as any).google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response: { credential?: string }) => {
+            if (!response.credential) {
+              setError('Google authentication failed to return credentials.');
+              setIsLoading(false);
+              return;
+            }
+            try {
+              const res = await api.syncGoogleSession({ credential: response.credential });
+              if (res && res.user) {
+                onLoginSuccess(res.user);
+                onClose();
+              } else {
+                setError('Failed to establish secure session.');
+              }
+            } catch (e: any) {
+              setError(e.message || 'Cryptographic verification failed on server.');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        });
+        (window as any).google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            setError('Google Sign-In prompt was closed. Please continue with WhatsApp Mobile OTP below.');
+            setIsLoading(false);
+          }
+        });
+      } else {
+        // Enforce zero mock tokens
+        setError('Cryptographic Google ID verification active. To test instant login, use WhatsApp Mobile OTP below.');
+        setIsLoading(false);
+      }
     } catch (err: any) {
-      console.warn("Firebase Google popup notice:", err);
-      setError(err?.message || 'Google Sign-In was cancelled or popup was blocked. Please try with Email & Password.');
+      console.warn("Google auth error:", err);
+      setError(err?.message || 'Google Sign-In failed. Please continue with WhatsApp Mobile OTP below.');
+      setIsLoading(false);
+    }
+  };
+
+  // WhatsApp OTP Request: Send verification code to 10-digit Indian phone (+91 9153352808 bridge)
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    const phoneValidation = validateIndianPhone(phone);
+    if (!phoneValidation.valid || !phoneValidation.formatted) {
+      setError(phoneValidation.error || 'Please enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await api.sendWhatsAppOtp(phoneValidation.formatted);
+      if (res.success) {
+        setOtpStep('verify');
+        setResendTimer(45);
+        setAttemptsLeft(3);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send WhatsApp verification code. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Real Firebase Email & Password Registration / Login
-  const handleSubmit = async (e: React.FormEvent) => {
+  // WhatsApp OTP Verification: Validate code and establish HttpOnly session in Turso DB
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!email || !password) {
-      setError('Please fill in all required fields.');
+    const phoneValidation = validateIndianPhone(phone);
+    if (!phoneValidation.valid || !phoneValidation.formatted) {
+      setError('Invalid phone number.');
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    const otpValidation = validateOtp(otp);
+    if (!otpValidation.valid) {
+      setError(otpValidation.error || 'Please enter the complete 6-digit OTP.');
       return;
     }
 
     setIsLoading(true);
+    try {
+      const res = await api.verifyWhatsAppOtp(phoneValidation.formatted, otp.trim());
+      if (res.success && res.user) {
+        onLoginSuccess(res.user);
+        onClose();
+      } else {
+        throw new Error('Verification failed.');
+      }
+    } catch (err: any) {
+      const errMsg = err?.message || 'Verification failed. Please try again.';
+      setError(errMsg);
+      setAttemptsLeft((prev) => Math.max(0, prev - 1));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0 || isLoading) return;
+    setError('');
+    setIsLoading(true);
 
     try {
-      let firebaseUser: any = null;
+      const phoneValidation = validateIndianPhone(phone);
+      if (!phoneValidation.valid || !phoneValidation.formatted) return;
 
-      if (isSignUp) {
-        // Create user with Firebase Auth
-        const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        firebaseUser = cred.user;
-        if (name && firebaseUser) {
-          try {
-            await updateProfile(firebaseUser, { displayName: name.trim() });
-          } catch {}
-        }
-      } else {
-        // Sign in with Firebase Auth
-        const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-        firebaseUser = cred.user;
+      const res = await api.sendWhatsAppOtp(phoneValidation.formatted);
+      if (res.success) {
+        setResendTimer(45);
+        setAttemptsLeft(3);
       }
-
-      const profileName = isSignUp ? (name || email.split('@')[0]) : (firebaseUser.displayName || name || email.split('@')[0]);
-
-      const userProfile: UserProfile = {
-        id: firebaseUser.uid,
-        name: profileName,
-        email: firebaseUser.email || email.trim(),
-        phone: phone || '',
-        avatar: firebaseUser.photoURL || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-        isLoggedIn: true,
-        role: 'customer',
-        membership: 'Apna Bazar Member',
-        referralCode: (profileName.replace(/\s+/g, '').toUpperCase().slice(0, 5) || 'APNA') + Math.floor(1000 + Math.random() * 9000),
-        walletBalance: 0, // Welcome AB Coins set to 0
-        walletTransactions: [],
-        totalOrders: 0,
-        totalSpent: 0,
-      };
-
-      localStorage.setItem('ab_user', JSON.stringify(userProfile));
-      onLoginSuccess(userProfile);
-      onClose();
-    } catch (fbErr: any) {
-      console.warn("Firebase Auth operation noticed:", fbErr?.code || fbErr?.message);
-      
-      // If user already exists on sign up, try sign in or notify
-      if (fbErr?.code === 'auth/email-already-in-use') {
-        setError('An account already exists with this email. Please click "Sign In".');
-        setIsLoading(false);
-        return;
-      }
-
-      if (fbErr?.code === 'auth/wrong-password' || fbErr?.code === 'auth/invalid-credential') {
-        setError('Incorrect password. Please try again.');
-        setIsLoading(false);
-        return;
-      }
-
-      // If sandboxed preview iframe restricts third party auth cookies, gracefully create real session for user's own entered details
-      const profileName = isSignUp ? (name || email.split('@')[0]) : (name || email.split('@')[0] || 'Apna Bazar Shopper');
-      const realProfile: UserProfile = {
-        id: 'usr_' + Date.now(),
-        name: profileName,
-        email: email.trim(),
-        phone: phone || '',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
-        isLoggedIn: true,
-        role: 'customer',
-        membership: 'Apna Bazar Member',
-        referralCode: (profileName.replace(/\s+/g, '').toUpperCase().slice(0, 5) || 'APNA') + '100',
-        walletBalance: 0,
-        walletTransactions: [],
-        totalOrders: 0,
-        totalSpent: 0,
-      };
-
-      localStorage.setItem('ab_user', JSON.stringify(realProfile));
-      onLoginSuccess(realProfile);
-      onClose();
+    } catch (err: any) {
+      setError(err?.message || 'Failed to resend code.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn overflow-y-auto">
       <div 
-        className="bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[90dvh] flex flex-col"
+        className="relative bg-white w-[calc(100vw-1.5rem)] sm:w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Header */}
+        {/* Header */}
         <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-amber-500" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md shadow-amber-400/20">
+              <Lock className="w-5 h-5 stroke-[2.5]" />
+            </div>
             <div>
               <h2 className="font-bold text-base sm:text-lg">
-                {isSignUp ? 'Create Apna Bazar Account' : 'Sign in to Apna Bazar'}
+                Sign in to Apna Bazar
               </h2>
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <span>Secure Authentication</span>
+                <span>Secure Customer Authentication</span>
                 <span>•</span>
-                <span className="text-amber-400 font-bold">Fast 3-Day Express Delivery</span>
+                <span className="text-amber-400 font-bold">15-Min Express Delivery</span>
               </div>
             </div>
           </div>
@@ -205,7 +215,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
         <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
           
-          {/* Google Sign In Button */}
+          {/* OPTION 1: 1-Click Google Sign In */}
           <button
             type="button"
             onClick={handleGoogleLogin}
@@ -230,99 +240,160 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
               />
             </svg>
-            <span>Continue with Google</span>
+            <span>1-Click Sign In with Google</span>
           </button>
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-slate-200" />
-            <span className="text-[11px] text-slate-400 uppercase font-semibold">Or with Email</span>
+            <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">
+              Or with WhatsApp Mobile OTP
+            </span>
             <div className="flex-1 h-px bg-slate-200" />
           </div>
 
-          {/* Email / Password Form */}
-          <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-            {isSignUp && (
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Full Name</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
-                  />
-                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                </div>
-              </div>
-            )}
+          {/* OPTION 2: 10-Digit Mobile Number -> WhatsApp OTP Flow via bridge +91 9153352808 */}
+          {authMode === 'whatsapp' ? (
+            <div className="space-y-3">
+              {otpStep === 'phone' ? (
+                <form onSubmit={handleSendOtp} className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">
+                      10-Digit Indian Mobile Number
+                    </label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 text-xs font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                        🇮🇳 +91
+                      </span>
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        required
+                        value={phone}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setPhone(val);
+                        }}
+                        placeholder="9876543210"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-20 pr-3 py-2.5 font-bold text-slate-900 tracking-wider focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Must start with 6, 7, 8, or 9 • Instant WhatsApp verification via +91 9153352808
+                    </p>
+                  </div>
 
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">Email Address</label>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="yourname@gmail.com"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 font-medium focus:outline-none focus:border-amber-500"
-                />
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-              </div>
+                  {error && (
+                    <div className="text-rose-600 text-xs font-medium flex items-center gap-1.5 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || phone.length !== 10}
+                    className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all ${
+                      phone.length === 10
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>{isLoading ? 'Sending WhatsApp OTP...' : 'Send WhatsApp OTP →'}</span>
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-3 text-xs animate-fadeIn">
+                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-emerald-900 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Code dispatched via WhatsApp
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpStep('phone');
+                          setOtp('');
+                          setError('');
+                        }}
+                        className="text-[10px] font-bold text-emerald-700 hover:underline flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>Change</span>
+                      </button>
+                    </div>
+                    <p className="font-mono font-bold text-emerald-950 text-xs">
+                      +91 {phone}
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-bold text-slate-700 block">
+                        Enter 6-Digit WhatsApp Code
+                      </label>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        {attemptsLeft} attempt{attemptsLeft > 1 ? 's' : ''} left
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      autoFocus
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="••••••"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-center text-lg font-mono font-black tracking-widest text-slate-900 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="text-rose-600 text-xs font-medium flex items-center gap-1.5 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || otp.length !== 6}
+                    className={`w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all ${
+                      otp.length === 6
+                        ? 'bg-slate-900 hover:bg-slate-800 text-white cursor-pointer active:scale-95'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    <span>{isLoading ? 'Verifying Code...' : 'Verify OTP & Log In →'}</span>
+                  </button>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-slate-500">
+                      {resendTimer > 0 ? `Resend code in ${resendTimer}s` : "Didn't receive code?"}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={resendTimer > 0 || isLoading}
+                      onClick={handleResendOtp}
+                      className={`text-[11px] font-bold ${
+                        resendTimer > 0
+                          ? 'text-slate-400 cursor-not-allowed'
+                          : 'text-amber-800 hover:underline cursor-pointer'
+                      }`}
+                    >
+                      Resend WhatsApp OTP
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
+          ) : null}
 
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-10 py-2.5 font-medium focus:outline-none focus:border-amber-500"
-                />
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-red-600 font-semibold flex items-center gap-1.5 bg-red-50 p-2.5 rounded-xl border border-red-200">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>{error}</span>
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer active:scale-95"
-            >
-              <span>{isLoading ? 'Authenticating with Firebase...' : isSignUp ? 'Create Account' : 'Sign In'}</span>
-              <ArrowRight className="w-4 h-4 text-amber-400" />
-            </button>
-          </form>
-
-          {/* Toggle Sign Up / Sign In */}
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError('');
-              }}
-              className="text-xs text-amber-700 hover:text-amber-800 font-bold cursor-pointer"
-            >
-              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up Free"}
-            </button>
+          {/* Security Notice */}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-medium">
+            <Lock className="w-3 h-3 text-slate-400" />
+            <span>Bank-Grade HttpOnly Session Security (Turso SQLite) • No credentials stored on device</span>
           </div>
 
         </div>
