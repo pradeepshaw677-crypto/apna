@@ -1,8 +1,9 @@
 node_modules/
-build/
 dist/
-coverage/
+.env
+.env.local
+whatsapp_auth/
+.apna_whatsapp_auth/
+*.db
+*.db-journal
 .DS_Store
-*.log
-.env*
-!.env.example

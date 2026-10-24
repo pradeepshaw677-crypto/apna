@@ -1,3 +1,4 @@
+import { initWhatsApp, sendWhatsAppMessage } from "./whatsapp";
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
@@ -20,8 +21,8 @@ app.use(express.json({ limit: "20mb" }));
 app.use(cookieParser());
 
 // Cryptographic Security Secrets
-const JWT_SECRET = process.env.JWT_SECRET || "apna_bazar_enterprise_jwt_hmac_secret_2026_secure";
-const OTP_HMAC_SECRET = process.env.OTP_HMAC_SECRET || "apna_bazar_otp_hmac_salt_2026_super_secure";
+const JWT_SECRET = process.env.JWT_SECRET || process.env.JWT_CUSTOMER_SECRET || "apna_bazar_enterprise_jwt_hmac_secret_2026_secure";
+const OTP_HMAC_SECRET = process.env.OTP_HMAC_SECRET || process.env.OTP_PEPPER_SECRET || "apna_bazar_otp_hmac_salt_2026_super_secure";
 const WHATSAPP_SENDER_NUMBER = "+91 9153352808";
 
 // Google JWKS Remote Key Set for Cryptographic ID Token Verification
@@ -128,6 +129,7 @@ async function dispatchWhatsAppWebhook(payload: {
   timestamp: number;
 }) {
   console.log(`[WHATSAPP BRIDGE -> ${WHATSAPP_SENDER_NUMBER}] Dispatching OTP SMS to ${payload.recipientPhone}: ${payload.message}`);
+  await sendWhatsAppMessage(payload.recipientPhone, payload.message);
   const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL;
   if (webhookUrl) {
     try {
@@ -1279,7 +1281,7 @@ async function startServer() {
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, watch: { ignored: ["**/whatsapp_auth/**", "**/*.db", "**/*.db-journal"] } },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -1296,4 +1298,4 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().then(() => initWhatsApp());

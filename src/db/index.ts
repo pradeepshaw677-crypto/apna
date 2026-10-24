@@ -1,11 +1,12 @@
-import { createClient } from '@libsql/client';
+import 'dotenv/config';
+import { createClient } from '@libsql/client/web';
 import { drizzle } from 'drizzle-orm/libsql';
 import * as schema from './schema';
 import { PRODUCTS } from '../data/products';
 
 // Turso SQLite Client configuration
-const url = process.env.TURSO_DATABASE_URL || 'file:apnabazar.db';
-const authToken = process.env.TURSO_AUTH_TOKEN || undefined;
+const url = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL!;
+const authToken = process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN;
 
 export const client = createClient({
   url,
