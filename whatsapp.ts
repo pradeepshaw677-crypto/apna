@@ -10,7 +10,7 @@ export async function initWhatsApp() {
   console.log(`🔄 Initializing WhatsApp Bot (+${senderPhone})...`);
 
   try {
-    const { state, saveCreds } = await useMultiFileAuthState('/data/data/com.termux/files/home/.apna_whatsapp_auth');
+    const { state, saveCreds } = await useMultiFileAuthState("./.apna_whatsapp_auth");
     const { version } = await fetchLatestBaileysVersion();
 
     sock = makeWASocket({
