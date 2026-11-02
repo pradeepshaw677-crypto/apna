@@ -163,7 +163,7 @@ export const api = {
     } catch {
       return {
         name: 'Apna Bazar',
-        phone: '+91 6207462800',
+        phone: '+91 9999999999',
         address: 'Apna Bazar Fulfillment Center, Baharagora, Jharkhand',
         isOrderingActive: true,
         freeDeliveryThreshold: 499,

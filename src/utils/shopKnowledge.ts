@@ -390,14 +390,14 @@ export function buildAssistantReply(rawInput: string, context: AssistantContext)
 
   if (/(contact|call|phone|whatsapp|helpline|support|address|\bshop\b|dukan|location|timing|timings|kahan hai)/.test(text)) {
     return {
-      text: "Apna Bazar support:\n\n• Phone / WhatsApp: +91 6207462800\n• Timing: Monday se Sunday, 8 AM - 10 PM\n• Address: Apna Bazar Express Hub, Dadu Complex, Shitla Mandir ke paas, Baharagora, Jharkhand - 832101\n\nWebsite ke floating call ya WhatsApp button se seedha connect kar sakte hain.",
+      text: "Apna Bazar support:\n\n• Phone / WhatsApp: +91 9999999999\n• Timing: Monday se Sunday, 8 AM - 10 PM\n• Address: Apna Bazar Express Hub, Dadu Complex, Shitla Mandir ke paas, Baharagora, Jharkhand - 832101\n\nWebsite ke floating call ya WhatsApp button se seedha connect kar sakte hain.",
       chips: ["Delivery time", "Return policy", "Order status"],
     };
   }
 
   if (/(secure|security|safe|privacy|data|hack|otp safe)/.test(text)) {
     return {
-      text: "Apna Bazar aapki privacy aur security ko priority deta hai:\n\n• Login HttpOnly secure session se hota hai.\n• OTP aur card details kabhi chat me share na karein.\n• Payment card data hamare server par save nahi hota.\n• Har order par delivery OTP verification hoti hai.\n\nKoi suspicious activity lage to turant +91 6207462800 par call karein.",
+      text: "Apna Bazar aapki privacy aur security ko priority deta hai:\n\n• Login HttpOnly secure session se hota hai.\n• OTP aur card details kabhi chat me share na karein.\n• Payment card data hamare server par save nahi hota.\n• Har order par delivery OTP verification hoti hai.\n\nKoi suspicious activity lage to turant +91 9999999999 par call karein.",
       chips: ["Contact support", "How to order", "Order status"],
     };
   }

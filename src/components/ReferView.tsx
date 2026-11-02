@@ -25,15 +25,24 @@ export const ReferView: React.FC<ReferViewProps> = ({
   referralCode = 'APNA100',
   onExploreProducts,
 }) => {
-  const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
-  const handleCopy = () => {
+  const directLink = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${referralCode}` : `https://apnabazar.in/?ref=${referralCode}`;
+
+  const handleCopyCode = () => {
     navigator.clipboard.writeText(referralCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  const shareText = `Hey! Use my Apna Bazar invite code ${referralCode} to get flat ₹100 OFF on your first fashion & footwear order! Fast 3-Day Express Delivery with 100% Cash on Delivery & 5-Day Returns: https://apnabazar.in`;
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(directLink);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const shareText = `Hey! Order genuine fashion, footwear and daily essentials from Apna Bazar using my link: ${directLink} (or code ${referralCode}). Get 50 AB Coins discount! 100% Cash on Delivery & 5-Day Returns.`;
 
   const shareOnWhatsApp = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
@@ -53,11 +62,11 @@ export const ReferView: React.FC<ReferViewProps> = ({
               <span>Apna Bazar Rewards Program</span>
             </span>
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-              Give ₹100, <br />
-              <span className="text-white drop-shadow-sm">Get 100 AB Coins!</span>
+              Refer a Friend, <br />
+              <span className="text-white drop-shadow-sm">Earn 50 + 50 AB Coins!</span>
             </h1>
             <p className="text-slate-950/90 text-xs sm:text-sm font-semibold leading-relaxed">
-              Invite your friends and family to Apna Bazar. They get flat ₹100 OFF on their first order, and you earn 100 AB Coins (₹100 shopping value) directly in your wallet once their package is delivered!
+              Share your link with friends. When they order within 4-5 days and their package is delivered successfully with OTP, real AB Coins (50 Coins for you, 50 Coins for your friend = ₹25 real shopping cash each) are credited directly into your wallet!
             </p>
           </div>
         </div>
@@ -65,8 +74,8 @@ export const ReferView: React.FC<ReferViewProps> = ({
         {/* Referral Code Box */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 text-center space-y-6">
           <div className="space-y-1">
-            <h3 className="text-base sm:text-lg font-black text-slate-900">Your Exclusive Invite Code</h3>
-            <p className="text-xs text-slate-500">Share this code with your friends or copy the invite link below</p>
+            <h3 className="text-base sm:text-lg font-black text-slate-900">Your Exclusive Invite Code &amp; Link</h3>
+            <p className="text-xs text-slate-500">Share this code or your direct link. Friends ordering within 4-5 days unlock instant rewards.</p>
           </div>
 
           <div className="max-w-md mx-auto flex items-center justify-between p-3 rounded-2xl bg-slate-50 border-2 border-dashed border-amber-300">
@@ -77,11 +86,11 @@ export const ReferView: React.FC<ReferViewProps> = ({
               </span>
             </div>
             <button
-              onClick={handleCopy}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              onClick={handleCopyCode}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
             >
-              {copied ? <Check className="w-4 h-4 text-emerald-950" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? 'Copied!' : 'Copy Code'}</span>
+              {copiedCode ? <Check className="w-4 h-4 text-emerald-950" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedCode ? 'Copied Code!' : 'Copy Code'}</span>
             </button>
           </div>
 
@@ -89,18 +98,18 @@ export const ReferView: React.FC<ReferViewProps> = ({
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
             <button
               onClick={shareOnWhatsApp}
-              className="w-full sm:w-auto flex-1 py-3 px-4 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+              className="w-full sm:w-auto flex-1 py-3 px-4 rounded-xl bg-[#22c55e] hover:bg-[#16a34a] text-white font-black text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-95"
             >
               <MessageCircle className="w-4 h-4 fill-white" />
               <span>Share on WhatsApp</span>
             </button>
 
             <button
-              onClick={handleCopy}
-              className="w-full sm:w-auto flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 transition-all cursor-pointer"
+              onClick={handleCopyLink}
+              className="w-full sm:w-auto flex-1 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-95"
             >
-              <Share2 className="w-4 h-4" />
-              <span>Copy Direct Link</span>
+              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4 text-amber-400" />}
+              <span>{copiedLink ? 'Link Copied!' : 'Copy Direct Link'}</span>
             </button>
           </div>
         </div>
@@ -109,27 +118,31 @@ export const ReferView: React.FC<ReferViewProps> = ({
         <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-800">
           <div className="flex items-center gap-2 text-amber-400">
             <ShieldCheck className="w-5 h-5" />
-            <h3 className="font-black text-base">Anti-Fraud &amp; Fair Referral Policy</h3>
+            <h3 className="font-black text-base">Anti-Fraud &amp; Fair Referral Security System</h3>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            To ensure genuine benefits and prevent fraudulent accounts, our automated security engine enforces these verification rules:
+            To ensure genuine benefits and prevent fake or fraudulent orders, our automated security engine enforces these verification rules:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
             <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1">
-              <span className="font-bold text-amber-300 block">1. Device &amp; Mobile Verification</span>
-              <p className="text-slate-400 text-[11px]">Each referral discount is valid only for distinct, first-time mobile numbers and verified delivery devices.</p>
+              <span className="font-bold text-amber-300 block">1. Device &amp; Phone Verification</span>
+              <p className="text-slate-400 text-[11px]">Each referral is valid only for distinct, first-time mobile numbers and verified delivery devices.</p>
             </div>
             <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1">
-              <span className="font-bold text-amber-300 block">2. Self-Referral Prevention</span>
-              <p className="text-slate-400 text-[11px]">Users cannot apply their own code or use multiple duplicate accounts from the same address.</p>
+              <span className="font-bold text-amber-300 block">2. Self-Referral Protection</span>
+              <p className="text-slate-400 text-[11px]">Users cannot apply their own referral link or create duplicate accounts to farm rewards.</p>
             </div>
             <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1">
-              <span className="font-bold text-amber-300 block">3. Min Order Value ₹499</span>
-              <p className="text-slate-400 text-[11px]">The flat ₹100 discount coupon applies automatically on any order with cart value of ₹499 or above.</p>
+              <span className="font-bold text-amber-300 block">3. 4-5 Day Purchase Window</span>
+              <p className="text-slate-400 text-[11px]">When a friend visits via your link, their referral tracking remains active for 5 days.</p>
             </div>
             <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1">
               <span className="font-bold text-amber-300 block">4. OTP Delivered Confirmation</span>
-              <p className="text-slate-400 text-[11px]">100 AB Coins reward is credited to your wallet after OTP verification and confirmed doorstep delivery.</p>
+              <p className="text-slate-400 text-[11px]">Coins are credited strictly once the doorstep courier delivers the order with 6-digit OTP verification.</p>
+            </div>
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-1 sm:col-span-2">
+              <span className="font-bold text-amber-300 block">5. Return &amp; Cancellation Safeguard</span>
+              <p className="text-slate-400 text-[11px]">If the friend returns or cancels their order within the 5-day return window, referral AB coins are NOT issued / revoked to prevent return fraud.</p>
             </div>
           </div>
         </div>
@@ -137,7 +150,7 @@ export const ReferView: React.FC<ReferViewProps> = ({
         {/* How It Works Steps */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/90 space-y-6">
           <h3 className="text-base font-black text-slate-900 border-b border-slate-100 pb-3">
-            How Apna Bazar Referral Works
+            How Apna Bazar Referral Works (50 + 50 Coins)
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -145,9 +158,9 @@ export const ReferView: React.FC<ReferViewProps> = ({
               <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-black text-lg">
                 1
               </div>
-              <h4 className="font-black text-slate-900 text-sm">Share Your Code</h4>
+              <h4 className="font-black text-slate-900 text-sm">Share Your Invite Code</h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Send your unique referral code or link to friends and family via WhatsApp or SMS.
+                Send your unique referral code ({referralCode}) to friends &amp; family via WhatsApp or SMS.
               </p>
             </div>
 
@@ -155,9 +168,9 @@ export const ReferView: React.FC<ReferViewProps> = ({
               <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-800 flex items-center justify-center font-black text-lg">
                 2
               </div>
-              <h4 className="font-black text-slate-900 text-sm">Friend Gets ₹100 OFF</h4>
+              <h4 className="font-black text-slate-900 text-sm">Friend Places 1st Order</h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                When they apply your code at checkout, they instantly get flat ₹100 discount on their purchase.
+                Your friend registers and enters your referral code when placing their very first order.
               </p>
             </div>
 
@@ -166,11 +179,11 @@ export const ReferView: React.FC<ReferViewProps> = ({
                 3
               </div>
               <h4 className="font-black text-slate-900 text-sm flex items-center gap-1">
-                <span>You Earn 100 Coins</span>
+                <span>Both Earn 50 AB Coins</span>
                 <AbCoinLogo size="xs" />
               </h4>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Once their order is successfully delivered with OTP, 100 AB Coins are credited straight into your wallet!
+                When their 1st order is successfully delivered with 6-digit OTP, 50 Coins are added to your wallet and 50 Coins to theirs!
               </p>
             </div>
           </div>

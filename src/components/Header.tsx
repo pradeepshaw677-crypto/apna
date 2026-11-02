@@ -31,7 +31,8 @@ import {
   Tag,
   ExternalLink,
   ChevronRight,
-  Flame
+  Flame,
+  Coins
 } from 'lucide-react';
 import { Product, CartItem, UserProfile } from '../types';
 import { CATEGORIES } from '../data/products';
@@ -521,6 +522,30 @@ export const Header: React.FC<HeaderProps> = ({
                         </span>
                       </div>
 
+                      {/* AB Coins Profile Section Card */}
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onNavigateView('dashboard');
+                        }}
+                        className="w-[calc(100%-1rem)] mx-2 my-1.5 p-2 rounded-xl bg-gradient-to-r from-amber-500/10 via-yellow-400/20 to-amber-500/10 border border-amber-300/80 hover:bg-amber-100/50 transition-colors flex items-center justify-between cursor-pointer group text-left"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center shrink-0 shadow-2xs">
+                            <Coins className="w-3.5 h-3.5 text-slate-950 fill-slate-950" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-amber-900 uppercase tracking-wider leading-none">AB Coins</p>
+                            <p className="text-xs font-black text-slate-900 leading-tight">
+                              {currentUser.walletBalance && currentUser.walletBalance > 0
+                                ? `${currentUser.walletBalance} Coins (₹${Math.floor(currentUser.walletBalance / 2)})`
+                                : 'No AB Coins'}
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-amber-600 group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+
                       <button
                         onClick={() => {
                           setIsUserMenuOpen(false);
@@ -761,9 +786,41 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Scrollable Sidebar Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-5 text-xs divide-y divide-slate-100">
+
+              {/* AB Coins Wallet Section Card */}
+              <div
+                onClick={() => {
+                  setIsSidebarOpen(false);
+                  if (currentUser?.isLoggedIn) {
+                    onNavigateView('dashboard');
+                  } else {
+                    onOpenLogin();
+                  }
+                }}
+                className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-400/20 to-amber-500/15 border border-amber-300 flex items-center justify-between cursor-pointer hover:bg-amber-100/50 transition-colors shadow-2xs"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-300 flex items-center justify-center shrink-0 shadow-xs">
+                    <Coins className="w-4 h-4 text-slate-950 fill-slate-950" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-amber-900 leading-none">AB Coins Wallet</p>
+                    <p className="text-xs font-black text-slate-950 mt-0.5">
+                      {currentUser?.isLoggedIn ? (
+                        currentUser.walletBalance && currentUser.walletBalance > 0
+                          ? `${currentUser.walletBalance} Coins (₹${Math.floor(currentUser.walletBalance / 2)})`
+                          : 'No AB Coins'
+                      ) : (
+                        'Login to view balance'
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-amber-700" />
+              </div>
               
               {/* Section 1: Quick Shortcuts */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 pt-3">
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">
                   Quick Shortcuts
                 </div>
@@ -979,12 +1036,12 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <a
-                  href="tel:6207462800"
+                  href="tel:9999999999"
                   className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 text-amber-300 font-bold cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4" />
-                    <span>Call Helpline: 6207462800</span>
+                    <span>Call Helpline: 9999999999</span>
                   </div>
                   <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full font-black">
                     24/7

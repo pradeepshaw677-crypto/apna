@@ -28,6 +28,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [selectedColor, setSelectedColor] = useState<string>(
     product.colors && product.colors.length > 0 ? product.colors[0].name : ''
   );
+  const [cardImageIndex, setCardImageIndex] = useState(0);
+
+  const galleryImages = product.images && product.images.length > 0 ? product.images : [product.image];
 
   // Dynamic Size Price Adjustment
   const sizeDelta = getSizePriceDelta(selectedSize);
@@ -97,12 +100,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </div>
 
-      {/* Product Image */}
+      {/* Product Image with instant color switch */}
       <div className="relative py-2 sm:py-3 flex items-center justify-center overflow-hidden rounded-2xl bg-slate-50/70 my-1">
         <img
-          src={product.image}
+          src={galleryImages[cardImageIndex] || product.image}
           alt={product.name}
-          className="h-36 sm:h-44 w-full object-cover rounded-xl group-hover:scale-108 transition-transform duration-300"
+          className="h-36 sm:h-44 w-full object-cover rounded-xl group-hover:scale-108 transition-all duration-300"
           loading="lazy"
         />
 
@@ -114,24 +117,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         )}
       </div>
 
-      {/* Color Swatch Dots Preview */}
+      {/* Color Swatch Dots Preview with Bi-Directional Image Sync */}
       {product.colors && product.colors.length > 0 && (
         <div className="flex items-center gap-1.5 py-1">
-          {product.colors.slice(0, 4).map((c, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedColor(c.name);
-              }}
-              className={`w-3.5 h-3.5 rounded-full border shadow-2xs shrink-0 cursor-pointer transition-transform ${
-                selectedColor === c.name ? 'scale-125 border-amber-500 ring-1 ring-amber-400' : 'border-slate-300'
-              }`}
-              style={{ backgroundColor: c.hex }}
-              title={c.name}
-            />
-          ))}
+          {product.colors.slice(0, 4).map((c, i) => {
+            const imgIdx = typeof c.imageIndex === 'number' ? c.imageIndex : i;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedColor(c.name);
+                  if (galleryImages[imgIdx]) {
+                    setCardImageIndex(imgIdx);
+                  }
+                }}
+                className={`w-3.5 h-3.5 rounded-full border shadow-2xs shrink-0 cursor-pointer transition-transform ${
+                  selectedColor === c.name ? 'scale-125 border-amber-500 ring-1 ring-amber-400' : 'border-slate-300 hover:scale-110'
+                }`}
+                style={{ backgroundColor: c.hex }}
+                title={`${c.name} (Click to preview color)`}
+              />
+            );
+          })}
           {product.colors.length > 4 && (
             <span className="text-[10px] text-slate-400 font-bold">+{product.colors.length - 4}</span>
           )}
@@ -164,32 +173,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {product.name}
         </h4>
 
-        {/* Interactive Size Selector Pills with Dynamic Price Bump */}
-        {product.sizes && product.sizes.length > 0 && (
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 overflow-hidden text-[10px] text-slate-500 font-semibold flex-wrap pt-0.5"
-          >
-            <span className="text-slate-400 text-[10px] shrink-0">Size:</span>
-            {product.sizes.slice(0, 4).map((s, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setSelectedSize(s)}
-                className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold cursor-pointer transition-all border shrink-0 ${
-                  selectedSize === s
-                    ? 'bg-slate-900 text-amber-300 border-slate-900 shadow-2xs'
-                    : 'bg-slate-100 text-slate-700 border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-            {product.sizes.length > 4 && (
-              <span className="text-[9px] text-slate-400 font-bold">+{product.sizes.length - 4}</span>
-            )}
-          </div>
-        )}
+
 
         {/* Price Row: Dynamic Price with Indian Rupees, MRP, Savings */}
         <div className="flex items-baseline gap-1 sm:gap-1.5 pt-1 flex-wrap">

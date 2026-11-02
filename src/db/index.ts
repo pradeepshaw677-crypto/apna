@@ -204,6 +204,7 @@ export async function initDatabase(): Promise<void> {
   await ensureColumn('users', 'avatar', 'TEXT');
   await ensureColumn('users', 'token_version', 'INTEGER NOT NULL DEFAULT 1');
   await ensureColumn('users', 'is_blocked', 'INTEGER NOT NULL DEFAULT 0');
+  await ensureColumn('users', 'wallet_balance', 'INTEGER NOT NULL DEFAULT 200');
 
   await ensureColumn('products', 'hindi_name', 'TEXT');
   await ensureColumn('products', 'subcategory', 'TEXT');

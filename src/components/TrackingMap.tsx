@@ -220,11 +220,11 @@ export const TrackingMap: React.FC<TrackingMapProps> = ({
         </div>
       </div>
 
-      {/* Map Canvas with Explicit Height */}
-      <div ref={mapContainerRef} className="w-full h-72 sm:h-80 z-0" />
+      {/* Map Canvas with Explicit Responsive Height */}
+      <div ref={mapContainerRef} className="w-full h-48 sm:h-72 z-0" />
 
       {/* Anti-Hack Proof Telemetry & Verification Footer */}
-      <div className="p-3 sm:p-4 bg-white border-t border-slate-200 space-y-2.5 text-xs">
+      <div className="p-3 sm:p-4 bg-white border-t border-slate-200 space-y-2.5 text-xs pb-4">
         
         {/* Rider Profile and Live Speed */}
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -248,7 +248,7 @@ export const TrackingMap: React.FC<TrackingMapProps> = ({
 
           <div className="flex items-center gap-2">
             <a
-              href="tel:6207462800"
+              href="tel:9999999999"
               className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-black text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-95"
             >
               <Phone className="w-3.5 h-3.5" />

@@ -9,6 +9,7 @@ export const users = sqliteTable('users', {
   role: text('role', { enum: ['CUSTOMER', 'ADMIN', 'DELIVERY_AGENT'] }).default('CUSTOMER').notNull(),
   isBlocked: integer('is_blocked', { mode: 'boolean' }).default(false).notNull(),
   tokenVersion: integer('token_version').default(1).notNull(),
+  walletBalance: integer('wallet_balance').default(0).notNull(),
   createdAt: integer('created_at').notNull(),
 });
 

@@ -154,7 +154,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">AB Coin Wallet</p>
               <h4 className="text-sm sm:text-lg font-black text-amber-950">
-                {(currentUser.walletBalance || 0).toLocaleString('en-IN')} Coins
+                {currentUser.walletBalance && currentUser.walletBalance > 0
+                  ? `${currentUser.walletBalance.toLocaleString('en-IN')} Coins`
+                  : 'No AB Coins'}
               </h4>
             </div>
           </div>
@@ -175,7 +177,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   AB Coin Wallet
                 </h3>
                 <p className="text-xs font-bold text-slate-900/80">
-                  Total Balance: <span className="font-mono text-base font-black text-slate-950">{currentUser.walletBalance || 0} AB Coins</span> (₹{Math.floor((currentUser.walletBalance || 0) / 2).toLocaleString('en-IN')} Shopping Value)
+                  Total Balance:{' '}
+                  <span className="font-mono text-base font-black text-slate-950">
+                    {currentUser.walletBalance && currentUser.walletBalance > 0
+                      ? `${currentUser.walletBalance} AB Coins (₹${Math.floor(currentUser.walletBalance / 2).toLocaleString('en-IN')} Shopping Value)`
+                      : 'No AB Coins'}
+                  </span>
                 </p>
               </div>
             </div>
@@ -434,7 +441,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <p className="text-xs font-black text-slate-900">Refer &amp; Earn</p>
-              <p className="text-[10px] text-amber-700 font-bold">Earn ₹200 credits</p>
+              <p className="text-[10px] text-amber-700 font-bold">Earn 50 AB Coins</p>
             </div>
           </button>
 

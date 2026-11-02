@@ -74,8 +74,8 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
 
       {/* Blue Phone Call Button */}
       <a
-        href="tel:6207462800"
-        title="Call Jharkhand Helpline: 6207462800"
+        href="tel:9999999999"
+        title="Call Jharkhand Helpline: 9999999999"
         aria-label="Call Helpline"
         className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0284c7] hover:bg-[#0369a1] text-white flex items-center justify-center shadow-lg shadow-sky-600/35 hover:scale-110 active:scale-95 transition-all cursor-pointer group"
       >
@@ -84,10 +84,10 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
 
       {/* Green WhatsApp Button with Red Unread Dot */}
       <a
-        href="https://wa.me/916207462800?text=Hi%20Apna%20Bazar,%20I%20want%20to%20inquire%20about%20fashion%20products%20and%20orders"
+        href="https://wa.me/919999999999?text=Hi%20Apna%20Bazar,%20I%20want%20to%20inquire%20about%20fashion%20products%20and%20orders"
         target="_blank"
         rel="noopener noreferrer"
-        title="Chat on WhatsApp (+91 6207462800)"
+        title="Chat on WhatsApp (+91 9999999999)"
         aria-label="WhatsApp Support"
         className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white flex items-center justify-center shadow-lg shadow-emerald-600/40 hover:scale-110 active:scale-95 transition-all cursor-pointer relative group"
       >

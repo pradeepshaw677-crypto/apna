@@ -550,7 +550,7 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
         </div>
 
         {/* Live Interactive Google Map View */}
-        <div className="relative w-full h-56 sm:h-64 bg-slate-100 shrink-0">
+        <div className="relative w-full h-44 sm:h-56 bg-slate-100 shrink-0">
           <div ref={mapContainerRef} className="w-full h-full z-0" />
 
           {/* Top Pill Status Badge */}
@@ -584,9 +584,9 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
         </div>
 
         {/* Detected Address Details with Live Pin Data */}
-        <div className="p-4 sm:p-5 space-y-3.5 bg-white overflow-y-auto flex-1 text-xs">
+        <div className="p-3 sm:p-5 space-y-3 bg-white overflow-y-auto flex-1 text-xs">
           
-          <div className="bg-slate-50 border-2 border-slate-200/90 rounded-2xl p-4 font-sans text-slate-900 space-y-1 shadow-2xs relative">
+          <div className="bg-slate-50 border-2 border-slate-200/90 rounded-2xl p-3.5 sm:p-4 font-sans text-slate-900 space-y-1 shadow-2xs relative">
             <div className="flex items-center justify-between pb-2 border-b border-slate-200">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-amber-600" />
@@ -702,11 +702,14 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
             </div>
           </div>
 
-          {/* Confirm Button */}
+        </div>
+
+        {/* Sticky Confirm Button Footer (Always fully visible, never cut off on mobile) */}
+        <div className="p-3 sm:p-4 bg-white border-t border-slate-200 shrink-0 shadow-md">
           <button
             type="button"
             onClick={handleConfirmLocation}
-            className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 cursor-pointer ${
+            className={`w-full py-3 sm:py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-98 cursor-pointer ${
               isInside10Km
                 ? 'bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-amber-400/25'
                 : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/25'
@@ -717,9 +720,8 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
                 ? 'Confirm This Delivery Address (15-Min Express)' 
                 : 'Confirm This Delivery Address (Standard Delivery)'}
             </span>
-            <Check className="w-5 h-5 stroke-[3]" />
+            <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
           </button>
-
         </div>
 
       </div>

@@ -51,7 +51,7 @@ const CSP_DIRECTIVES = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
-  "frame-ancestors 'none'",
+  "frame-ancestors 'self' https://*.google.com https://*.run.app https://aistudio.google.com https://*.googleusercontent.com",
   "form-action 'self'",
   "script-src 'self' https://accounts.google.com https://unpkg.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
@@ -67,12 +67,11 @@ const CSP_DIRECTIVES = [
 export function securityHeaders(_req: Request, res: Response, next: NextFunction): void {
   res.removeHeader("X-Powered-By");
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
+  // X-Frame-Options DENY is omitted so the applet can render inside AI Studio's preview iframe
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
   res.setHeader("X-DNS-Prefetch-Control", "off");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader(
     "Permissions-Policy",
     "camera=(), microphone=(), payment=(), usb=(), geolocation=(self), interest-cohort=()",

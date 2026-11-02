@@ -187,13 +187,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const deliveryFee = itemTotal >= 499 ? 0 : 49;
 
+  // Check if a valid referral invite was captured within the 4-5 day window
+  const savedRef = typeof window !== 'undefined' ? sessionStorage.getItem('ab_referral_code') : null;
+  const refTime = typeof window !== 'undefined' ? Number(sessionStorage.getItem('ab_referral_time') || 0) : 0;
+  const isRefValid = Boolean(savedRef && (!refTime || Date.now() - refTime <= 5 * 24 * 60 * 60 * 1000));
+
+  const activeCoupon = appliedCoupon || (isRefValid && savedRef ? {
+    code: savedRef,
+    discountType: 'fixed' as const,
+    discountValue: 50,
+    minOrderValue: 0,
+    description: 'Referral Discount: ₹50 Off + 50 AB Coins upon doorstep delivery'
+  } : null);
+
   let discountAmount = 0;
-  if (appliedCoupon) {
-    if (itemTotal >= appliedCoupon.minOrderValue) {
-      if (appliedCoupon.discountType === 'fixed') {
-        discountAmount = appliedCoupon.discountValue;
+  if (activeCoupon) {
+    if (itemTotal >= activeCoupon.minOrderValue) {
+      if (activeCoupon.discountType === 'fixed') {
+        discountAmount = activeCoupon.discountValue;
       } else {
-        discountAmount = Math.min(400, Math.round((itemTotal * appliedCoupon.discountValue) / 100));
+        discountAmount = Math.min(400, Math.round((itemTotal * activeCoupon.discountValue) / 100));
       }
     }
   }
@@ -242,7 +255,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         items: cartItems,
         address,
         paymentMethod: finalTotal === 0 ? 'ab_coins' : selectedPaymentMethod,
-        appliedCoupon,
+        appliedCoupon: activeCoupon,
         tipAmount: 0,
         abCoinsUsed: isUsingCoins ? coinsToDeduct : 0,
       });

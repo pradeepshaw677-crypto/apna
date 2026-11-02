@@ -273,11 +273,11 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({ isOpen
             </button>
 
             <a
-              href="tel:6207462800"
+              href="tel:9999999999"
               className="py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
             >
               <Phone className="w-4 h-4 text-emerald-600" />
-              <span>Call Helpline: 6207462800</span>
+              <span>Call Helpline: 9999999999</span>
             </a>
           </div>
 

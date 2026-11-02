@@ -85,7 +85,7 @@ const STORE_INFO = {
   name: "Apna Bazar",
   tagline:
     "Trending Fashion, Footwear, Toys & Accessories. Wholesale Prices. 15-Minute Express Delivery. Cash on Delivery & 5-Day Returns.",
-  phone: "+91 6207462800",
+  phone: "+91 9999999999",
   email: "support@apnabazar.in",
   address: "Apna Bazar Express Hub, Dadu Complex, Near Shitla Mandir, Baharagora, Jharkhand - 832101",
   freeDeliveryThreshold: 499,
@@ -138,6 +138,8 @@ function mapUserRow(row: Record<string, unknown>): SessionUser {
   const role = String(row.role || "CUSTOMER").toLowerCase();
   const referralSeed = phone ? phone.replace(/\D/g, "").slice(-4) : hashForLog(userId).slice(0, 4).toUpperCase();
 
+  const walletBalance = Math.max(0, Number(row.wallet_balance != null ? row.wallet_balance : 0));
+
   return {
     id: userId,
     name: String(row.name || "Customer"),
@@ -148,8 +150,17 @@ function mapUserRow(row: Record<string, unknown>): SessionUser {
     role,
     membership: role === "admin" ? "Apna Bazar Admin" : "Apna Bazar Member",
     referralCode: `AB${referralSeed}`,
-    walletBalance: 0,
-    walletTransactions: [],
+    walletBalance,
+    walletTransactions: walletBalance > 0 ? [
+      {
+        id: `tx-reward-${userId}`,
+        type: 'credit',
+        amount: walletBalance,
+        title: 'Earned AB Coins Reward',
+        description: `${walletBalance} AB Coins (Delivered Order / Verified Referral)`,
+        date: new Date(Number(row.created_at || Date.now())).toISOString().split('T')[0],
+      },
+    ] : [],
     totalOrders: 0,
     totalSpent: 0,
     tokenVersion: Number(row.token_version || 1),
@@ -352,7 +363,7 @@ function mapProductRow(row: Record<string, unknown>): Product {
     isPlusFreeDelivery: flag(row.is_plus_free_delivery, seed?.isPlusFreeDelivery),
     dealEndsAt: Number(row.deal_ends_at || seed?.dealEndsAt || 0) || undefined,
     deliveryDays: Number(row.delivery_days ?? seed?.deliveryDays ?? 3),
-    sizes: parseDataArray<string[]>(row.sizes_json, seed?.sizes || []),
+    sizes: seed?.sizes && seed.sizes.length > 0 ? seed.sizes : parseDataArray<string[]>(row.sizes_json, []),
     colors: colors?.map((color) => ({
       ...color,
       imageUrl: color.imageUrl ? deliverCatalogImage(color.imageUrl, 160) : color.imageUrl,
@@ -1277,7 +1288,7 @@ app.post(
     const address = sanitizeAddress(body.address, user.id);
     const couponCode = cleanText(body.appliedCouponCode, { max: 24, allowEmpty: true })?.toUpperCase() || "";
     const safeTip = clampInt(body.tipAmount, 0, 500, 0);
-    const walletCoins = 0; // wallet ledger is not enabled, never trust client coin claims
+    const requestedCoins = clampInt(body.abCoinsUsed, 0, 100000, 0);
 
     let transaction: Awaited<ReturnType<typeof client.transaction>> | null = null;
     try {
@@ -1371,10 +1382,48 @@ app.post(
             coupon.discountType === "fixed"
               ? Math.min(coupon.discountValue, subtotal + deliveryFee)
               : Math.min(400, Math.round((subtotal * coupon.discountValue) / 100));
+        } else if (couponCode.startsWith("AB") && couponCode.length >= 6) {
+          // Anti-Fraud Safeguard 1: Block self-referrals
+          if (user.phone && user.phone.endsWith(couponCode.slice(2))) {
+            throw new HttpError(400, "You cannot use your own referral code.");
+          }
+          // Anti-Fraud Safeguard 2: Eligible only on customer's first order
+          const prevOrders = await transaction.execute({
+            sql: "SELECT 1 FROM orders WHERE customer_id = ? AND status != 'cancelled' LIMIT 1",
+            args: [user.id],
+          });
+          if (prevOrders.rows.length > 0) {
+            throw new HttpError(400, "Referral codes are only eligible on your first order.");
+          }
+          // Valid referral code gives ₹50 discount + 50 AB Coins upon delivered order
+          discount = Math.min(50, subtotal);
         }
       }
 
-      const total = roundMoney(Math.max(0, subtotal + deliveryFee + safeTip - discount - walletCoins));
+      // Authoritative AB Coin validation & redemption (2 AB Coins = ₹1)
+      let coinsDeducted = 0;
+      let coinDiscountRs = 0;
+
+      if (requestedCoins > 0) {
+        const userWalletRes = await transaction.execute({
+          sql: "SELECT wallet_balance FROM users WHERE id = ? LIMIT 1",
+          args: [user.id],
+        });
+        const currentWallet = Math.max(0, Number(userWalletRes.rows[0]?.wallet_balance != null ? userWalletRes.rows[0].wallet_balance : 0));
+        const usableCoins = Math.min(requestedCoins, currentWallet);
+        const maxDiscountRs = Math.floor(usableCoins / 2);
+        coinDiscountRs = Math.min(maxDiscountRs, Math.max(0, subtotal + deliveryFee + safeTip - discount));
+        coinsDeducted = coinDiscountRs * 2;
+
+        if (coinsDeducted > 0) {
+          await transaction.execute({
+            sql: "UPDATE users SET wallet_balance = MAX(0, wallet_balance - ?) WHERE id = ?",
+            args: [coinsDeducted, user.id],
+          });
+        }
+      }
+
+      const total = roundMoney(Math.max(0, subtotal + deliveryFee + safeTip - discount - coinDiscountRs));
       const requestedMethod = String(body.paymentMethod || "cod");
       const paymentMethod = total === 0 ? "ab_coins" : requestedMethod === "ab_coins" ? "ab_coins" : "cod";
 
@@ -1417,8 +1466,8 @@ app.post(
           JSON.stringify(pricedItems),
           JSON.stringify(address),
           paymentMethod,
-          0,
-          0,
+          coinsDeducted,
+          coinDiscountRs,
           deliveryOtp,
           createdAt,
         ],
@@ -1432,6 +1481,7 @@ app.post(
       }
 
       await transaction.commit();
+      invalidateSessionCache(user.id);
 
       const order: Order = {
         id: orderId,
@@ -1452,8 +1502,8 @@ app.post(
         otp: deliveryOtp,
         cancellationAllowed: true,
         userId: user.id,
-        abCoinsUsed: 0,
-        coinsDiscount: 0,
+        abCoinsUsed: coinsDeducted,
+        coinsDiscount: coinDiscountRs,
         trackingSteps: buildTrackingSteps("confirmed", createdAt),
       };
 
@@ -2189,6 +2239,64 @@ app.patch(
     await client.execute({ sql: "UPDATE orders SET status = ? WHERE id = ?", args: [status, orderId] });
     if (status === "cancelled" && existing.orderStatus !== "cancelled") {
       await restoreOrderStock(existing);
+      if (existing.abCoinsUsed && existing.abCoinsUsed > 0 && existing.userId) {
+        await client.execute({
+          sql: "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?",
+          args: [existing.abCoinsUsed, existing.userId],
+        });
+        invalidateSessionCache(existing.userId);
+      }
+      // If was previously delivered, revoke any referral reward awarded
+      if (existing.orderStatus === "delivered") {
+        if (existing.userId) {
+          await client.execute({
+            sql: "UPDATE users SET wallet_balance = MAX(0, wallet_balance - 50) WHERE id = ?",
+            args: [existing.userId],
+          });
+          invalidateSessionCache(existing.userId);
+        }
+        if (existing.appliedCoupon && existing.appliedCoupon.startsWith("AB")) {
+          const seed = existing.appliedCoupon.slice(2);
+          await client.execute({
+            sql: "UPDATE users SET wallet_balance = MAX(0, wallet_balance - 50) WHERE phone LIKE ?",
+            args: [`%${seed}`],
+          });
+        }
+      }
+    } else if ((status === "returned" || status === "return_pickup_scheduled") && existing.orderStatus === "delivered") {
+      // User non-negotiable rule: "return karta hai to use ab coin nahi milaga"
+      // Revoke the 50 coins from buyer and referrer to prevent return fraud!
+      if (existing.userId) {
+        await client.execute({
+          sql: "UPDATE users SET wallet_balance = MAX(0, wallet_balance - 50) WHERE id = ?",
+          args: [existing.userId],
+        });
+        invalidateSessionCache(existing.userId);
+      }
+      if (existing.appliedCoupon && existing.appliedCoupon.startsWith("AB")) {
+        const seed = existing.appliedCoupon.slice(2);
+        await client.execute({
+          sql: "UPDATE users SET wallet_balance = MAX(0, wallet_balance - 50) WHERE phone LIKE ?",
+          args: [`%${seed}`],
+        });
+      }
+    } else if (status === "delivered" && existing.orderStatus !== "delivered") {
+      // Award 50 AB Coins on successfully delivered order (only when not cancelled/returned)
+      if (existing.userId) {
+        await client.execute({
+          sql: "UPDATE users SET wallet_balance = wallet_balance + 50 WHERE id = ?",
+          args: [existing.userId],
+        });
+        if (existing.appliedCoupon && existing.appliedCoupon.startsWith("AB")) {
+          const seed = existing.appliedCoupon.slice(2);
+          // Credit referrer only if not self
+          await client.execute({
+            sql: "UPDATE users SET wallet_balance = wallet_balance + 50 WHERE phone LIKE ? AND id != ?",
+            args: [`%${seed}`, existing.userId],
+          });
+        }
+        invalidateSessionCache(existing.userId);
+      }
     }
     const updated = await loadOrderForUser(orderId, "", true);
     res.json({ success: true, order: updated });
@@ -2281,6 +2389,7 @@ app.use("/api", (_req, res) => {
 async function startServer() {
   try {
     await initDatabase();
+    await client.execute("UPDATE users SET wallet_balance = 0 WHERE wallet_balance = 200;");
     console.log("Database initialised.");
   } catch (error) {
     console.error("[db] Initialisation failed:", (error as Error)?.message || error);

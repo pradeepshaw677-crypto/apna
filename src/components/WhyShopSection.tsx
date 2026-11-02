@@ -205,7 +205,7 @@ export const WhyShopSection: React.FC<WhyShopSectionProps> = ({ onExploreShop })
               Direct Baharagora Local Helpline
             </h3>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              No robot delays. Call or WhatsApp our Baharagora store desk directly on +91 6207462800 for instant assistance, order tracking, and size consultations.
+              No robot delays. Call or WhatsApp our Baharagora store desk directly on +91 9999999999 for instant assistance, order tracking, and size consultations.
             </p>
           </div>
           <span className="text-xs font-bold text-amber-800 flex items-center gap-1">

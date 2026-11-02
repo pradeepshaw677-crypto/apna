@@ -20,6 +20,10 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Coins,
+  Eye,
   Ruler,
   BadgeCheck,
   Banknote,
@@ -176,10 +180,28 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     setIsCheckingPin(false);
   };
 
+  useEffect(() => {
+    if (product) {
+      setSelectedImageIndex(0);
+      setSelectedSize(product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Standard');
+      setSelectedColor(product.colors && product.colors.length > 0 ? product.colors[0].name : '');
+    }
+  }, [product.id]);
+
   const handleSelectColor = (colorName: string, imageIndex?: number) => {
     setSelectedColor(colorName);
     if (typeof imageIndex === 'number' && galleryImages[imageIndex]) {
       setSelectedImageIndex(imageIndex);
+    }
+  };
+
+  const handleSelectImage = (idx: number) => {
+    setSelectedImageIndex(idx);
+    if (product.colors && product.colors.length > 0) {
+      const matched = product.colors.find((c, i) => (typeof c.imageIndex === 'number' ? c.imageIndex : i) === idx);
+      if (matched) {
+        setSelectedColor(matched.name);
+      }
     }
   };
 
@@ -240,7 +262,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn overflow-y-auto">
       <div 
-        className="relative bg-white w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-200 overflow-y-auto md:overflow-hidden my-auto max-h-[92dvh] flex flex-col md:flex-row"
+        className="relative bg-white w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-200 overflow-y-auto md:overflow-hidden my-auto max-h-[92dvh] flex flex-col md:flex-row overscroll-contain"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -253,27 +275,66 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         </button>
 
         {/* Left Side: Multi-Image Gallery */}
-        <div className="md:w-1/2 p-3 sm:p-6 bg-slate-50 flex flex-col gap-2.5 sm:gap-4 border-b md:border-b-0 md:border-r border-slate-200 shrink-0">
+        <div className="w-full md:w-1/2 p-3 sm:p-6 bg-slate-50 flex flex-col gap-2.5 sm:gap-4 border-b md:border-b-0 md:border-r border-slate-200 shrink-0 md:overflow-y-auto">
           
           {/* Main Zoomable Image View */}
-          <div className="relative aspect-4/3 sm:aspect-4/5 max-h-56 sm:max-h-80 md:max-h-none w-full rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-xs zoom-container">
+          <div className="relative aspect-4/3 sm:aspect-4/5 max-h-56 sm:max-h-80 md:max-h-none w-full rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-xs zoom-container group/gallery">
             <img
               src={galleryImages[selectedImageIndex] || product.image}
               alt={product.name}
               decoding="async"
               fetchPriority="high"
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-cover object-center transition-all duration-300"
             />
 
             {/* Discount Badge */}
             {product.discountPercent > 0 && (
-              <div className="absolute top-3 left-3 bg-gradient-to-r from-rose-500 to-amber-600 text-white font-black text-xs px-3 py-1 rounded-full shadow-sm">
+              <div className="absolute top-3 left-3 bg-gradient-to-r from-rose-500 to-amber-600 text-white font-black text-xs px-3 py-1 rounded-full shadow-sm z-10">
                 ⚡ {product.discountPercent}% OFF
               </div>
             )}
 
+            {/* Photo Counter Pill */}
+            {galleryImages.length > 1 && (
+              <div className="absolute bottom-3 left-3 bg-slate-950/70 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-xs z-10">
+                {selectedImageIndex + 1} / {galleryImages.length}
+              </div>
+            )}
+
+            {/* Prev / Next photo navigation arrows */}
+            {galleryImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const prevIdx = (selectedImageIndex - 1 + galleryImages.length) % galleryImages.length;
+                    handleSelectImage(prevIdx);
+                  }}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md backdrop-blur-xs transition-transform active:scale-90 z-20 cursor-pointer"
+                  title="Previous image"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const nextIdx = (selectedImageIndex + 1) % galleryImages.length;
+                    handleSelectImage(nextIdx);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md backdrop-blur-xs transition-transform active:scale-90 z-20 cursor-pointer"
+                  title="Next image"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+
             {/* Top action icons */}
-            <div className="absolute top-3 right-3 flex items-center gap-2">
+            <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
               <button
                 onClick={handleShare}
                 className="p-2 rounded-full bg-white/90 text-slate-600 hover:text-slate-950 shadow-md cursor-pointer transition-transform active:scale-90"
@@ -293,13 +354,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Thumbnail Strip */}
+          {/* Thumbnail Strip with Bi-directional Color Mapping */}
           {galleryImages.length > 1 && (
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
               {galleryImages.map((imgUrl, idx) => (
                 <button
                   key={idx}
-                  onClick={() => setSelectedImageIndex(idx)}
+                  onClick={() => handleSelectImage(idx)}
                   className={`w-16 h-20 rounded-xl overflow-hidden border-2 transition-all shrink-0 bg-white cursor-pointer ${
                     selectedImageIndex === idx
                       ? 'border-amber-500 ring-2 ring-amber-400/40 shadow-xs scale-105'
@@ -336,7 +397,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         </div>
 
         {/* Right Side: Product Details, Specs, Delivery & Reviews */}
-        <div className="md:w-1/2 p-5 sm:p-6 overflow-y-auto space-y-5">
+        <div className="w-full md:w-1/2 p-5 sm:p-6 space-y-5 md:overflow-y-auto">
           
           {/* Brand & Title */}
           <div>
@@ -361,6 +422,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </span>
               <span className="text-xs font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                 ✓ 100% Genuine
+              </span>
+            </div>
+
+            {/* Live Shopper Social Proof & Urgency */}
+            <div className="flex items-center gap-2.5 mt-2.5 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-50/90 px-2.5 py-1 rounded-full border border-amber-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <Eye className="w-3.5 h-3.5 text-amber-700" />
+                <span>14 people viewing right now</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-black text-amber-950 bg-gradient-to-r from-amber-100 to-yellow-100 px-2.5 py-1 rounded-full border border-amber-300 shadow-2xs">
+                <Coins className="w-3.5 h-3.5 text-amber-600" />
+                <span>Earn 50 AB Coins on this order</span>
               </span>
             </div>
           </div>
@@ -726,26 +800,43 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
         </div>
 
-        {/* Mobile Sticky Bottom CTA Bar */}
-        <div className="md:hidden sticky bottom-0 left-0 right-0 p-3 bg-white border-t border-slate-200 grid grid-cols-2 gap-2 shadow-lg z-20">
-          <button
-            onClick={() => onAddToCart(product, selectedSize, selectedColor, currentPrice)}
-            className="py-3 px-3 rounded-xl bg-slate-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <ShoppingBag className="w-4 h-4 text-amber-400" />
-            <span>Bag ({formatINR(currentPrice)})</span>
-          </button>
+        {/* Mobile Sticky Bottom CTA Bar with Live Savings & Thumb-friendly buttons */}
+        <div className="md:hidden sticky bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-2xl z-20 space-y-2">
+          <div className="flex items-center justify-between text-xs px-1">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-black text-slate-900 text-base">{formatINR(currentPrice)}</span>
+              {currentOriginalPrice > currentPrice && (
+                <span className="text-[11px] text-slate-400 line-through">{formatINR(currentOriginalPrice)}</span>
+              )}
+            </div>
+            {savingsAmount > 0 && (
+              <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                You Save {formatINR(savingsAmount)}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => onAddToCart(product, selectedSize, selectedColor, currentPrice)}
+              className="py-3 px-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform shadow-xs"
+            >
+              <ShoppingBag className="w-4 h-4 text-amber-400" />
+              <span>{quantityInCart > 0 ? `In Bag (${quantityInCart})` : 'Add to Bag'}</span>
+            </button>
 
-          <button
-            onClick={() => {
-              onBuyNow(product, selectedSize, selectedColor, currentPrice);
-              onClose();
-            }}
-            className="py-3 px-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-400/20 cursor-pointer"
-          >
-            <Zap className="w-4 h-4 fill-current" />
-            <span>Buy Now (COD)</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                onBuyNow(product, selectedSize, selectedColor, currentPrice);
+                onClose();
+              }}
+              className="py-3 px-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-400/25 cursor-pointer active:scale-95 transition-transform"
+            >
+              <Zap className="w-4 h-4 fill-current" />
+              <span>Buy Now (COD)</span>
+            </button>
+          </div>
         </div>
 
       </div>

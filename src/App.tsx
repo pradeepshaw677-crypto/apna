@@ -138,9 +138,7 @@ export default function App() {
   const [deliveryLocation, setDeliveryLocation] = useState(() => {
     return localStorage.getItem('ab_delivery_location') || 'Baharagora 832101 (Jharkhand)';
   });
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(() => {
-    return !localStorage.getItem('ab_location_verified');
-  });
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   // Modals & Drawers
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -245,6 +243,18 @@ export default function App() {
     };
     document.addEventListener('error', handleImageError, true);
     return () => document.removeEventListener('error', handleImageError, true);
+  }, []);
+
+  // Capture referral invite code from URL like /?ref=AB1234
+  useEffect(() => {
+    try {
+      const refParam = new URLSearchParams(window.location.search).get('ref');
+      if (refParam && refParam.trim().length >= 4) {
+        const cleanRef = refParam.trim().toUpperCase();
+        sessionStorage.setItem('ab_referral_code', cleanRef);
+        sessionStorage.setItem('ab_referral_time', Date.now().toString());
+      }
+    } catch {}
   }, []);
 
   // Deep links like /?product=fsh-001 open the exact product page.
@@ -835,21 +845,16 @@ export default function App() {
           <main ref={productSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
             
             {/* Section Title & Live Stats */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                    {selectedCategory === 'all'
-                      ? 'Trending Fashion, Footwear, Toys & Accessories'
-                      : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Collections'}
-                  </h2>
-                  <span className="text-xs font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
-                    {filteredProducts.length} Styles Available
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  100% Genuine Branded Quality • 15-Minute Express in Jharkhand • Cash on Delivery &amp; 5-Day Returns
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  {selectedCategory === 'all'
+                    ? 'Trending Fashion, Footwear, Toys & Accessories'
+                    : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Collections'}
+                </h2>
+                <span className="text-xs font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                  {filteredProducts.length} Styles Available
+                </span>
               </div>
 
               {/* Sort By Dropdown */}

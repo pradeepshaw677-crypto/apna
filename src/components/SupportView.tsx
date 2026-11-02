@@ -27,7 +27,7 @@ interface SupportViewProps {
 export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
   const [showComplaintForm, setShowComplaintForm] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('6207462800');
+  const [phone, setPhone] = useState('9999999999');
   const [orderId, setOrderId] = useState('');
   const [issueType, setIssueType] = useState('size_issue');
   const [description, setDescription] = useState('');
@@ -56,7 +56,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
     },
     {
       q: 'What are the customer support operating hours?',
-      a: 'Our Baharagora central support desk is active Monday to Sunday from 8:00 AM to 10:00 PM IST via direct phone (+91 6207462800) and WhatsApp (+91 6207462800).',
+      a: 'Our Baharagora central support desk is active Monday to Sunday from 8:00 AM to 10:00 PM IST via direct phone (+91 9999999999) and WhatsApp (+91 9999999999).',
     },
     {
       q: 'How does the 5-day doorstep return pickup with OTP work?',
@@ -287,18 +287,18 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
               Connect instantly with our customer support team on WhatsApp for fast assistance and order updates.
             </p>
             <p className="text-xs text-slate-900 font-mono font-bold pt-1">
-              📱 Phone / WhatsApp: <span className="text-emerald-700">+91 6207462800</span>
+              📱 Phone / WhatsApp: <span className="text-emerald-700">+91 9999999999</span>
             </p>
           </div>
 
           <a
-            href="https://wa.me/916207462800?text=Hello%20Apka%20Apna%20Bazar%20Support,%20I%20need%20help%20with%20my%20order"
+            href="https://wa.me/919999999999?text=Hello%20Apka%20Apna%20Bazar%20Support,%20I%20need%20help%20with%20my%20order"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-all active:scale-98"
           >
             <MessageCircle className="w-5 h-5 fill-current" />
-            <span>Chat on WhatsApp (+91 6207462800)</span>
+            <span>Chat on WhatsApp (+91 9999999999)</span>
             <ArrowLeft className="w-4 h-4 rotate-180" />
           </a>
         </div>
@@ -322,11 +322,11 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
           </div>
 
           <a
-            href="tel:+916207462800"
+            href="tel:+919999999999"
             className="w-full py-3.5 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-98"
           >
             <Phone className="w-4 h-4 text-amber-400" />
-            <span>Call +91 6207462800</span>
+            <span>Call +91 9999999999</span>
           </a>
         </div>
 
@@ -407,7 +407,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
           </div>
           <div className="flex items-center gap-2">
             <a
-              href="https://wa.me/916207462800"
+              href="https://wa.me/919999999999"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-colors"
@@ -416,7 +416,7 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
               <MessageCircle className="w-4 h-4 fill-current" />
             </a>
             <a
-              href="tel:+916207462800"
+              href="tel:+919999999999"
               className="p-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 transition-colors font-bold"
               title="Call Us"
             >

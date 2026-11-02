@@ -81,7 +81,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["S", "M", "L", "XL", "XXL"],
+    sizes: ["S (38)", "M (40)", "L (42)", "XL (44)", "XXL (46)"],
     colors: [
       { name: "Pitch Black", hex: "#111827", imageIndex: 0 },
       { name: "Cream Off-White", hex: "#F3F4F6", imageIndex: 1 },
@@ -128,7 +128,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1620012253295-c15c429fccf8?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["38 (S)", "40 (M)", "42 (L)", "44 (XL)"],
+    sizes: ["S (38)", "M (40)", "L (42)", "XL (44)"],
     colors: [
       { name: "Sky Blue", hex: "#93C5FD", imageIndex: 0 },
       { name: "Crisp White", hex: "#FFFFFF", imageIndex: 1 },
@@ -173,7 +173,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1555689502-c4b22d76c56f?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["28", "30", "32", "34", "36"],
+    sizes: ["28 (S)", "30 (M)", "32 (L)", "34 (XL)", "36 (XXL)"],
     colors: [
       { name: "Deep Indigo", hex: "#1E3A8A", imageIndex: 0 },
       { name: "Midnight Black", hex: "#0F172A", imageIndex: 1 },
@@ -216,7 +216,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["38", "40", "42", "44"],
+    sizes: ["S (38)", "M (40)", "L (42)", "XL (44)"],
     colors: [
       { name: "Royal Ivory", hex: "#FFFBEB", imageIndex: 0 },
       { name: "Pastel Mint", hex: "#D1FAE5", imageIndex: 1 },
@@ -258,7 +258,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["S", "M", "L", "XL"],
+    sizes: ["S (38)", "M (40)", "L (42)", "XL (44)"],
     colors: [
       { name: "Oatmeal Beige", hex: "#E5E7EB", imageIndex: 0 },
       { name: "Forest Moss", hex: "#166534", imageIndex: 1 },
@@ -299,7 +299,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["XS", "S", "M", "L", "XL"],
+    sizes: ["XS (34)", "S (36)", "M (38)", "L (40)", "XL (42)"],
     colors: [
       { name: "Blush Crimson", hex: "#FDA4AF", imageIndex: 0 },
       { name: "Emerald Floral", hex: "#065F46", imageIndex: 1 },
@@ -381,7 +381,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1552902865-b72c031ac5ea?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["28-30 (M)", "32-34 (L)", "36-38 (XL)"],
+    sizes: ["28 (S)", "30 (M)", "32 (L)", "34 (XL)", "36 (XXL)"],
     colors: [
       { name: "Military Olive", hex: "#3F6212", imageIndex: 0 },
       { name: "Stealth Black", hex: "#18181B", imageIndex: 1 },
@@ -419,7 +419,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["38", "40", "42", "44"],
+    sizes: ["S (38)", "M (40)", "L (42)", "XL (44)"],
     colors: [
       { name: "Sandy Beige", hex: "#D6D3D1", imageIndex: 0 },
       { name: "Sky White", hex: "#F8FAFC", imageIndex: 0 },
@@ -456,7 +456,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["M", "L", "XL", "XXL"],
+    sizes: ["M (40)", "L (42)", "XL (44)", "XXL (46)"],
     colors: [
       { name: "Navy Blue", hex: "#1E3A8A", imageIndex: 0 },
       { name: "Gunmetal Grey", hex: "#374151", imageIndex: 0 },
@@ -500,7 +500,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 6", "UK 7", "UK 8", "UK 9", "UK 10"],
+    sizes: ["6", "7", "8", "9", "10"],
     colors: [
       { name: "Flame Red", hex: "#EF4444", imageIndex: 0 },
       { name: "Volt Black", hex: "#111827", imageIndex: 1 },
@@ -544,7 +544,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1614252369475-531eba835eb1?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 6", "UK 7", "UK 8", "UK 9", "UK 10"],
+    sizes: ["6", "7", "8", "9", "10"],
     colors: [
       { name: "Rich Tan Brown", hex: "#92400E", imageIndex: 0 },
       { name: "Glossy Jet Black", hex: "#0F172A", imageIndex: 1 },
@@ -585,7 +585,7 @@ export const PRODUCTS: Product[] = [
       "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=80",
       "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 7", "UK 8", "UK 9", "UK 10"],
+    sizes: ["7", "8", "9", "10"],
     colors: [
       { name: "Panda Black & White", hex: "#1F2937", imageIndex: 0 },
       { name: "Royal Vintage Blue", hex: "#1E40AF", imageIndex: 1 },
@@ -623,7 +623,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1603808033192-082d6919d3e1?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 6", "UK 7", "UK 8", "UK 9", "UK 10"],
+    sizes: ["6", "7", "8", "9", "10"],
     colors: [
       { name: "Safari Olive", hex: "#3F6212", imageIndex: 0 },
       { name: "Charcoal Grey", hex: "#4B5563", imageIndex: 0 },
@@ -660,7 +660,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 5-6", "UK 7-8", "UK 9-10"],
+    sizes: ["5-6", "7-8", "9-10"],
     colors: [
       { name: "Matte Black", hex: "#18181B", imageIndex: 0 },
       { name: "Pastel Pistachio", hex: "#BBF7D0", imageIndex: 0 },
@@ -699,7 +699,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1520639888713-7851133b1ed0?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 7", "UK 8", "UK 9", "UK 10"],
+    sizes: ["7", "8", "9", "10"],
     colors: [
       { name: "Vintage Tan", hex: "#78350F", imageIndex: 0 },
       { name: "Obsidian Black", hex: "#09090B", imageIndex: 0 },
@@ -737,7 +737,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 4", "UK 5", "UK 6", "UK 7", "UK 8"],
+    sizes: ["4", "5", "6", "7", "8"],
     colors: [
       { name: "Nude Blush", hex: "#FBCFE8", imageIndex: 0 },
       { name: "Glossy Black", hex: "#0F172A", imageIndex: 0 },
@@ -774,7 +774,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1463100099107-aa0980c362e6?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 6", "UK 7", "UK 8", "UK 9"],
+    sizes: ["6", "7", "8", "9"],
     colors: [
       { name: "Classic Navy", hex: "#1E3A8A", imageIndex: 0 },
       { name: "Optic White", hex: "#FFFFFF", imageIndex: 0 },
@@ -812,7 +812,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1614252369475-531eba835eb1?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 7", "UK 8", "UK 9", "UK 10"],
+    sizes: ["7", "8", "9", "10"],
     colors: [
       { name: "Classic Derby Black", hex: "#000000", imageIndex: 0 },
       { name: "Burnished Mahogany", hex: "#451A03", imageIndex: 0 },
@@ -849,7 +849,7 @@ export const PRODUCTS: Product[] = [
     images: [
       "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80",
     ],
-    sizes: ["UK 7", "UK 8", "UK 9", "UK 10"],
+    sizes: ["7", "8", "9", "10"],
     colors: [
       { name: "Granite Grey", hex: "#4B5563", imageIndex: 0 },
       { name: "Desert Sand", hex: "#D97706", imageIndex: 0 },
