@@ -1,7 +1,7 @@
 export async function initWhatsApp() {
   const apiKey = process.env.WUAPI_API_KEY;
   if (!apiKey) {
-    console.warn('⚠️ WUAPI_API_KEY set nahi hai! Render Environment ya .env mein add karein.');
+    console.warn('⚠️ WUAPI_API_KEY set nahi hai! Render Environment mein add karein.');
   } else {
     console.log('✅ Wuapi WhatsApp API Ready! Ab OTP seedha Wuapi se jayega.');
   }
@@ -17,7 +17,6 @@ export async function sendWhatsAppMessage(recipientPhone: string, message: strin
   }
 
   try {
-    // Phone number ko +91XXXXXXXXXX (E.164 format) mein set karein
     let cleanNum = recipientPhone.replace(/\D/g, '');
     if (cleanNum.length === 10) {
       cleanNum = '91' + cleanNum;
@@ -39,7 +38,6 @@ export async function sendWhatsAppMessage(recipientPhone: string, message: strin
     });
 
     const data = await response.json();
-
     if (!response.ok) {
       console.error('❌ Wuapi API Error:', data);
       return false;
