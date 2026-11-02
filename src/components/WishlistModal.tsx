@@ -63,6 +63,8 @@ export const WishlistModal: React.FC<WishlistModalProps> = ({
                 <img
                   src={product.image}
                   alt={product.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-16 h-20 object-cover object-top rounded-lg bg-slate-100 border border-slate-200 shrink-0"
                 />
 

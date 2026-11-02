@@ -1,52 +1,59 @@
-export async function initWhatsApp() {
-  const apiKey = process.env.WUAPI_API_KEY;
-  if (!apiKey) {
-    console.warn('⚠️ WUAPI_API_KEY set nahi hai! Render Environment mein add karein.');
-  } else {
-    console.log('✅ Wuapi WhatsApp API Ready! Ab OTP seedha Wuapi se jayega.');
+const WUAPI_ENDPOINT = "https://api.wuapi.dev/v1/messages";
+
+function maskPhone(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 4 ? `***${digits.slice(-4)}` : "***";
+}
+
+export async function initWhatsApp(): Promise<void> {
+  if (!process.env.WUAPI_API_KEY || !process.env.WUAPI_ACCOUNT_ID) {
+    console.warn("[whatsapp] WUAPI_API_KEY / WUAPI_ACCOUNT_ID not configured. OTP delivery is disabled.");
+    return;
   }
+  console.log("[whatsapp] WhatsApp OTP delivery is configured.");
 }
 
 export async function sendWhatsAppMessage(recipientPhone: string, message: string): Promise<boolean> {
   const apiKey = process.env.WUAPI_API_KEY;
-  const accountId = process.env.WUAPI_ACCOUNT_ID || 'j57dvgdfh820bapc133y8ct7y58hfezt';
+  const accountId = process.env.WUAPI_ACCOUNT_ID;
 
-  if (!apiKey) {
-    console.error('❌ WUAPI_API_KEY missing hai!');
+  if (!apiKey || !accountId) {
+    console.error("[whatsapp] Delivery skipped: provider credentials are missing.");
+    return false;
+  }
+
+  let clean = recipientPhone.replace(/\D/g, "");
+  if (clean.length === 10) clean = `91${clean}`;
+  if (!/^91[6-9]\d{9}$/.test(clean)) {
+    console.error("[whatsapp] Delivery skipped: invalid recipient number.");
     return false;
   }
 
   try {
-    let cleanNum = recipientPhone.replace(/\D/g, '');
-    if (cleanNum.length === 10) {
-      cleanNum = '91' + cleanNum;
-    }
-    const formattedTo = `+${cleanNum}`;
-
-    const response = await fetch('https://api.wuapi.dev/v1/messages', {
-      method: 'POST',
+    const response = await fetch(WUAPI_ENDPOINT, {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        accountId: accountId,
-        to: formattedTo,
-        type: 'text',
-        text: message
-      })
+        accountId,
+        to: `+${clean}`,
+        type: "text",
+        text: message,
+      }),
+      signal: AbortSignal.timeout(12_000),
     });
 
-    const data = await response.json();
     if (!response.ok) {
-      console.error('❌ Wuapi API Error:', data);
+      console.error(`[whatsapp] Provider rejected message (status ${response.status}) for ${maskPhone(clean)}`);
       return false;
     }
 
-    console.log(`✅ WhatsApp OTP delivered to ${formattedTo} via Wuapi!`);
+    console.info(`[whatsapp] Message delivered to ${maskPhone(clean)}`);
     return true;
-  } catch (err) {
-    console.error('❌ WhatsApp message send error:', err);
+  } catch {
+    console.error("[whatsapp] Provider request failed.");
     return false;
   }
 }

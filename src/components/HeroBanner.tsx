@@ -288,6 +288,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                 <img
                   src={CLEAN_TOP_BANNER_IMAGES[topBannerIndex]}
                   alt="Apna Bazar Banner"
+                  decoding="async"
+                  fetchPriority={topBannerIndex === 0 ? "high" : "auto"}
                   className="w-full h-full object-cover object-center transition-all duration-700"
                 />
 

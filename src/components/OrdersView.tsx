@@ -200,6 +200,8 @@ export const OrdersView: React.FC<OrdersViewProps> = ({
                         <img
                           src={it.product.image}
                           alt={it.product.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-14 h-14 object-cover rounded-xl bg-slate-100 shrink-0 border border-slate-200"
                         />
                         <div className="flex-1 min-w-0">

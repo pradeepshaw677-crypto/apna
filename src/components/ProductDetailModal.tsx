@@ -23,7 +23,8 @@ import {
   Ruler,
   BadgeCheck,
   Banknote,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { Product, ProductReview } from '../types';
 import { api } from '../utils/api';
@@ -40,6 +41,7 @@ interface ProductDetailModalProps {
   onToggleWishlist: (productId: string) => void;
   onBuyNow: (product: Product, size?: string, color?: string, priceOverride?: number) => void;
   pincode: string;
+  onRequireLogin?: () => void;
 }
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -52,6 +54,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onToggleWishlist,
   onBuyNow,
   pincode,
+  onRequireLogin,
 }) => {
   if (!product) return null;
 
@@ -85,6 +88,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [reviewComment, setReviewComment] = useState('');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [reviewError, setReviewError] = useState('');
   const [uploadedReviewImage, setUploadedReviewImage] = useState<string | null>(null);
 
   // Top 3 default reviews with authentic customer images if not loaded yet
@@ -181,9 +185,16 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const handleReviewPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const res = await uploadToCloudinary(file, "reviews");
+    if (!file) return;
+    setReviewError('');
+    try {
+      const res = await uploadToCloudinary(file, 'reviews');
       setUploadedReviewImage(res.url);
+    } catch (err: any) {
+      if (/sign in/i.test(err?.message || '')) onRequireLogin?.();
+      setReviewError(err?.message || 'Could not upload the photo. Please try again.');
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -192,12 +203,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     if (!reviewerName.trim() || !reviewComment.trim()) return;
 
     setIsSubmittingReview(true);
+    setReviewError('');
     try {
       const res = await api.submitReview(product.id, {
         rating: newRating,
         title: "Verified Customer Review",
         comment: reviewComment,
-        userName: reviewerName,
         images: uploadedReviewImage ? [uploadedReviewImage] : [],
       });
       setReviews([res, ...reviews]);
@@ -206,8 +217,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       setUploadedReviewImage(null);
       setReviewSuccess(true);
       setTimeout(() => setReviewSuccess(false), 3000);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      if (err?.status === 401) onRequireLogin?.();
+      setReviewError(err?.message || 'Could not post your review. Please try again.');
     } finally {
       setIsSubmittingReview(false);
     }
@@ -248,6 +260,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <img
               src={galleryImages[selectedImageIndex] || product.image}
               alt={product.name}
+              decoding="async"
+              fetchPriority="high"
               className="w-full h-full object-cover object-center"
             />
 
@@ -292,7 +306,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       : 'border-slate-200 opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <img src={imgUrl} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover object-center" />
+                  <img src={imgUrl} alt={`Thumbnail ${idx}`} loading="lazy" decoding="async" className="w-full h-full object-cover object-center" />
                 </button>
               ))}
             </div>
@@ -614,6 +628,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                           key={i}
                           src={imgUrl}
                           alt="Customer product photo"
+                          loading="lazy"
+                          decoding="async"
                           className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl border border-slate-200 shadow-2xs hover:scale-105 transition-transform"
                         />
                       ))}
@@ -696,6 +712,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <p className="text-xs font-bold text-amber-900 bg-amber-100 p-2 rounded-xl border border-amber-300 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-amber-700" />
                   <span>Thank you! Your verified review with photo has been posted.</span>
+                </p>
+              )}
+
+              {reviewError && (
+                <p className="text-xs font-bold text-rose-800 bg-rose-50 p-2 rounded-xl border border-rose-200 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-rose-600" />
+                  <span>{reviewError}</span>
                 </p>
               )}
             </form>

@@ -64,8 +64,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     (o) => o.orderStatus === 'placed' || o.orderStatus === 'confirmed' || o.orderStatus === 'shipped' || o.orderStatus === 'out_for_delivery'
   ) || orders[0];
 
-  const totalSpent = orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0) + (currentUser.totalSpent || 0);
-
   const handleCopyOtp = (otp: string) => {
     navigator.clipboard.writeText(otp);
     setCopiedOtp(true);
@@ -238,6 +236,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <img
                   src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'}
                   alt={currentUser.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-3 border-amber-400 shadow-md"
                 />
                 <button

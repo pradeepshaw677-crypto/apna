@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Sparkles, 
   Flame, 
@@ -54,31 +54,63 @@ import { HeroBanner } from './components/HeroBanner';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { CartDrawer } from './components/CartDrawer';
-import { CheckoutModal } from './components/CheckoutModal';
-import { TrackOrderModal } from './components/TrackOrderModal';
 import { WishlistModal } from './components/WishlistModal';
 import { OffersModal } from './components/OffersModal';
 import { PincodeModal } from './components/PincodeModal';
-import { LocationPermissionModal } from './components/LocationPermissionModal';
 import { PromoNotificationToast } from './components/PromoNotificationToast';
 import { CartToast, CartToastItem } from './components/CartToast';
 import { LoginModal } from './components/LoginModal';
-import { DashboardView } from './components/DashboardView';
-import { OrdersView } from './components/OrdersView';
-import { AddressesView } from './components/AddressesView';
-import { ReferView } from './components/ReferView';
-import { SupportView } from './components/SupportView';
-import { PolicyView } from './components/PolicyView';
 import { WhyShopSection } from './components/WhyShopSection';
 import { CustomerReviewsSection } from './components/CustomerReviewsSection';
 import { MobileBottomNav, MobileTab } from './components/MobileBottomNav';
 import { DashboardOptionsModal } from './components/DashboardOptionsModal';
-import { DeliveryRadiusModal } from './components/DeliveryRadiusModal';
-import { InvoiceModal } from './components/InvoiceModal';
-import { VoiceSearchModal } from './components/VoiceSearchModal';
-import { ReturnRequestModal } from './components/ReturnRequestModal';
 import { FloatingActions } from './components/FloatingActions';
+import { AIAssistant } from './components/AIAssistant';
 import { Footer } from './components/Footer';
+import { recoverImage } from './utils/cloudinary';
+
+const CheckoutModal = lazy(() =>
+  import('./components/CheckoutModal').then((module) => ({ default: module.CheckoutModal })),
+);
+const TrackOrderModal = lazy(() =>
+  import('./components/TrackOrderModal').then((module) => ({ default: module.TrackOrderModal })),
+);
+const LocationPermissionModal = lazy(() =>
+  import('./components/LocationPermissionModal').then((module) => ({ default: module.LocationPermissionModal })),
+);
+const DeliveryRadiusModal = lazy(() =>
+  import('./components/DeliveryRadiusModal').then((module) => ({ default: module.DeliveryRadiusModal })),
+);
+const InvoiceModal = lazy(() =>
+  import('./components/InvoiceModal').then((module) => ({ default: module.InvoiceModal })),
+);
+const VoiceSearchModal = lazy(() =>
+  import('./components/VoiceSearchModal').then((module) => ({ default: module.VoiceSearchModal })),
+);
+const DashboardView = lazy(() =>
+  import('./components/DashboardView').then((module) => ({ default: module.DashboardView })),
+);
+const OrdersView = lazy(() =>
+  import('./components/OrdersView').then((module) => ({ default: module.OrdersView })),
+);
+const AddressesView = lazy(() =>
+  import('./components/AddressesView').then((module) => ({ default: module.AddressesView })),
+);
+const ReferView = lazy(() =>
+  import('./components/ReferView').then((module) => ({ default: module.ReferView })),
+);
+const SupportView = lazy(() =>
+  import('./components/SupportView').then((module) => ({ default: module.SupportView })),
+);
+const PolicyView = lazy(() =>
+  import('./components/PolicyView').then((module) => ({ default: module.PolicyView })),
+);
+
+const ViewLoading = () => (
+  <div className="min-h-[50vh] flex items-center justify-center">
+    <div className="w-8 h-8 rounded-full border-2 border-rose-200 border-t-red-600 animate-spin" />
+  </div>
+);
 
 export type ViewType = 
   | 'home' 
@@ -102,9 +134,6 @@ export default function App() {
   // User Authentication State (Secured via HttpOnly session cookies)
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
-  // Bottom Navigation tab state
-  const [activeBottomTab, setActiveBottomTab] = useState<MobileTab>('home');
-
   // Delivery Location & Verification State
   const [deliveryLocation, setDeliveryLocation] = useState(() => {
     return localStorage.getItem('ab_delivery_location') || 'Baharagora 832101 (Jharkhand)';
@@ -124,8 +153,7 @@ export default function App() {
   const [isVoiceSearchOpen, setIsVoiceSearchOpen] = useState(false);
   const [isDeliveryRadiusOpen, setIsDeliveryRadiusOpen] = useState(false);
   const [isDashboardOptionsOpen, setIsDashboardOptionsOpen] = useState(false);
-  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
-  const [selectedReturnOrder, setSelectedReturnOrder] = useState<Order | null>(null);
+  const [isAIOpen, setIsAIOpen] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -209,6 +237,48 @@ export default function App() {
     return () => { isMounted = false; };
   }, []);
 
+  // Recover any Cloudinary/CDN image that fails, then show a safe placeholder.
+  useEffect(() => {
+    const handleImageError = (event: Event) => {
+      const target = event.target;
+      if (target instanceof HTMLImageElement) recoverImage(target);
+    };
+    document.addEventListener('error', handleImageError, true);
+    return () => document.removeEventListener('error', handleImageError, true);
+  }, []);
+
+  // Deep links like /?product=fsh-001 open the exact product page.
+  useEffect(() => {
+    const openProductFromUrl = () => {
+      const productId = new URLSearchParams(window.location.search).get('product');
+      if (!productId) return;
+      const product =
+        productsList.find((item) => item.id === productId) ||
+        PRODUCTS.find((item) => item.id === productId);
+      if (product) setSelectedProduct(product);
+    };
+
+    openProductFromUrl();
+    window.addEventListener('popstate', openProductFromUrl);
+    return () => window.removeEventListener('popstate', openProductFromUrl);
+  }, [productsList]);
+
+  const openProduct = (product: Product) => {
+    setSelectedProduct(product);
+    const url = new URL(window.location.href);
+    url.searchParams.set('product', product.id);
+    window.history.replaceState({}, '', `${url.pathname}?${url.searchParams.toString()}${url.hash}`);
+  };
+
+  const closeProduct = () => {
+    setSelectedProduct(null);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('product')) {
+      url.searchParams.delete('product');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  };
+
   // Fetch live products from backend with high-speed local caching
   useEffect(() => {
     let isMounted = true;
@@ -225,8 +295,9 @@ export default function App() {
     return () => { isMounted = false; };
   }, []);
 
-  // Sync orders from server
+  // Sync orders from server once the customer is signed in
   useEffect(() => {
+    if (!currentUser) return;
     let isMounted = true;
     api.getOrders().then((serverOrders) => {
       if (isMounted && serverOrders && serverOrders.length > 0) {
@@ -244,7 +315,7 @@ export default function App() {
       // Local fallback
     });
     return () => { isMounted = false; };
-  }, []);
+  }, [currentUser]);
 
   // Persist storage
   useEffect(() => { saveCart(cartItems); }, [cartItems]);
@@ -459,34 +530,6 @@ export default function App() {
     setIsCartOpen(true);
   };
 
-  // Return Request & AB Coin Wallet Credit Flow
-  const handleOpenReturnModal = (order: Order) => {
-    setSelectedReturnOrder(order);
-    setIsReturnModalOpen(true);
-  };
-
-  const handleReturnProcessed = (updatedOrder: Order, refundedCoins: number) => {
-    setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o)));
-    if (currentUser) {
-      const newBalance = (currentUser.walletBalance || 0) + refundedCoins;
-      const newTx: WalletTransaction = {
-        id: `tx-return-${Date.now()}`,
-        type: 'credit',
-        amount: refundedCoins,
-        title: `Return Refund - Order #${updatedOrder.id}`,
-        description: `Full product value credited in AB Coins for shopping`,
-        date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-        orderId: updatedOrder.id,
-      };
-      const updatedUser: UserProfile = {
-        ...currentUser,
-        walletBalance: newBalance,
-        walletTransactions: [newTx, ...(currentUser.walletTransactions || [])],
-      };
-      setCurrentUser(updatedUser);
-    }
-  };
-
   const handleDeductWalletCoins = (coins: number) => {
     if (currentUser) {
       const newBalance = Math.max(0, (currentUser.walletBalance || 0) - coins);
@@ -638,7 +681,7 @@ export default function App() {
         onLogout={handleLogout}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWishlist={() => setIsWishlistOpen(true)}
-        onSelectProduct={(p) => setSelectedProduct(p)}
+        onSelectProduct={(p) => openProduct(p)}
         allProducts={productsList}
         selectedCategory={selectedCategory}
         setSelectedCategory={(cat) => {
@@ -691,68 +734,70 @@ export default function App() {
       )}
 
       {/* 2. Main Content Views Routing */}
-      {activeView === 'dashboard' && currentUser && (
-        <DashboardView
-          currentUser={currentUser}
-          wishlistCount={wishlistIds.length}
-          orders={orders}
-          onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
-          onOpenWishlist={() => setIsWishlistOpen(true)}
-          onOpenOrders={() => setActiveView('orders')}
-          onOpenRefer={() => setActiveView('refer')}
-          onOpenCatalogue={() => setActiveView('home')}
-          onViewInvoice={(order) => setInvoiceOrder(order)}
-          onOpenAddresses={() => setActiveView('addresses')}
-          onOpenSupport={() => setActiveView('support')}
-        />
-      )}
+      <Suspense fallback={<ViewLoading />}>
+        {activeView === 'dashboard' && currentUser && (
+          <DashboardView
+            currentUser={currentUser}
+            wishlistCount={wishlistIds.length}
+            orders={orders}
+            onOpenTrackOrder={() => setIsTrackOrderOpen(true)}
+            onOpenWishlist={() => setIsWishlistOpen(true)}
+            onOpenOrders={() => setActiveView('orders')}
+            onOpenRefer={() => setActiveView('refer')}
+            onOpenCatalogue={() => setActiveView('home')}
+            onViewInvoice={(order) => setInvoiceOrder(order)}
+            onOpenAddresses={() => setActiveView('addresses')}
+            onOpenSupport={() => setActiveView('support')}
+          />
+        )}
 
-      {activeView === 'orders' && (
-        <OrdersView
-          orders={orders}
-          onOpenTrackOrder={(o) => {
-            if (o) setActiveTrackedOrder(o);
-            setIsTrackOrderOpen(true);
-          }}
-          onViewInvoice={(order) => setInvoiceOrder(order)}
-          onReorder={handleReorder}
-          onBackToShop={() => setActiveView('home')}
-        />
-      )}
+        {activeView === 'orders' && (
+          <OrdersView
+            orders={orders}
+            onOpenTrackOrder={(o) => {
+              if (o) setActiveTrackedOrder(o);
+              setIsTrackOrderOpen(true);
+            }}
+            onViewInvoice={(order) => setInvoiceOrder(order)}
+            onReorder={handleReorder}
+            onBackToShop={() => setActiveView('home')}
+          />
+        )}
 
-      {activeView === 'addresses' && (
-        <AddressesView
-          onSelectAddress={(addr) => setSavedAddress(addr)}
-          onBackToShop={() => setActiveView('home')}
-        />
-      )}
+        {activeView === 'addresses' && (
+          <AddressesView
+            onSelectAddress={(addr) => setSavedAddress(addr)}
+            onBackToShop={() => setActiveView('home')}
+          />
+        )}
 
-      {activeView === 'refer' && (
-        <ReferView
-          referralCode={currentUser?.referralCode || 'BHABANI2026'}
-          onExploreProducts={() => setActiveView('home')}
-        />
-      )}
+        {activeView === 'refer' && (
+          <ReferView
+            referralCode={currentUser?.referralCode || 'APNABAZAR'}
+            onExploreProducts={() => setActiveView('home')}
+          />
+        )}
 
-      {activeView === 'support' && (
-        <SupportView
-          onBackToShop={() => setActiveView('home')}
-        />
-      )}
+        {activeView === 'support' && (
+          <SupportView
+            onBackToShop={() => setActiveView('home')}
+          />
+        )}
 
-      {/* Policy Pages */}
-      {(activeView === 'about' || 
-        activeView === 'shipping' || 
-        activeView === 'returns' || 
-        activeView === 'cancellation' || 
-        activeView === 'terms' || 
-        activeView === 'privacy' || 
-        activeView === 'disclaimer') && (
-        <PolicyView
-          policyType={activeView}
-          onBackToShop={() => setActiveView('home')}
-        />
-      )}
+        {/* Policy Pages */}
+        {(activeView === 'about' || 
+          activeView === 'shipping' || 
+          activeView === 'returns' || 
+          activeView === 'cancellation' || 
+          activeView === 'terms' || 
+          activeView === 'privacy' || 
+          activeView === 'disclaimer') && (
+          <PolicyView
+            policyType={activeView}
+            onBackToShop={() => setActiveView('home')}
+          />
+        )}
+      </Suspense>
 
       {activeView === 'home' && (
         <>
@@ -769,7 +814,7 @@ export default function App() {
             onSelectProductById={(prodId) => {
               const p = productsList.find((x) => x.id === prodId);
               if (p) {
-                setSelectedProduct(p);
+                openProduct(p);
               }
               productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
@@ -870,7 +915,7 @@ export default function App() {
                       onAddToCart={handleAddToCart}
                       onUpdateQuantity={handleUpdateQuantity}
                       onToggleWishlist={handleToggleWishlist}
-                      onSelectProduct={(p) => setSelectedProduct(p)}
+                      onSelectProduct={(p) => openProduct(p)}
                     />
                   );
                 })}
@@ -927,6 +972,7 @@ export default function App() {
       {/* Floating Quick Actions (WhatsApp, Bag, Scroll to Top) */}
       <FloatingActions
         onOpenCart={() => setIsCartOpen(true)}
+        onOpenAI={() => setIsAIOpen(true)}
         cartCount={totalCartCount}
       />
 
@@ -1005,11 +1051,12 @@ export default function App() {
             : 0
         }
         isWishlisted={selectedProduct ? wishlistIds.includes(selectedProduct.id) : false}
-        onClose={() => setSelectedProduct(null)}
+        onClose={closeProduct}
         onAddToCart={handleAddToCart}
         onUpdateQuantity={handleUpdateQuantity}
         onToggleWishlist={handleToggleWishlist}
         onBuyNow={handleBuyNow}
+        onRequireLogin={() => setIsLoginOpen(true)}
         pincode={selectedPincode}
       />
 
@@ -1029,28 +1076,34 @@ export default function App() {
         onSetRiderTip={() => {}}
       />
 
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        cartItems={cartItems}
-        appliedCoupon={appliedCoupon}
-        savedAddress={savedAddress}
-        onSaveAddress={setSavedAddress}
-        onOrderPlaced={handleOrderPlaced}
-        userId={currentUser?.id}
-        walletBalance={currentUser?.walletBalance ?? 0}
-        onDeductWalletCoins={handleDeductWalletCoins}
-      />
+      <Suspense fallback={null}>
+        {isCheckoutOpen && (
+          <CheckoutModal
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            cartItems={cartItems}
+            appliedCoupon={appliedCoupon}
+            savedAddress={savedAddress}
+            onSaveAddress={setSavedAddress}
+            onOrderPlaced={handleOrderPlaced}
+            userId={currentUser?.id}
+            walletBalance={currentUser?.walletBalance ?? 0}
+            onDeductWalletCoins={handleDeductWalletCoins}
+          />
+        )}
 
-      <TrackOrderModal
-        isOpen={isTrackOrderOpen}
-        onClose={() => setIsTrackOrderOpen(false)}
-        activeOrder={activeTrackedOrder}
-        allOrders={orders}
-        onOrderUpdated={(updated) => {
-          setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-        }}
-      />
+        {isTrackOrderOpen && (
+          <TrackOrderModal
+            isOpen={isTrackOrderOpen}
+            onClose={() => setIsTrackOrderOpen(false)}
+            activeOrder={activeTrackedOrder}
+            allOrders={orders}
+            onOrderUpdated={(updated) => {
+              setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+            }}
+          />
+        )}
+      </Suspense>
 
       <WishlistModal
         isOpen={isWishlistOpen}
@@ -1078,12 +1131,16 @@ export default function App() {
       />
 
       {/* User Request: Visual Card Location Permission Check Modal */}
-      <LocationPermissionModal
-        isOpen={isLocationModalOpen}
-        onClose={() => setIsLocationModalOpen(false)}
-        currentPincode={selectedPincode}
-        onConfirmPincode={handleLocationConfirmed}
-      />
+      <Suspense fallback={null}>
+        {isLocationModalOpen && (
+          <LocationPermissionModal
+            isOpen={isLocationModalOpen}
+            onClose={() => setIsLocationModalOpen(false)}
+            currentPincode={selectedPincode}
+            onConfirmPincode={handleLocationConfirmed}
+          />
+        )}
+      </Suspense>
 
       {/* User Request: Subtle Floating Promo Code Notification Toast */}
       <PromoNotificationToast
@@ -1106,24 +1163,42 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess}
       />
 
-      <VoiceSearchModal
-        isOpen={isVoiceSearchOpen}
-        onClose={() => setIsVoiceSearchOpen(false)}
-        onSearch={(q) => {
-          setSearchQuery(q);
-          setActiveView('home');
-          setSelectedCategory('all');
-        }}
-      />
+      <Suspense fallback={null}>
+        {isVoiceSearchOpen && (
+          <VoiceSearchModal
+            isOpen={isVoiceSearchOpen}
+            onClose={() => setIsVoiceSearchOpen(false)}
+            onSearch={(q) => {
+              setSearchQuery(q);
+              setActiveView('home');
+              setSelectedCategory('all');
+            }}
+          />
+        )}
 
-      <DeliveryRadiusModal
-        isOpen={isDeliveryRadiusOpen}
-        onClose={() => setIsDeliveryRadiusOpen(false)}
-      />
+        {isDeliveryRadiusOpen && (
+          <DeliveryRadiusModal
+            isOpen={isDeliveryRadiusOpen}
+            onClose={() => setIsDeliveryRadiusOpen(false)}
+          />
+        )}
 
-      <InvoiceModal
-        order={invoiceOrder}
-        onClose={() => setInvoiceOrder(null)}
+        {invoiceOrder && (
+          <InvoiceModal
+            order={invoiceOrder}
+            onClose={() => setInvoiceOrder(null)}
+          />
+        )}
+      </Suspense>
+
+      <AIAssistant
+        isOpen={isAIOpen}
+        onClose={() => setIsAIOpen(false)}
+        products={productsList}
+        orders={orders}
+        cartItems={cartItems}
+        user={currentUser}
+        onSelectProduct={openProduct}
       />
 
     </div>

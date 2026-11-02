@@ -1,15 +1,14 @@
 /**
- * Cloudinary Media Integration Utility for Apna Bazar
- * Enterprise Architecture: Backend Signed-Upload Signature Generator.
- * ZERO API secrets exposed to frontend JavaScript.
+ * Cloudinary media utility.
+ * Uploads are authorised and signed by the backend. No API secret ever reaches
+ * the browser, and the backend re-validates file type and size before upload.
  */
 
 export const CLOUDINARY_CLOUD_NAME = "apnabazar-cdn";
 
-/**
- * Transforms an image URL to a high-speed Cloudinary CDN URL with auto-WebP formatting,
- * responsive width scaling, and intelligent compression.
- */
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 export function getCloudinaryUrl(
   urlOrPublicId: string,
   options: {
@@ -30,7 +29,6 @@ export function getCloudinaryUrl(
     format = "auto",
   } = options;
 
-  // If already a Cloudinary delivery URL, inject transformations
   if (urlOrPublicId.includes("res.cloudinary.com")) {
     const parts = urlOrPublicId.split("/upload/");
     if (parts.length === 2) {
@@ -40,97 +38,126 @@ export function getCloudinaryUrl(
     return urlOrPublicId;
   }
 
-  // If external URL (e.g. Unsplash or CDN), route through Cloudinary fetch endpoint for auto-format and edge caching
   if (urlOrPublicId.startsWith("http://") || urlOrPublicId.startsWith("https://")) {
-    const encodedUrl = encodeURIComponent(urlOrPublicId);
-    return `https://res.cloudinary.com/demo/image/fetch/f_${format},q_${quality},w_${width}${
-      height ? `,h_${height}` : ""
-    },c_${crop}/${encodedUrl}`;
+    // External origins are proxied by the backend only when Cloudinary Fetch is
+    // configured. Never route customer traffic through Cloudinary's public demo account.
+    return urlOrPublicId;
   }
 
-  // Otherwise treat as public_id in Cloudinary
   return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_${format},q_${quality},w_${width}${
     height ? `,h_${height}` : ""
   },c_${crop}/${urlOrPublicId}`;
 }
 
+const IMAGE_FALLBACK =
+  "data:image/svg+xml;charset=utf-8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="100%" height="100%" fill="#f1f5f9"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#94a3b8">Apna Bazar</text></svg>',
+  );
+
 /**
- * Request signed-upload parameters from backend signature generator
- * CRITICAL: Zero secrets in frontend!
+ * If a Cloudinary-fetch image fails, restore the original origin URL once, then
+ * fall back to an inline placeholder. Prevents broken product tiles anywhere in
+ * the app without touching every <img>.
  */
-export async function getSignedUploadParams(folder: string = "apnabazar_products"): Promise<{
+export function recoverImage(img: HTMLImageElement): void {
+  if (img.dataset.recoveryDone === "1") return;
+
+  const source = img.currentSrc || img.src || "";
+  const marker = "/image/fetch/";
+  const markerIndex = source.indexOf(marker);
+  if (markerIndex >= 0) {
+    const remainder = source.slice(markerIndex + marker.length);
+    const slashIndex = remainder.indexOf("/");
+    const encoded = slashIndex >= 0 ? remainder.slice(slashIndex + 1) : "";
+    try {
+      const original = decodeURIComponent(encoded);
+      if (/^https?:\/\//i.test(original) && original !== source) {
+        img.dataset.recoveryDone = "1";
+        img.src = original;
+        return;
+      }
+    } catch {
+      /* fall through to placeholder */
+    }
+  }
+
+  img.dataset.recoveryDone = "1";
+  img.src = IMAGE_FALLBACK;
+}
+
+async function readError(response: Response): Promise<string> {
+  try {
+    const data = await response.json();
+    return typeof data?.error === "string" ? data.error : "Upload failed.";
+  } catch {
+    return "Upload failed.";
+  }
+}
+
+export async function getSignedUploadParams(folder: string = "reviews"): Promise<{
   signature: string;
   timestamp: number;
   apiKey: string;
   cloudName: string;
   folder: string;
+  maxFileSize: number;
 }> {
-  const res = await fetch("/api/v1/upload/cloudinary-sign", {
+  const response = await fetch("/api/v1/upload/cloudinary-sign", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
     credentials: "include",
     body: JSON.stringify({ folder }),
   });
 
-  if (!res.ok) {
-    throw new Error("Failed to generate secure upload signature");
+  if (!response.ok) {
+    throw new Error(await readError(response));
   }
 
-  return await res.json();
+  return response.json();
 }
 
-/**
- * Uploads an image file or base64 data to Cloudinary via backend signed upload proxy
- */
 export async function uploadToCloudinary(
   fileOrBase64: File | string,
-  folder: string = "apnabazar_products"
+  folder: string = "reviews"
 ): Promise<{ url: string; publicId: string }> {
-  try {
-    // 1. Fetch secure signature from backend
-    const signData = await getSignedUploadParams(folder);
-
-    // 2. Prepare payload
-    let base64Data: string;
-    if (fileOrBase64 instanceof File) {
-      base64Data = await fileToBase64(fileOrBase64);
-    } else {
-      base64Data = fileOrBase64;
+  if (fileOrBase64 instanceof File) {
+    if (!ALLOWED_FILE_TYPES.includes(fileOrBase64.type)) {
+      throw new Error("Only JPEG, PNG or WebP images are allowed.");
     }
-
-    // 3. Dispatch through secure upload route with verified signature
-    const response = await fetch("/api/cloudinary/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        data: base64Data,
-        folder: signData.folder,
-        timestamp: signData.timestamp,
-        signature: signData.signature,
-        apiKey: signData.apiKey,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upload failed with status ${response.status}`);
+    if (fileOrBase64.size > MAX_UPLOAD_BYTES) {
+      throw new Error("Image must be smaller than 5 MB.");
     }
-
-    const data = await response.json();
-    return {
-      url: data.secure_url || data.url,
-      publicId: data.public_id || `upload_${Date.now()}`,
-    };
-  } catch (error) {
-    console.error("Cloudinary signed upload failed, falling back to local fallback:", error);
-    if (typeof fileOrBase64 === "string" && fileOrBase64.startsWith("data:")) {
-      return { url: fileOrBase64, publicId: `fallback_${Date.now()}` };
-    }
-    return {
-      url: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=800&q=80",
-      publicId: `fallback_${Date.now()}`,
-    };
   }
+
+  const signData = await getSignedUploadParams(folder);
+  const base64Data = fileOrBase64 instanceof File ? await fileToBase64(fileOrBase64) : fileOrBase64;
+
+  if (!base64Data.startsWith("data:image/")) {
+    throw new Error("Invalid image data.");
+  }
+
+  const response = await fetch("/api/v1/upload/image", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      data: base64Data,
+      folder: signData.folder,
+      timestamp: signData.timestamp,
+      signature: signData.signature,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response));
+  }
+
+  const data = await response.json();
+  return {
+    url: data.secure_url || data.url,
+    publicId: data.public_id || "",
+  };
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -138,6 +165,6 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
+    reader.onerror = () => reject(new Error("Could not read the selected image."));
   });
 }

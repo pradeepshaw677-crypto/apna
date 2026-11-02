@@ -32,6 +32,8 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
   const [issueType, setIssueType] = useState('size_issue');
   const [description, setDescription] = useState('');
   const [uploadedProof, setUploadedProof] = useState<string | null>(null);
+  const [isUploadingProof, setIsUploadingProof] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [generatedTicket, setGeneratedTicket] = useState('');
@@ -64,9 +66,16 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    setUploadError(null);
+    setIsUploadingProof(true);
+    try {
       const res = await uploadToCloudinary(file, 'complaints');
       setUploadedProof(res.url);
+    } catch (err: any) {
+      setUploadError(err?.message || 'Could not upload this image. Please use a JPEG, PNG or WebP file under 5 MB.');
+    } finally {
+      setIsUploadingProof(false);
     }
   };
 
@@ -230,8 +239,8 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
                     <div className="flex items-center gap-2">
                       <label className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer">
                         <Upload className="w-3.5 h-3.5 text-amber-600" />
-                        <span>{uploadedProof ? 'Change Photo' : 'Upload Image'}</span>
-                        <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                        <span>{isUploadingProof ? 'Uploading...' : uploadedProof ? 'Change Photo' : 'Upload Image'}</span>
+                        <input type="file" accept="image/*" onChange={handleFileUpload} disabled={isUploadingProof} className="hidden" />
                       </label>
                       {uploadedProof && (
                         <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
@@ -239,6 +248,9 @@ export const SupportView: React.FC<SupportViewProps> = ({ onBackToShop }) => {
                         </span>
                       )}
                     </div>
+                    {uploadError && (
+                      <p className="text-[11px] text-rose-600 font-bold pt-1.5">{uploadError}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 pt-2">

@@ -1,10 +1,7 @@
 {
-  "name": "The Grocery Hub",
-  "description": "The Grocery Hub - Fresh Organic Groceries Delivered in 15 Mins. Shop vegetables, dairy, atta, snacks & household essentials.",
+  "name": "Apna Bazar",
+  "description": "Apna Bazar - India's trusted fashion and lifestyle superstore with 3-day doorstep delivery, Cash on Delivery and 5-day returns.",
   "requestFramePermissions": [
     "geolocation"
-  ],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }

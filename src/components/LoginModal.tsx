@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { api } from '../utils/api';
+import { loadGoogleScript } from '../utils/google';
 import { validateIndianPhone, validateOtp } from '../utils/validation';
 
 interface LoginModalProps {
@@ -35,6 +36,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+
+  // Warm up Google Identity Services as soon as the modal opens so the click
+  // handler can open the account popup without losing the user gesture.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    api
+      .getGoogleConfig()
+      .then((config) => {
+        if (cancelled || !config?.enabled || !config.clientId) return;
+        setGoogleClientId(config.clientId);
+        return loadGoogleScript().catch(() => undefined);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   // Countdown timer effect for OTP resend
   useEffect(() => {
@@ -51,50 +73,74 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
 
   if (!isOpen) return null;
 
-  // Google Sign-In with strict cryptographic verification (ZERO mock tokens allowed)
+  // Google Sign-In via Google Identity Services OAuth popup.
+  // The ID token / access token is always verified server-side against Google's
+  // JWKS or tokeninfo endpoint — the browser can never mint a session itself.
   const handleGoogleLogin = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     setError('');
 
     try {
-      const googleClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
-      if (typeof window !== 'undefined' && (window as any).google?.accounts?.id && googleClientId) {
-        (window as any).google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response: { credential?: string }) => {
-            if (!response.credential) {
-              setError('Google authentication failed to return credentials.');
-              setIsLoading(false);
-              return;
+      let clientId = googleClientId;
+      if (!clientId) {
+        const config = await api.getGoogleConfig();
+        clientId = config?.clientId || null;
+        if (clientId) setGoogleClientId(clientId);
+      }
+
+      if (!clientId) {
+        setError('Google Sign-In is temporarily unavailable. Please use WhatsApp Mobile OTP below.');
+        return;
+      }
+
+      await loadGoogleScript();
+      const google = (window as any).google;
+      const tokenClientFactory = google?.accounts?.oauth2?.initTokenClient;
+
+      if (typeof tokenClientFactory !== 'function') {
+        setError('Google Sign-In could not load. Please disable any ad blocker and try again.');
+        return;
+      }
+
+      const tokenClient = tokenClientFactory({
+        client_id: clientId,
+        scope: 'openid email profile',
+        callback: async (tokenResponse: { access_token?: string; error?: string }) => {
+          if (!tokenResponse?.access_token) {
+            setError('Google sign-in was cancelled.');
+            setIsLoading(false);
+            return;
+          }
+
+          try {
+            const res = await api.syncGoogleSession({ accessToken: tokenResponse.access_token });
+            if (res?.user) {
+              onLoginSuccess(res.user);
+              onClose();
+            } else {
+              setError('Google sign-in could not be completed. Please try again.');
             }
-            try {
-              const res = await api.syncGoogleSession({ credential: response.credential });
-              if (res && res.user) {
-                onLoginSuccess(res.user);
-                onClose();
-              } else {
-                setError('Failed to establish secure session.');
-              }
-            } catch (e: any) {
-              setError(e.message || 'Cryptographic verification failed on server.');
-            } finally {
-              setIsLoading(false);
-            }
-          },
-        });
-        (window as any).google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            setError('Google Sign-In prompt was closed. Please continue with WhatsApp Mobile OTP below.');
+          } catch (err: any) {
+            setError(err?.message || 'Google sign-in could not be verified. Please try again.');
+          } finally {
             setIsLoading(false);
           }
-        });
-      } else {
-        // Enforce zero mock tokens
-        setError('Cryptographic Google ID verification active. To test instant login, use WhatsApp Mobile OTP below.');
-        setIsLoading(false);
-      }
+        },
+        error_callback: (err: { type?: string }) => {
+          const blocked = err?.type === 'popup_failed_to_open' || err?.type === 'popup_closed';
+          setError(
+            blocked
+              ? 'The Google sign-in window was blocked or closed. Please allow pop-ups and try again.'
+              : 'Google sign-in was cancelled. You can continue with WhatsApp Mobile OTP below.',
+          );
+          setIsLoading(false);
+        },
+      });
+
+      tokenClient.requestAccessToken({ prompt: '' });
     } catch (err: any) {
-      console.warn("Google auth error:", err);
+      console.warn('Google auth error:', err);
       setError(err?.message || 'Google Sign-In failed. Please continue with WhatsApp Mobile OTP below.');
       setIsLoading(false);
     }
@@ -342,6 +388,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                       maxLength={6}
                       required
                       autoFocus
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       placeholder="••••••"

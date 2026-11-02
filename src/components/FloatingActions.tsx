@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Phone, MessageCircle, ShoppingBag, ArrowUp } from 'lucide-react';
+import { Phone, MessageCircle, ShoppingBag, ArrowUp, Bot } from 'lucide-react';
 
 interface FloatingActionsProps {
   onOpenCart?: () => void;
+  onOpenAI?: () => void;
   cartCount?: number;
 }
 
 export const FloatingActions: React.FC<FloatingActionsProps> = ({
   onOpenCart,
+  onOpenAI,
   cartCount = 0,
 }) => {
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -51,6 +53,22 @@ export const FloatingActions: React.FC<FloatingActionsProps> = ({
           <span className="absolute -top-1 -right-1 bg-slate-950 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
             {cartCount}
           </span>
+        </button>
+      )}
+
+      {/* Red AI Assistant Button (sits just above the call button) */}
+      {onOpenAI && (
+        <button
+          onClick={onOpenAI}
+          title="Ask Apna Bazar AI"
+          aria-label="Open Apna Bazar AI Assistant"
+          className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-red-600 via-red-600 to-rose-500 text-white flex items-center justify-center shadow-lg shadow-red-600/45 hover:scale-110 active:scale-95 transition-all cursor-pointer ring-2 ring-red-300/50"
+        >
+          <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
+          <span className="absolute -top-1 -right-1 bg-slate-950 text-red-100 text-[8px] font-black px-1 py-0.5 rounded-full border border-red-300 leading-none">
+            AI
+          </span>
+          <span className="absolute inset-0 rounded-full border-2 border-red-400/60 animate-ping opacity-40 pointer-events-none" />
         </button>
       )}
 

@@ -30,7 +30,6 @@ export const TrackingMap: React.FC<TrackingMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const riderMarkerRef = useRef<L.Marker | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
 
   const [etaMinutes, setEtaMinutes] = useState(11);
   const [distanceKm, setDistanceKm] = useState('1.4');
@@ -173,7 +172,6 @@ export const TrackingMap: React.FC<TrackingMapProps> = ({
       map.fitBounds(bounds, { padding: [50, 50] });
 
       // Steady, realistic 3-Day Express delivery tracking
-      const remainingSteps = fullRoutePoints.length - 1 - progressIndex;
       setDistanceKm('2.8');
       setEtaMinutes(24);
       setCurrentSpeed(35);

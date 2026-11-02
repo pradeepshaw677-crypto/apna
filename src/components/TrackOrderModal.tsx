@@ -53,6 +53,7 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
   const [returnComments, setReturnComments] = useState('');
   const [isSubmittingReturn, setIsSubmittingReturn] = useState(false);
   const [returnSuccessMsg, setReturnSuccessMsg] = useState<string | null>(null);
+  const [returnErrorMessage, setReturnErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeOrder) {
@@ -104,33 +105,23 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
     if (!displayedOrder) return;
 
     setIsSubmittingReturn(true);
-    // Generate 6-digit Return Pickup OTP
-    const generatedReturnOtp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const updated: Order = {
-      ...displayedOrder,
-      orderStatus: 'return_pickup_scheduled',
-      returnRequested: true,
-      returnOtp: generatedReturnOtp,
-      returnReason,
-      returnComments,
-      returnRequestedAt: Date.now(),
-    };
+    setReturnErrorMessage(null);
+    setReturnSuccessMsg(null);
 
     try {
-      // Sync with server if endpoint exists or local store
-      if (api.updateOrderStatus) {
-        await api.updateOrderStatus(displayedOrder.id, 'return_pickup_scheduled');
-      }
-    } catch {
-      // offline fallback
-    }
+      const res = await api.requestReturn(displayedOrder.id, returnReason, returnComments);
+      const updated = res?.order;
+      if (!updated) throw new Error('Return request could not be completed.');
 
-    setDisplayedOrder(updated);
-    if (onOrderUpdated) onOrderUpdated(updated);
-    setIsSubmittingReturn(false);
-    setIsReturnModalOpen(false);
-    setReturnSuccessMsg(`Return pickup scheduled! Hand over parcel with OTP ${generatedReturnOtp}.`);
+      setDisplayedOrder(updated);
+      if (onOrderUpdated) onOrderUpdated(updated);
+      setReturnSuccessMsg(`Return pickup scheduled! Hand over parcel with OTP ${updated.returnOtp || ''}.`);
+      setIsReturnModalOpen(false);
+    } catch (err: any) {
+      setReturnErrorMessage(err?.message || 'Could not schedule the return. Please try again.');
+    } finally {
+      setIsSubmittingReturn(false);
+    }
   };
 
   // 5-day return eligibility check (within 5 days of creation or delivery)
@@ -328,6 +319,12 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
                       {returnSuccessMsg}
                     </p>
                   )}
+
+                  {returnErrorMessage && (
+                    <p className="text-xs font-bold text-rose-700 bg-rose-50 p-2 rounded-lg border border-rose-200">
+                      {returnErrorMessage}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -440,6 +437,8 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
                         <img
                           src={it.product.image}
                           alt={it.product.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-12 h-14 object-cover rounded-xl bg-slate-100"
                         />
                         <div>

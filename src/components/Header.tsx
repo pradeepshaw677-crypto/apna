@@ -105,7 +105,6 @@ export const Header: React.FC<HeaderProps> = ({
   // App Settings state inside slidebar
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'hi'>('en');
   const [orderAlertsEnabled, setOrderAlertsEnabled] = useState(true);
-  const [expressDeliveryActive, setExpressDeliveryActive] = useState(true);
 
   const desktopSearchRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLDivElement>(null);

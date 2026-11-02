@@ -244,9 +244,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         paymentMethod: finalTotal === 0 ? 'ab_coins' : selectedPaymentMethod,
         appliedCoupon,
         tipAmount: 0,
-        userId,
         abCoinsUsed: isUsingCoins ? coinsToDeduct : 0,
-        coinsDiscount: isUsingCoins ? coinsDiscountInRs : 0,
       });
 
       if (response && response.order) {

@@ -1,5 +1,4 @@
 import { Product, Category, Coupon, ProductReview } from "../types";
-import { getCloudinaryUrl } from "../utils/cloudinary";
 
 export const CATEGORIES: Category[] = [
   {
