@@ -1,16 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Sparkles, 
-  Clock, 
-  Banknote, 
-  Tag, 
-  ChevronLeft,
-  ChevronRight,
+  ChevronLeft, 
+  ChevronRight, 
   ArrowRight,
-  Truck,
-  ShieldCheck,
   Flame,
-  Zap
+  Zap,
+  ShoppingBag,
+  Percent
 } from 'lucide-react';
 import { CategoryId } from '../types';
 
@@ -19,495 +16,995 @@ interface HeroBannerProps {
   onExploreShop?: () => void;
   onOpenCouponModal?: () => void;
   onSelectProductById?: (productId: string) => void;
+  onFilterByPrice?: (maxPrice: number) => void;
+  onSelectBrand?: (brandName: string) => void;
 }
 
-// 1. Clean Top Image Banners (User explicit instruction: "upar se text and overlap colour hata do and link vi samjha")
-// NO text on top, NO overlap color/gradient tint, and NO redirect link. Pure high-res fashion banner imagery!
-const CLEAN_TOP_BANNER_IMAGES: string[] = [
-  'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=85', // Banarasi Saree & Traditional Fashion
-  'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1200&q=85', // Gen-Z Streetwear & Sneaker Drop
-  'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=85', // Festive Chikankari Ethnic Edit
-  'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1200&q=85', // Luxury Watches & Accessories
-  'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=85', // Contemporary High-Street Collection
-];
-
-// 2. Promotional Carousel Banners (User explicit instruction: "and cupon and offer ke baad jo banner tha use bapas lao ok")
-interface PromoBannerSlide {
+// =========================================================================
+// 1. TOP CAROUSEL SLIDES (10 PRO SLIDES MATCHING FLIPKART BIG BANG FESTIVE STYLE)
+// =========================================================================
+interface TopCarouselSlide {
   id: string;
-  badge: string;
-  badgeIcon: string;
+  brand: string;
+  brandLogoText?: string;
   title: string;
+  offerTag: string;
   subtitle: string;
-  highlightOffer: string;
-  imageUrl: string;
-  gradientClass: string;
-  glowColor: string;
-  ctaText: string;
-  categoryId?: CategoryId;
+  bankOffer: string;
+  bgGradient: string;
+  accentColor: string;
+  image: string;
+  localAsset?: string;
   targetProductId?: string;
-  isCouponAction?: boolean;
+  categoryId?: CategoryId;
 }
 
-const PROMO_CAROUSEL_BANNERS: PromoBannerSlide[] = [
+const TOP_CAROUSEL_SLIDES: TopCarouselSlide[] = [
   {
-    id: 'saree-promo',
-    badge: '100% PURE BANARASI SILK',
-    badgeIcon: '✨',
-    title: 'Royal Banarasi Katan Silk Zari Saree',
-    subtitle: 'Handcrafted Varanasi antique zari pallu with unstitched contrast brocade blouse.',
-    highlightOffer: 'FLAT 62% OFF • ₹1,899 (MRP ₹4,999)',
-    imageUrl: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
-    gradientClass: 'from-amber-600 via-rose-600 to-purple-800',
-    glowColor: 'bg-rose-500/25',
-    ctaText: 'Explore Sarees Collection',
-    categoryId: 'sarees',
-    targetProductId: 'sar-001',
-  },
-  {
-    id: 'sneaker-promo',
-    badge: 'GEN-Z STREET DROP 2026',
-    badgeIcon: '🔥',
-    title: 'Air Cushion Urban Streetwear Sneakers',
-    subtitle: 'Shock-absorbing ergonomic air sole, breathable mesh upper & high-traction grip.',
-    highlightOffer: 'FLAT 60% OFF • ₹1,199 (MRP ₹2,999)',
-    imageUrl: 'https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=800&q=80',
-    gradientClass: 'from-slate-900 via-indigo-900 to-purple-900',
-    glowColor: 'bg-indigo-500/25',
-    ctaText: 'Shop Sneaker Drop',
-    categoryId: 'footwear',
-    targetProductId: 'ftw-001',
-  },
-  {
-    id: 'kurti-promo',
-    badge: 'FESTIVE ETHNIC EDIT',
-    badgeIcon: '🌸',
-    title: 'Pure Chikankari Anarkali Kurta Set',
-    subtitle: 'Authentic Lucknowi hand embroidery with matching organza dupatta & trousers.',
-    highlightOffer: 'BUY 1 GET 1 FREE • ₹999 (MRP ₹2,499)',
-    imageUrl: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80',
-    gradientClass: 'from-rose-600 via-pink-700 to-purple-800',
-    glowColor: 'bg-fuchsia-500/25',
-    ctaText: 'View Ethnic Kurtis',
-    categoryId: 'fashion',
-    targetProductId: 'fsh-004',
-  },
-  {
-    id: 'watch-promo',
-    badge: 'PREMIUM LUXURY ACCESSORIES',
-    badgeIcon: '💎',
-    title: 'Waterproof Chronograph Smart Watch',
-    subtitle: 'Stainless steel bezel, health tracking, waterproof 5ATM & complimentary gift box.',
-    highlightOffer: 'UNDER ₹999 • 1-YEAR WARRANTY',
-    imageUrl: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=800&q=80',
-    gradientClass: 'from-emerald-800 via-teal-900 to-slate-950',
-    glowColor: 'bg-emerald-500/25',
-    ctaText: 'View Luxury Accessories',
-    categoryId: 'accessories',
+    id: 'slide-1-safari',
+    brand: 'Safari, Aristocrat..',
+    title: 'Safari, Aristocrat...',
+    offerTag: 'Min. 80% Off',
+    subtitle: 'Trolley bags & travel luggage',
+    bankOffer: '10% Instant Discount* on SBI Debit/Credit Cards & EMI',
+    bgGradient: 'from-[#e11d48] via-[#ea580c] to-[#f59e0b]',
+    accentColor: '#fbbf24',
+    image: 'https://images.unsplash.com/photo-1565026057447-bc90a3dceb87?auto=format&fit=crop&w=1200&q=85',
+    localAsset: '/assets/aistudio/Screenshot_2026_1103_082600_2840b9c7.png',
     targetProductId: 'acc-001',
+    categoryId: 'accessories',
   },
   {
-    id: 'launch-offer-promo',
-    badge: 'APNA BAZAR WELCOME GIFT',
-    badgeIcon: '🎉',
-    title: 'Flat ₹100 OFF + Free Express Shipping',
-    subtitle: 'Apply Coupon APNAFIRST at checkout. 100% Cash on Delivery & 5-Day Hassle-Free Returns with OTP.',
-    highlightOffer: 'CODE: APNAFIRST • ZERO DELIVERY CHARGE',
-    imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=800&q=80',
-    gradientClass: 'from-amber-500 via-orange-600 to-rose-600',
-    glowColor: 'bg-amber-500/25',
-    ctaText: 'Claim ₹100 Off Coupon',
-    isCouponAction: true,
+    id: 'slide-2-action',
+    brand: 'ACTION',
+    title: 'Step out sharp',
+    offerTag: 'Min. 75% Off',
+    subtitle: 'Made for all your plans',
+    bankOffer: '10% Instant Discount* on SBI Debit/Credit Cards & EMI',
+    bgGradient: 'from-[#090d16] via-[#1a2233] to-[#2d3748]',
+    accentColor: '#38bdf8',
+    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=85',
+    localAsset: '/assets/aistudio/Screenshot_2026_1103_082608_9bba3c93.png',
+    targetProductId: 'ftw-002',
+    categoryId: 'footwear',
+  },
+  {
+    id: 'slide-3-adidas',
+    brand: 'adidas',
+    title: 'Power every step',
+    offerTag: 'Min. 50% Off',
+    subtitle: 'Limited-time deal on performance running',
+    bankOffer: '10% Instant Discount* on SBI Debit/Credit Cards & EMI',
+    bgGradient: 'from-[#064e3b] via-[#047857] to-[#10b981]',
+    accentColor: '#84cc16',
+    image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1200&q=85',
+    localAsset: '/assets/aistudio/Screenshot_2026_1103_082613_0737f95d.png',
+    targetProductId: 'ftw-001',
+    categoryId: 'footwear',
+  },
+  {
+    id: 'slide-4-bear-house',
+    brand: 'The Bear House, Snitch..',
+    title: 'The Bear House, Snitch..',
+    offerTag: 'Under ₹599',
+    subtitle: 'Shirts, jeans & casual wear',
+    bankOffer: '10% Instant Discount* on SBI Debit/Credit Cards & EMI',
+    bgGradient: 'from-[#c2410c] via-[#ea580c] to-[#f59e0b]',
+    accentColor: '#fbbf24',
+    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=1200&q=85',
+    localAsset: '/assets/aistudio/Screenshot_2026_1103_082622_9516b5a4.png',
+    targetProductId: 'fsh-002',
+    categoryId: 'fashion',
+  },
+  {
+    id: 'slide-5-banarasi',
+    brand: 'Varanasi Royal Silks',
+    title: 'Royal Banarasi Silk Sarees',
+    offerTag: 'Flat 62% Off',
+    subtitle: 'Handcrafted zari pallu with unstitched blouse',
+    bankOffer: '10% Savings* Apna Bazar Plus Member Privilege',
+    bgGradient: 'from-[#831843] via-[#9d174d] to-[#be185d]',
+    accentColor: '#f43f5e',
+    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1200&q=85',
+    targetProductId: 'sar-001',
+    categoryId: 'sarees',
+  },
+  {
+    id: 'slide-6-puma',
+    brand: 'PUMA',
+    title: 'High-Impact Street Kicks',
+    offerTag: 'Min. 65% Off',
+    subtitle: 'Shock absorbing air cushion & responsive grip',
+    bankOffer: '10% Instant Discount* on SBI Debit/Credit Cards & EMI',
+    bgGradient: 'from-[#1e1b4b] via-[#312e81] to-[#4338ca]',
+    accentColor: '#a5b4fc',
+    image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=1200&q=85',
+    targetProductId: 'ftw-003',
+    categoryId: 'footwear',
+  },
+  {
+    id: 'slide-7-velvet',
+    brand: 'Libas, Biba',
+    title: 'Winter Velvet Kurta Sets',
+    offerTag: 'Min. 70% Off',
+    subtitle: 'Royal embroidered sets with organza dupattas',
+    bankOffer: '10% Instant Discount* on All Cards',
+    bgGradient: 'from-[#172554] via-[#1e3a8a] to-[#2563eb]',
+    accentColor: '#60a5fa',
+    image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1200&q=85',
+    targetProductId: 'fsh-004',
+    categoryId: 'fashion',
+  },
+  {
+    id: 'slide-8-watches',
+    brand: 'Fastrack, Timex',
+    title: 'Chronograph Luxury Watches',
+    offerTag: 'Under ₹999',
+    subtitle: 'Waterproof 5ATM steel bezel & smart health monitoring',
+    bankOffer: '1-Year Warranty & Free Gift Case Included',
+    bgGradient: 'from-[#0f172a] via-[#1e293b] to-[#334155]',
+    accentColor: '#38bdf8',
+    image: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=1200&q=85',
+    targetProductId: 'acc-002',
+    categoryId: 'accessories',
+  },
+  {
+    id: 'slide-9-kids',
+    brand: 'Little Champs',
+    title: "Fit for the Lil' Ones",
+    offerTag: 'Under ₹299',
+    subtitle: 'Character t-shirts, trackpants & cozy innerwear',
+    bankOffer: '100% Cash on Delivery & 5-Day Hassle-Free Returns',
+    bgGradient: 'from-[#b91c1c] via-[#dc2626] to-[#ef4444]',
+    accentColor: '#fca5a5',
+    image: 'https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?auto=format&fit=crop&w=1200&q=85',
+    targetProductId: 'toy-001',
+    categoryId: 'toys',
+  },
+  {
+    id: 'slide-10-streetwear',
+    brand: 'Apna Trends',
+    title: 'Urban Heavyweight Drop',
+    offerTag: 'From ₹149',
+    subtitle: '240 GSM French terry oversized streetwear',
+    bankOffer: 'Doorstep Delivery with 6-Digit OTP Verification',
+    bgGradient: 'from-[#7c2d12] via-[#9a3412] to-[#c2410c]',
+    accentColor: '#fdba74',
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=85',
+    targetProductId: 'fsh-001',
+    categoryId: 'fashion',
   },
 ];
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   onSelectCategory,
-  onExploreShop = () => {},
+  onExploreShop,
   onOpenCouponModal,
   onSelectProductById,
+  onFilterByPrice,
+  onSelectBrand,
 }) => {
-  // Psychological Countdown Timer (2 hrs 45 mins countdown)
-  const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 45, seconds: 18 });
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
-  // 1. Clean Top Image Banner State
-  const [topBannerIndex, setTopBannerIndex] = useState(0);
-  const [isTopBannerPaused, setIsTopBannerPaused] = useState(false);
-  const topTouchStartX = useRef<number | null>(null);
-
-  // 2. Promotional Carousel Banner State (After Coupons & Offers)
-  const [promoSlideIndex, setPromoSlideIndex] = useState(0);
-  const [isPromoPaused, setIsPromoPaused] = useState(false);
-  const promoTouchStartX = useRef<number | null>(null);
-
+  // Auto-slide every 3.5 seconds
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return { hours: 3, minutes: 0, seconds: 0 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatNum = (n: number) => String(n).padStart(2, '0');
-
-  // Auto-scroll Clean Top Banner every 3.5s
-  useEffect(() => {
-    if (isTopBannerPaused) return;
+    if (isPaused) return;
     const interval = setInterval(() => {
-      setTopBannerIndex((prev) => (prev + 1) % CLEAN_TOP_BANNER_IMAGES.length);
+      setCurrentSlideIndex((prev) => (prev + 1) % TOP_CAROUSEL_SLIDES.length);
     }, 3500);
     return () => clearInterval(interval);
-  }, [isTopBannerPaused]);
+  }, [isPaused]);
 
-  // Auto-scroll Promotional Carousel Banner every 4.2s
-  useEffect(() => {
-    if (isPromoPaused) return;
-    const interval = setInterval(() => {
-      setPromoSlideIndex((prev) => (prev + 1) % PROMO_CAROUSEL_BANNERS.length);
-    }, 4200);
-    return () => clearInterval(interval);
-  }, [isPromoPaused]);
-
-  // Top Clean Banner Handlers
-  const handleNextTopBanner = useCallback(() => {
-    setTopBannerIndex((prev) => (prev + 1) % CLEAN_TOP_BANNER_IMAGES.length);
+  const handleNext = useCallback(() => {
+    setCurrentSlideIndex((prev) => (prev + 1) % TOP_CAROUSEL_SLIDES.length);
   }, []);
 
-  const handlePrevTopBanner = useCallback(() => {
-    setTopBannerIndex((prev) => (prev - 1 + CLEAN_TOP_BANNER_IMAGES.length) % CLEAN_TOP_BANNER_IMAGES.length);
+  const handlePrev = useCallback(() => {
+    setCurrentSlideIndex((prev) => (prev - 1 + TOP_CAROUSEL_SLIDES.length) % TOP_CAROUSEL_SLIDES.length);
   }, []);
 
-  // Promo Carousel Handlers
-  const handleNextPromoSlide = useCallback(() => {
-    setPromoSlideIndex((prev) => (prev + 1) % PROMO_CAROUSEL_BANNERS.length);
-  }, []);
-
-  const handlePrevPromoSlide = useCallback(() => {
-    setPromoSlideIndex((prev) => (prev - 1 + PROMO_CAROUSEL_BANNERS.length) % PROMO_CAROUSEL_BANNERS.length);
-  }, []);
-
-  // Handle promo banner redirection
-  const handlePromoSlideClick = (slide: PromoBannerSlide) => {
-    if (slide.isCouponAction && onOpenCouponModal) {
-      onOpenCouponModal();
-      return;
-    }
-
+  const handleSlideClick = (slide: TopCarouselSlide) => {
     if (slide.targetProductId && onSelectProductById) {
       onSelectProductById(slide.targetProductId);
-      if (slide.categoryId) {
-        onSelectCategory(slide.categoryId);
-      }
-      onExploreShop();
       return;
     }
-
     if (slide.categoryId) {
       onSelectCategory(slide.categoryId);
-      onExploreShop();
+      onExploreShop?.();
     }
   };
 
-  const currentPromoSlide = PROMO_CAROUSEL_BANNERS[promoSlideIndex];
+  const handlePriceClick = (price: number) => {
+    if (onFilterByPrice) {
+      onFilterByPrice(price);
+    } else {
+      onExploreShop?.();
+    }
+  };
+
+  const currentSlide = TOP_CAROUSEL_SLIDES[currentSlideIndex];
 
   return (
-    <div className="w-full space-y-4">
-      {/* 1. Festive Fashion & Footwear Top Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-amber-50/90 via-orange-50/60 to-emerald-50/50 border-b border-amber-200/60 py-6 sm:py-9 px-3 sm:px-6 lg:px-8">
-        
-        {/* Ambient Gradient Glows */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="w-full space-y-6 pt-1 pb-4">
 
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-          
-          <div className="space-y-3.5 max-w-xl text-center md:text-left w-full">
-            
-            {/* Header Title with Enhanced Contrast */}
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-950 tracking-tight leading-tight">
-              Trending Sarees, Fashion &amp; Footwear <br className="hidden sm:inline" />
-              <span className="bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 bg-clip-text text-transparent drop-shadow-xs">
-                Apka Apna Bazar
-              </span> Superstore!
-            </h1>
-
-            <p className="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed max-w-lg mx-auto md:mx-0">
-              Discover viral streetwear, luxury sneakers, high-speed toys &amp; designer accessories at wholesale prices. 
-              <strong className="text-slate-950 ml-1">100% Cash on Delivery &amp; 5-Day Hassle-Free Returns with OTP verification!</strong>
-            </p>
-
-            {/* Countdown Flash Deal Pill */}
-            <div className="p-2.5 sm:p-3 rounded-2xl bg-white/95 border border-amber-300 shadow-xs flex flex-wrap items-center justify-between gap-2.5 max-w-md mx-auto md:mx-0">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <Clock className="w-4 h-4 text-orange-600 animate-pulse shrink-0" />
-                <span className="text-xs font-black text-slate-950">Flash Deals End In:</span>
-              </div>
-              
-              <div className="flex items-center gap-1 font-mono text-xs font-black text-slate-950">
-                <span className="bg-slate-950 text-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
-                  {formatNum(timeLeft.hours)}h
-                </span>
-                <span>:</span>
-                <span className="bg-slate-950 text-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
-                  {formatNum(timeLeft.minutes)}m
-                </span>
-                <span>:</span>
-                <span className="bg-slate-950 text-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
-                  {formatNum(timeLeft.seconds)}s
-                </span>
-              </div>
-            </div>
-
-            {/* USER INSTRUCTION: "jaha pe abhi banner hai uske upar se text and overlap colour hata do and link vi samjha" */}
-            {/* PURE IMAGE BANNER: No text on top, No overlap color/gradient overlay, No link/click redirection. Full length & width cover with +20px height! */}
-            <div 
-              className="w-full my-3"
-              onMouseEnter={() => setIsTopBannerPaused(true)}
-              onMouseLeave={() => setIsTopBannerPaused(false)}
-            >
-              <div 
-                onTouchStart={(e) => {
-                  topTouchStartX.current = e.touches[0].clientX;
-                }}
-                onTouchEnd={(e) => {
-                  if (topTouchStartX.current === null) return;
-                  const diff = topTouchStartX.current - e.changedTouches[0].clientX;
-                  if (diff > 40) {
-                    handleNextTopBanner();
-                  } else if (diff < -40) {
-                    handlePrevTopBanner();
-                  }
-                  topTouchStartX.current = null;
-                }}
-                className="relative w-full h-48 sm:h-56 rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border border-amber-300/80 bg-slate-900 group select-none"
-              >
-                {/* 1. Full Image Covering Entire Banner without any text or color overlay */}
-                <img
-                  src={CLEAN_TOP_BANNER_IMAGES[topBannerIndex]}
-                  alt="Apna Bazar Banner"
-                  decoding="async"
-                  fetchPriority={topBannerIndex === 0 ? "high" : "auto"}
-                  className="w-full h-full object-cover object-center transition-all duration-700"
-                />
-
-                {/* Left & Right Subtle Navigation Controls */}
-                <button
-                  type="button"
-                  onClick={handlePrevTopBanner}
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-xs text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 sm:opacity-75 z-20 border border-white/20 cursor-pointer"
-                  title="Previous banner image"
-                  aria-label="Previous banner image"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleNextTopBanner}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-xs text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 sm:opacity-75 z-20 border border-white/20 cursor-pointer"
-                  title="Next banner image"
-                  aria-label="Next banner image"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-
-                {/* Slide Indicator Dots (Bottom Centered) */}
-                <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-full z-20">
-                  {CLEAN_TOP_BANNER_IMAGES.map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setTopBannerIndex(i)}
-                      className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                        topBannerIndex === i ? 'w-5 bg-amber-400' : 'w-1.5 bg-white/60 hover:bg-white'
-                      }`}
-                      aria-label={`Go to slide ${i + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* CTA Buttons: Shop Trending & Coupons & Offers */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center md:justify-start gap-2.5 sm:gap-3 pt-1 w-full">
-              <button
-                onClick={() => {
-                  onSelectCategory('sarees');
-                  onExploreShop();
-                }}
-                className="w-full sm:w-auto px-5 sm:px-6 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition-all hover:scale-102 active:scale-98 cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Shop Trending Sarees &amp; Fashion 🔥</span>
-              </button>
-
-              <button
-                onClick={onOpenCouponModal}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-white hover:bg-slate-50 border border-amber-300 text-slate-800 text-xs font-bold shadow-2xs transition-all hover:scale-102 active:scale-98 cursor-pointer"
-              >
-                <Tag className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="truncate">Coupons &amp; Offers (Code: APNAFIRST)</span>
-              </button>
-            </div>
-
-          </div>
-
-          {/* Desktop Only Right Visual Image Card with Badge (hidden on mobile preview) */}
-          <div className="relative shrink-0 w-full max-w-sm sm:max-w-md hidden md:block">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-white group">
-              <img
-                src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80"
-                alt="Apna Bazar Fashion & Lifestyle"
-                className="w-full h-64 sm:h-80 object-cover object-top group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent flex items-end p-5">
-                <div className="text-white space-y-1">
-                  <span className="text-[10px] uppercase font-black bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-0.5 rounded-full text-slate-950 shadow-xs">
-                    ⚡ New Season Drop
-                  </span>
-                  <h3 className="text-base sm:text-lg font-black mt-1">Sarees, Footwear, Apparel &amp; Accessories</h3>
-                  <p className="text-xs text-slate-200">Dispatched directly from Baharagora Central Hub</p>
-                  <p className="text-[11px] text-amber-300 font-bold flex items-center gap-1 pt-1">
-                    <Banknote className="w-3.5 h-3.5" />
-                    <span>Pay Cash on Delivery • 5-Day Hassle-Free Returns</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* USER INSTRUCTION: "and cupon and offer ke baad jo banner tha use bapas lao ok" */}
-      {/* 2. PROMOTIONAL CAROUSEL BANNER (Placed right after Coupons & Offers section before categories) */}
+      {/* ========================================================================= */}
+      {/* 1. TOP CAROUSEL: 10 HIGH-IMPACT FESTIVE BANNERS WITH SLIDING PILLS        */}
+      {/* ========================================================================= */}
       <section 
-        className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 w-full"
-        onMouseEnter={() => setIsPromoPaused(true)}
-        onMouseLeave={() => setIsPromoPaused(false)}
+        className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
       >
-        <div 
-          onClick={() => handlePromoSlideClick(currentPromoSlide)}
-          onTouchStart={(e) => {
-            promoTouchStartX.current = e.touches[0].clientX;
-          }}
-          onTouchEnd={(e) => {
-            if (promoTouchStartX.current === null) return;
-            const diff = promoTouchStartX.current - e.changedTouches[0].clientX;
-            if (diff > 40) {
-              handleNextPromoSlide();
-            } else if (diff < -40) {
-              handlePrevPromoSlide();
-            }
-            promoTouchStartX.current = null;
-          }}
-          className={`relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl border-2 border-amber-400/40 bg-gradient-to-r ${currentPromoSlide.gradientClass} text-white cursor-pointer group active:scale-99 transition-all p-4 sm:p-7 min-h-[170px] sm:min-h-[210px] flex flex-col justify-between`}
-        >
-          {/* Ambient Glow Orb */}
-          <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40 ${currentPromoSlide.glowColor}`} />
-
-          {/* Background Card Graphic Image (Right Aligned, Elegant Fade) */}
-          <div className="absolute right-0 top-0 bottom-0 w-2/5 sm:w-1/3 pointer-events-none overflow-hidden hidden xs:block">
-            <img 
-              src={currentPromoSlide.imageUrl} 
-              alt={currentPromoSlide.title} 
-              className="w-full h-full object-cover object-center opacity-30 group-hover:opacity-40 group-hover:scale-105 transition-all duration-700 mask-radial"
+        <div className="relative">
+          
+          {/* Main Slide Card with Touch & Swipe (Full Screen width + Glowing Thick Border + Pure Full Image) */}
+          <div
+            onClick={() => handleSlideClick(currentSlide)}
+            onTouchStart={(e) => {
+              touchStartX.current = e.touches[0].clientX;
+            }}
+            onTouchEnd={(e) => {
+              if (touchStartX.current === null) return;
+              const diff = touchStartX.current - e.changedTouches[0].clientX;
+              if (diff > 40) handleNext();
+              else if (diff < -40) handlePrev();
+              touchStartX.current = null;
+            }}
+            className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_0_35px_rgba(251,191,36,0.65)] border-4 sm:border-[5px] border-amber-400 ring-2 sm:ring-4 ring-yellow-300/50 bg-slate-950 cursor-pointer select-none transition-all duration-500 aspect-[2.2/1] sm:aspect-[2.45/1] md:aspect-[2.85/1] min-h-[170px] sm:min-h-[230px] md:min-h-[290px] group flex items-center justify-center"
+          >
+            {/* Full Slide Banner Image (Fills Edge-to-Edge Without Obstructing Text) */}
+            <img
+              src={currentSlide.localAsset || currentSlide.image}
+              alt={currentSlide.title}
+              loading="eager"
+              decoding="async"
+              className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.02]"
             />
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-black/30 to-black/90" />
+
+            {/* Top Festive Golden Ambient Arch Overlay */}
+            <div className="absolute top-0 left-0 right-0 h-4 sm:h-6 bg-gradient-to-b from-amber-300/40 via-yellow-200/20 to-transparent pointer-events-none" />
+
+            {/* Left & Right Subtle Arrow Controls (Desktop) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrev();
+              }}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-slate-950/60 hover:bg-slate-950/90 backdrop-blur-xs text-white flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 z-20 border border-white/30 cursor-pointer shadow-lg"
+              title="Previous slide"
+              aria-label="Previous slide"
+            >
+              <ChevronLeft className="w-5 sm:w-6 h-5 sm:h-6" />
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNext();
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-slate-950/60 hover:bg-slate-950/90 backdrop-blur-xs text-white flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 z-20 border border-white/30 cursor-pointer shadow-lg"
+              title="Next slide"
+              aria-label="Next slide"
+            >
+              <ChevronRight className="w-5 sm:w-6 h-5 sm:h-6" />
+            </button>
           </div>
 
-          {/* Top Row: Badge & Action Indicator */}
-          <div className="relative z-10 flex items-center justify-between gap-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] sm:text-xs font-black uppercase tracking-wider shadow-xs">
-              <span>{currentPromoSlide.badgeIcon}</span>
-              <span>{currentPromoSlide.badge}</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-black bg-amber-400 text-slate-950 px-3 py-1 rounded-full shadow-md">
-                <span>{currentPromoSlide.ctaText}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </span>
-              
-              {/* Slide Counter */}
-              <span className="text-[10px] font-mono font-bold bg-black/40 text-amber-300 px-2 py-0.5 rounded-md">
-                {promoSlideIndex + 1}/{PROMO_CAROUSEL_BANNERS.length}
-              </span>
-            </div>
+          {/* 10 Indicator Pills (Matching Screenshot with 1 Active Long Pill) */}
+          <div className="flex items-center justify-center gap-1.5 pt-3 pb-1">
+            {TOP_CAROUSEL_SLIDES.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setCurrentSlideIndex(i)}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  currentSlideIndex === i 
+                    ? 'w-7 sm:w-8 bg-slate-900 shadow-xs' 
+                    : 'w-2 sm:w-2.5 bg-slate-300 hover:bg-slate-400'
+                }`}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
           </div>
 
-          {/* Center Content: Title, Subtitle & Highlight */}
-          <div className="relative z-10 space-y-1.5 sm:space-y-2 max-w-xl my-2">
-            <h2 className="text-lg sm:text-2xl lg:text-3xl font-black text-white leading-tight drop-shadow-md">
-              {currentPromoSlide.title}
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-100 font-medium line-clamp-2 max-w-lg">
-              {currentPromoSlide.subtitle}
-            </p>
-            <div className="inline-block bg-amber-400 text-slate-950 text-xs sm:text-sm font-black px-3 py-1 rounded-lg shadow-sm">
-              {currentPromoSlide.highlightOffer}
-            </div>
-          </div>
-
-          {/* Bottom Bar: Action Pill & Slide Navigation Dots */}
-          <div className="relative z-10 flex items-center justify-between pt-1">
-            <div className="sm:hidden">
-              <span className="inline-flex items-center gap-1.5 text-xs font-black bg-white text-slate-950 px-3 py-1 rounded-full shadow-md">
-                <span>{currentPromoSlide.ctaText}</span>
-                <ArrowRight className="w-3 h-3" />
-              </span>
-            </div>
-
-            {/* Progress Dots */}
-            <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-xs px-3 py-1.5 rounded-full ml-auto">
-              {PROMO_CAROUSEL_BANNERS.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPromoSlideIndex(i);
-                  }}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    promoSlideIndex === i ? 'w-6 bg-amber-400' : 'w-1.5 bg-white/50 hover:bg-white'
-                  }`}
-                  aria-label={`Go to slide ${i + 1}`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Arrow Controls */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePrevPromoSlide();
-            }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-xs text-white flex items-center justify-center transition-all z-20 border border-white/20 cursor-pointer"
-            title="Previous slide"
-            aria-label="Previous slide"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleNextPromoSlide();
-            }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-xs text-white flex items-center justify-center transition-all z-20 border border-white/20 cursor-pointer"
-            title="Next slide"
-            aria-label="Next slide"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
       </section>
+
+      {/* ========================================================================= */}
+      {/* 2. THE BEAR HOUSE FESTIVE SPOTLIGHT BANNER                                */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div 
+          onClick={() => {
+            if (onSelectProductById) onSelectProductById('fsh-002');
+            else onSelectCategory('fashion');
+          }}
+          className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-gradient-to-r from-stone-900 via-stone-800 to-amber-950 p-4 sm:p-5 text-white flex items-center justify-between border border-amber-400/50 shadow-md cursor-pointer group hover:border-amber-400 transition-all"
+        >
+          <div className="space-y-1 max-w-[65%]">
+            <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">THE BEAR HOUSE</span>
+            <h4 className="text-sm sm:text-lg font-black text-white leading-tight">
+              Be on point, always • Stitched to leave an impression
+            </h4>
+            <div className="inline-block bg-amber-400 text-slate-950 text-xs font-black px-2.5 py-0.5 rounded-md mt-1">
+              Min. 75% Off
+            </div>
+          </div>
+          <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl overflow-hidden shrink-0 border border-white/20">
+            <img 
+              src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80" 
+              alt="The Bear House" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 3. SHOWCASE B: BRANDS UNDER ₹599 (HORIZONTAL SCROLLING CAROUSEL)         */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            Brands under ₹599
+          </h3>
+          <span className="text-xs font-bold text-slate-500">Swipe for more &rarr;</span>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+          {[
+            {
+              id: 'snitch-green',
+              brand: 'SNITCH',
+              name: 'Linen Casual Shirt',
+              tag: 'Under ₹599',
+              image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-002',
+            },
+            {
+              id: 'campus-blue',
+              brand: 'CAMPUS',
+              name: 'Air Running Trainers',
+              tag: 'Under ₹599',
+              image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80',
+              productId: 'ftw-002',
+            },
+            {
+              id: 'tokyo-talkies',
+              brand: 'TOKYO TALKIES',
+              name: 'Pleated Flared Dress',
+              tag: 'Under ₹599',
+              image: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-003',
+            },
+            {
+              id: 'bear-house-polo',
+              brand: 'THE BEAR HOUSE',
+              name: 'Pique Cotton Polo',
+              tag: 'Under ₹599',
+              image: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-001',
+            },
+            {
+              id: 'cantabil-chinos',
+              brand: 'CANTABIL',
+              name: 'Stretch Slim Chinos',
+              tag: 'Under ₹599',
+              image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-004',
+            },
+          ].map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onSelectProductById ? onSelectProductById(item.productId) : onSelectCategory('fashion')}
+              className="w-36 sm:w-44 shrink-0 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all active:scale-95 snap-start group"
+            >
+              <div className="relative aspect-3/4 w-full bg-slate-100 overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                {/* Brand Badge (White Pill matching screenshot) */}
+                <div className="absolute top-2 left-2 right-2 flex justify-center">
+                  <span className="bg-white/95 backdrop-blur-xs text-slate-900 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs border border-slate-200 tracking-wider">
+                    {item.brand}
+                  </span>
+                </div>
+              </div>
+              {/* Gold Bottom Badge */}
+              <div className="p-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-center">
+                <span className="text-xs font-black text-slate-950 block">{item.tag}</span>
+                <span className="text-[10px] text-amber-950 font-bold truncate block">{item.name}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 4. SHOWCASE C: WINTER FASHION ESSENTIALS (ROYAL BLUE CARDS WITH GOLD FRAME) */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+            <span>Winter fashion essentials</span>
+            <span>❄️</span>
+          </h3>
+          <span className="text-xs font-bold text-blue-700">Explore Collection &rarr;</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            {
+              id: 'velvet-kurta',
+              title: 'Velvet kurta sets',
+              offer: 'Min. 70% Off',
+              brand: 'KASHEEDA',
+              image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=600&q=80',
+              productId: 'fsh-004',
+            },
+            {
+              id: 'puma-shoes',
+              title: 'Sports shoes',
+              offer: 'Min. 65% Off',
+              brand: 'PUMA',
+              image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=600&q=80',
+              productId: 'ftw-003',
+            },
+            {
+              id: 'winter-jackets',
+              title: 'Winter jackets',
+              offer: 'Min. 60% Off',
+              brand: 'FORT COLLINS',
+              image: 'https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=600&q=80',
+              productId: 'fsh-002',
+            },
+            {
+              id: 'shawls-stoles',
+              title: 'Shawls & Stoles',
+              offer: 'Min. 75% Off',
+              brand: 'PASHMINA',
+              image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80',
+              productId: 'sar-001',
+            },
+          ].map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onSelectProductById ? onSelectProductById(item.productId) : onSelectCategory('fashion')}
+              className="rounded-3xl bg-[#003893] p-2.5 sm:p-3 text-white shadow-lg border-2 border-blue-400/40 relative overflow-hidden cursor-pointer hover:scale-102 active:scale-98 transition-all group"
+            >
+              {/* Snowflake Corner Motifs */}
+              <div className="absolute top-1.5 right-1.5 text-xs text-blue-200 pointer-events-none opacity-80">❄</div>
+              <div className="absolute bottom-10 left-1.5 text-xs text-blue-200 pointer-events-none opacity-80">❄</div>
+
+              {/* Inner Gold Framed Photo */}
+              <div className="aspect-4/5 w-full rounded-2xl overflow-hidden border-2 border-amber-300 relative bg-slate-900 shadow-inner">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                {item.brand && (
+                  <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 bg-white/95 text-slate-950 text-[9px] font-black px-2 py-0.2 rounded shadow-xs tracking-wider">
+                    {item.brand}
+                  </span>
+                )}
+              </div>
+
+              {/* Blue Card Footer */}
+              <div className="pt-2 text-center space-y-0.5">
+                <h4 className="text-xs sm:text-sm font-black text-white truncate">{item.title}</h4>
+                <p className="text-[11px] sm:text-xs font-black text-amber-300">{item.offer}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 5. SHOWCASE D: ELEGANT STYLES FOR HER (RED BADGE SHOWCASE)                */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            Elegant styles for her
+          </h3>
+          <span className="text-xs font-bold text-rose-600">View All &rarr;</span>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+          {[
+            {
+              id: 'her-1',
+              title: 'Zuya Wide Leg Denim',
+              subtitle: 'Zuya',
+              badge: 'Min. 60% Off',
+              image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-003',
+            },
+            {
+              id: 'her-2',
+              title: 'Embellished Red Silk Saree',
+              subtitle: 'Embellished',
+              badge: 'Under ₹599',
+              image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80',
+              productId: 'sar-001',
+            },
+            {
+              id: 'her-3',
+              title: 'Ribbed Knit Collared Top',
+              subtitle: 'V-Mart',
+              badge: 'Under ₹299',
+              image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-001',
+            },
+            {
+              id: 'her-4',
+              title: 'Chikankari Organza Kurta',
+              subtitle: 'Libas',
+              badge: 'Min. 65% Off',
+              image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-004',
+            },
+          ].map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onSelectProductById ? onSelectProductById(item.productId) : onSelectCategory('fashion')}
+              className="w-36 sm:w-44 shrink-0 rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-xs cursor-pointer hover:shadow-md transition-all active:scale-95 snap-start group"
+            >
+              <div className="aspect-3/4 w-full bg-slate-100 overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              {/* Red Badge */}
+              <div className="bg-[#e11d48] text-white py-1 px-2 text-center text-xs font-black">
+                {item.badge}
+              </div>
+              <div className="p-2 text-center">
+                <span className="text-xs font-bold text-slate-800 line-clamp-1">{item.subtitle}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 6. SHOWCASE E: FESTIVE DEALS FOR HIM (CASUALS & JACKETS)                  */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            Festive deals for him
+          </h3>
+          <span className="text-xs font-bold text-amber-700">Shop Men &rarr;</span>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+          {[
+            {
+              id: 'him-1',
+              title: 'Fort Collins Winter Bomber',
+              subtitle: 'Fort Collins...',
+              badge: 'Min. 65% Off',
+              image: 'https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-002',
+            },
+            {
+              id: 'him-2',
+              title: 'Trendy Graphic Tee',
+              subtitle: 'T-shirts & more',
+              badge: 'From ₹149',
+              image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-001',
+            },
+            {
+              id: 'him-3',
+              title: 'Checked Flannel Casual Shirt',
+              subtitle: 'Metronaut',
+              badge: 'Under ₹499',
+              image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-002',
+            },
+            {
+              id: 'him-4',
+              title: 'Korean Pleated Trousers',
+              subtitle: 'Snitch',
+              badge: 'Min. 50% Off',
+              image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80',
+              productId: 'fsh-004',
+            },
+          ].map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onSelectProductById ? onSelectProductById(item.productId) : onSelectCategory('fashion')}
+              className="w-36 sm:w-44 shrink-0 rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-xs cursor-pointer hover:shadow-md transition-all active:scale-95 snap-start group"
+            >
+              <div className="aspect-3/4 w-full bg-slate-100 overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="bg-[#ea580c] text-white py-1 px-2 text-center text-xs font-black">
+                {item.badge}
+              </div>
+              <div className="p-2 text-center">
+                <span className="text-xs font-bold text-slate-800 line-clamp-1">{item.subtitle}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 7. SHOWCASE F: COOL KICKS, CRAZY DEALS (SNEAKERS & HEELS)                 */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            Cool kicks, crazy deals
+          </h3>
+          <span className="text-xs font-bold text-blue-700">All Footwear &rarr;</span>
+        </div>
+
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+          {[
+            {
+              id: 'kick-1',
+              title: 'Cantabil Suede Street Sneakers',
+              subtitle: 'Cantabil...',
+              badge: 'Min. 65% Off',
+              image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=400&q=80',
+              productId: 'ftw-001',
+            },
+            {
+              id: 'kick-2',
+              title: 'Metro Mochi Clear Block Heels',
+              subtitle: 'Metro, Mochi...',
+              badge: 'Min. 55% Off',
+              image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=400&q=80',
+              productId: 'ftw-002',
+            },
+            {
+              id: 'kick-3',
+              title: 'LED Light Up Kids Sneakers',
+              subtitle: 'LED sneakers',
+              badge: 'Under ₹499',
+              image: 'https://images.unsplash.com/photo-1514989940723-e8e51635b782?auto=format&fit=crop&w=400&q=80',
+              productId: 'ftw-003',
+            },
+            {
+              id: 'kick-4',
+              title: 'Action High-Traction Trainers',
+              subtitle: 'Action Sports',
+              badge: 'From ₹399',
+              image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80',
+              productId: 'ftw-002',
+            },
+          ].map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onSelectProductById ? onSelectProductById(item.productId) : onSelectCategory('footwear')}
+              className="w-36 sm:w-44 shrink-0 rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-xs cursor-pointer hover:shadow-md transition-all active:scale-95 snap-start group"
+            >
+              <div className="aspect-3/4 w-full bg-slate-100 overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="bg-[#b91c1c] text-white py-1 px-2 text-center text-xs font-black">
+                {item.badge}
+              </div>
+              <div className="p-2 text-center">
+                <span className="text-xs font-bold text-slate-800 line-clamp-1">{item.subtitle}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 8. SHOWCASE G: FIT FOR THE LIL' ONES (KIDS COLLECTION)                    */}
+      {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* 8. SHOWCASE G: FIT FOR THE LIL' ONES (SLIDING ROW WITH KIDS STORE LINK)   */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            Fit for the lil&apos; ones
+          </h3>
+          <button 
+            type="button"
+            onClick={() => onSelectCategory('toys')} 
+            className="text-xs font-bold text-amber-700 hover:text-amber-800 cursor-pointer"
+          >
+            Kids Store &rarr;
+          </button>
+        </div>
+
+        {/* Sliding Row for Kids Items as requested */}
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+          {[
+            {
+              id: 'kids-1',
+              title: "Kids' trackpants",
+              badge: 'Under ₹299',
+              image: 'https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?auto=format&fit=crop&w=400&q=80',
+              productId: 'toy-001',
+            },
+            {
+              id: 'kids-2',
+              title: "Kids' innerwear",
+              badge: 'Under ₹199',
+              image: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=400&q=80',
+              productId: 'toy-001',
+            },
+            {
+              id: 'kids-3',
+              title: "Kids' t-shirts",
+              badge: 'Under ₹249',
+              image: 'https://images.unsplash.com/photo-1471286174890-9c112ffca56a?auto=format&fit=crop&w=400&q=80',
+              productId: 'toy-001',
+            },
+            {
+              id: 'kids-4',
+              title: "Kids' ethnic sets",
+              badge: 'Under ₹399',
+              image: 'https://images.unsplash.com/photo-1596870230751-ebdfce98ec42?auto=format&fit=crop&w=400&q=80',
+              productId: 'toy-001',
+            },
+            {
+              id: 'kids-5',
+              title: 'Marvel Superhero Tee',
+              badge: 'Under ₹299',
+              image: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=400&q=80',
+              productId: 'toy-006',
+            },
+            {
+              id: 'kids-6',
+              title: 'Baby Winter Sweater',
+              badge: 'Under ₹349',
+              image: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?auto=format&fit=crop&w=400&q=80',
+              productId: 'toy-001',
+            },
+          ].map((item) => (
+            <div
+              key={item.id}
+              onClick={() => onSelectProductById ? onSelectProductById(item.productId) : onSelectCategory('toys')}
+              className="w-32 sm:w-40 shrink-0 rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-xs cursor-pointer hover:shadow-md transition-all active:scale-95 snap-start group text-center"
+            >
+              <div className="aspect-3/4 w-full bg-slate-100 overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="bg-[#dc2626] text-white py-1 px-1.5 text-xs font-black">
+                {item.badge}
+              </div>
+              <div className="p-2">
+                <span className="text-xs font-bold text-slate-800 line-clamp-1">{item.title}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 9. SHOWCASE H: EXPLORE STORES (COMPACT 3 IN A LINE BOXES WITHOUT BRAND)   */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            Explore stores
+          </h3>
+          <span className="text-xs font-bold text-amber-700">Festive Specials &rarr;</span>
+        </div>
+
+        {/* 3 Compact Store Exploration Boxes in One Line (As requested) */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3.5">
+          <div
+            onClick={() => onSelectCategory('accessories')}
+            className="rounded-2xl overflow-hidden relative aspect-4/3 cursor-pointer group shadow-xs border-2 border-amber-300 hover:border-amber-400 transition-all"
+          >
+            <img
+              src="https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=400&q=80"
+              alt="Gifting Store"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent flex items-end p-2 sm:p-3">
+              <div>
+                <span className="bg-amber-400 text-slate-950 font-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded uppercase tracking-wider shadow-2xs">
+                  GIFTING
+                </span>
+                <h4 className="text-white font-black text-[11px] sm:text-xs leading-tight mt-1 line-clamp-1">Festive Hampers</h4>
+              </div>
+            </div>
+          </div>
+
+          <div
+            onClick={() => onSelectCategory('sarees')}
+            className="rounded-2xl overflow-hidden relative aspect-4/3 cursor-pointer group shadow-xs border-2 border-amber-300 hover:border-amber-400 transition-all"
+          >
+            <img
+              src="https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=400&q=80"
+              alt="Shaadi Ka Ghar"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent flex items-end p-2 sm:p-3">
+              <div>
+                <span className="bg-rose-500 text-white font-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded uppercase tracking-wider shadow-2xs">
+                  SHAADI KA GHAR
+                </span>
+                <h4 className="text-white font-black text-[11px] sm:text-xs leading-tight mt-1 line-clamp-1">Bridal Couture</h4>
+              </div>
+            </div>
+          </div>
+
+          <div
+            onClick={() => onSelectCategory('fashion')}
+            className="rounded-2xl overflow-hidden relative aspect-4/3 cursor-pointer group shadow-xs border-2 border-amber-300 hover:border-amber-400 transition-all"
+          >
+            <img
+              src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80"
+              alt="Festivals of India"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent flex items-end p-2 sm:p-3">
+              <div>
+                <span className="bg-emerald-500 text-white font-black text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded uppercase tracking-wider shadow-2xs">
+                  FESTIVALS
+                </span>
+                <h4 className="text-white font-black text-[11px] sm:text-xs leading-tight mt-1 line-clamp-1">Puja Silks</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 10. DIWALI PRICE DROP (COMPACT 4 BOXES PLACED DIRECTLY UNDER EXPLORE STORES) */}
+      {/* ========================================================================= */}
+      <section className="w-full max-w-2xl mx-auto px-3 sm:px-4 space-y-2.5 pt-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Diwali price drop</span>
+            <span className="text-[10px] bg-rose-100 text-rose-900 font-bold px-2 py-0.5 rounded-full border border-rose-300">
+              Steal Deals
+            </span>
+          </h3>
+          <span className="text-xs font-bold text-rose-700">Budget Store &rarr;</span>
+        </div>
+
+        {/* 4 Compact Price Drop Boxes in Festive Royal Ruby Crimson & Gold */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+          {[
+            { price: 299, label: 'UNDER ₹299', sub: 'T-Shirts & Slippers' },
+            { price: 399, label: 'UNDER ₹399', sub: 'Shirts & Tops' },
+            { price: 499, label: 'UNDER ₹499', sub: 'Jeans & Sneakers' },
+            { price: 599, label: 'UNDER ₹599', sub: 'Kurtas & Jackets' },
+          ].map((drop) => (
+            <div
+              key={drop.price}
+              onClick={() => handlePriceClick(drop.price)}
+              className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-gradient-to-b from-[#881337] via-[#9f1239] to-[#be123c] border-2 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.3)] text-white flex flex-col items-center justify-between text-center cursor-pointer hover:scale-102 active:scale-98 transition-all group"
+            >
+              <div className="text-[9px] font-black uppercase tracking-wider text-amber-300">
+                PRICE DROP
+              </div>
+              <div className="font-black text-sm sm:text-base tracking-tight my-0.5 text-white drop-shadow-xs">
+                {drop.label}
+              </div>
+              <p className="text-[9px] text-rose-100/90 font-medium truncate max-w-full">
+                {drop.sub}
+              </p>
+              <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black mt-1 shadow-2xs group-hover:translate-x-0.5 transition-transform">
+                <ArrowRight className="w-3 h-3" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 11. SHOP BY BRAND: ALL TOP FLIPKART FASHION LABELS WITH GENEROUS LOGO SPACE */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3 pt-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+              Shop by brand
+            </h3>
+            <span className="text-[10px] bg-slate-900 text-amber-300 font-black px-2 py-0.5 rounded-full uppercase">
+              100% Genuine
+            </span>
+          </div>
+          <span className="text-xs font-bold text-amber-700">All Labels &rarr;</span>
+        </div>
+
+        {/* Horizontal Brand Strip with Dedicated Logo Containers (Ready for User image URLs) */}
+        <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory">
+          {[
+            { name: 'Snitch', offer: 'Under ₹599', logoUrl: '', bg: 'from-amber-500 to-orange-500' },
+            { name: 'Campus', offer: 'Under ₹599', logoUrl: '', bg: 'from-blue-600 to-cyan-600' },
+            { name: 'Tokyo Talkies', offer: 'Min. 55% Off', logoUrl: '', bg: 'from-pink-500 to-rose-500' },
+            { name: 'The Bear House', offer: 'Min. 75% Off', logoUrl: '', bg: 'from-stone-800 to-amber-900' },
+            { name: 'Puma', offer: 'Min. 65% Off', logoUrl: '', bg: 'from-indigo-600 to-blue-700' },
+            { name: 'Adidas', offer: 'Min. 50% Off', logoUrl: '', bg: 'from-emerald-600 to-teal-700' },
+            { name: 'Cantabil', offer: 'Min. 65% Off', logoUrl: '', bg: 'from-amber-700 to-yellow-800' },
+            { name: 'Safari', offer: 'Min. 80% Off', logoUrl: '', bg: 'from-rose-600 to-orange-600' },
+            { name: 'Aristocrat', offer: 'Min. 75% Off', logoUrl: '', bg: 'from-purple-600 to-indigo-700' },
+            { name: 'Libas', offer: 'Min. 65% Off', logoUrl: '', bg: 'from-red-600 to-amber-600' },
+            { name: 'V-Mart', offer: 'Under ₹299', logoUrl: '', bg: 'from-sky-600 to-blue-700' },
+            { name: 'Metronaut', offer: 'Under ₹499', logoUrl: '', bg: 'from-slate-700 to-zinc-900' },
+            { name: 'Allen Solly', offer: 'Min. 40% Off', logoUrl: '', bg: 'from-teal-700 to-emerald-900' },
+            { name: 'Peter England', offer: 'Min. 45% Off', logoUrl: '', bg: 'from-red-800 to-rose-950' },
+            { name: 'Flying Machine', offer: 'Min. 50% Off', logoUrl: '', bg: 'from-blue-700 to-indigo-900' },
+            { name: 'Killer', offer: 'Min. 60% Off', logoUrl: '', bg: 'from-zinc-800 to-black' },
+            { name: 'Sparx', offer: 'Under ₹499', logoUrl: '', bg: 'from-orange-600 to-red-600' },
+            { name: 'Red Tape', offer: 'Min. 70% Off', logoUrl: '', bg: 'from-rose-700 to-red-900' },
+            { name: 'Biba', offer: 'Min. 50% Off', logoUrl: '', bg: 'from-pink-600 to-fuchsia-800' },
+            { name: 'W for Woman', offer: 'Min. 55% Off', logoUrl: '', bg: 'from-purple-600 to-pink-700' },
+            { name: 'Aurelia', offer: 'Min. 50% Off', logoUrl: '', bg: 'from-amber-600 to-rose-700' },
+            { name: 'Manyavar', offer: 'Festive Wear', logoUrl: '', bg: 'from-yellow-600 to-amber-800' },
+            { name: 'Wrogn', offer: 'Min. 60% Off', logoUrl: '', bg: 'from-neutral-800 to-stone-950' },
+            { name: 'Roadster', offer: 'Under ₹399', logoUrl: '', bg: 'from-blue-800 to-slate-900' },
+            { name: 'HRX', offer: 'Min. 60% Off', logoUrl: '', bg: 'from-amber-500 to-yellow-600' },
+            { name: 'Highlander', offer: 'Min. 70% Off', logoUrl: '', bg: 'from-cyan-700 to-blue-900' },
+          ].map((brand) => (
+            <div
+              key={brand.name}
+              onClick={() => {
+                if (onSelectBrand) {
+                  onSelectBrand(brand.name);
+                } else {
+                  onExploreShop?.();
+                }
+              }}
+              className="w-36 sm:w-44 shrink-0 p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:shadow-lg hover:border-amber-400 transition-all cursor-pointer text-center group active:scale-95 snap-start flex flex-col items-center justify-between"
+            >
+              {/* Generous Brand Logo Space Container (Ready for User to paste image URLs) */}
+              <div className="w-full h-16 sm:h-20 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center p-2 overflow-hidden shadow-inner group-hover:scale-105 transition-transform">
+                {brand.logoUrl ? (
+                  <img
+                    src={brand.logoUrl}
+                    alt={brand.name}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className={`w-full h-full rounded-lg bg-gradient-to-br ${brand.bg} text-white flex items-center justify-center font-black text-xl shadow-xs`}>
+                    <span className="drop-shadow-sm">{brand.name.slice(0, 2).toUpperCase()}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Brand Name & Promotional Offer Tag */}
+              <div className="mt-2 w-full">
+                <p className="font-black text-xs sm:text-sm text-slate-900 truncate group-hover:text-amber-600 transition-colors">
+                  {brand.name}
+                </p>
+                <span className="inline-block mt-1 text-[10px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                  {brand.offer}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
     </div>
   );
 };

@@ -183,6 +183,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'deals' | 'bestsellers' | 'rating4plus' | 'under999'>('all');
+  const [customMaxPrice, setCustomMaxPrice] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc' | 'discount' | 'rating'>('popular');
   
   // 8 Products per batch pagination & persistence across refresh (fixes "refresh fir se suru se load ho raha hai")
@@ -621,6 +622,11 @@ export default function App() {
       result = result.filter((p) => p.price <= 999);
     }
 
+    // Price drop filter from HeroBanner (e.g. Under ₹299, ₹399, ₹499, ₹599)
+    if (customMaxPrice !== null) {
+      result = result.filter((p) => p.price <= customMaxPrice);
+    }
+
     // Sort
     if (sortBy === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
@@ -635,7 +641,7 @@ export default function App() {
     }
 
     return result;
-  }, [productsList, selectedCategory, searchQuery, filterType, sortBy]);
+  }, [productsList, selectedCategory, searchQuery, filterType, customMaxPrice, sortBy]);
 
   // Paginated visible products
   const visibleProducts = useMemo(() => {
@@ -815,6 +821,7 @@ export default function App() {
           <HeroBanner
             onSelectCategory={(catId) => {
               setSelectedCategory(catId);
+              setCustomMaxPrice(null);
               productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
             onExploreShop={() => {
@@ -828,6 +835,17 @@ export default function App() {
               }
               productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
+            onFilterByPrice={(maxPrice) => {
+              setCustomMaxPrice(maxPrice);
+              setSelectedCategory('all');
+              productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onSelectBrand={(brandName) => {
+              setSearchQuery(brandName);
+              setSelectedCategory('all');
+              setCustomMaxPrice(null);
+              productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }}
           />
 
           {/* 2. User Explicit Request: "isme banner ke baad shop by category do" */}
@@ -836,71 +854,100 @@ export default function App() {
               selectedCategory={selectedCategory}
               onSelectCategory={(catId) => {
                 setSelectedCategory(catId);
+                setCustomMaxPrice(null);
                 productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
               }}
             />
           </div>
 
-          {/* 3. Catalog Section with Filter & Sort Controls */}
+          {/* 3. Catalog Section with Integrated Filter & Sort Controls */}
           <main ref={productSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
             
             {/* Section Title & Live Stats */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                   {selectedCategory === 'all'
-                    ? 'Trending Fashion, Footwear, Toys & Accessories'
+                    ? (searchQuery ? `Results for "${searchQuery}"` : 'Trending Collections')
                     : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Collections'}
                 </h2>
                 <span className="text-xs font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
                   {filteredProducts.length} Styles Available
                 </span>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-xs font-bold text-slate-500 hover:text-rose-600 ml-1 underline cursor-pointer"
+                  >
+                    Clear Search
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Unified Filter & Sort Bar (Sort integrated inside filter as requested) */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-100/80 p-2.5 rounded-2xl border border-slate-200">
+              
+              {/* Filter Chips */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+                <span className="text-xs font-black text-slate-600 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-0.5">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-amber-500" /> Filter:
+                </span>
+
+                {/* Custom price drop active chip */}
+                {customMaxPrice !== null && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomMaxPrice(null)}
+                    className="px-3 py-1 rounded-full text-xs font-black whitespace-nowrap border border-amber-500 bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-2xs cursor-pointer animate-fadeIn"
+                  >
+                    <span>Under ₹{customMaxPrice}</span>
+                    <span className="font-mono text-xs">✕</span>
+                  </button>
+                )}
+
+                {[
+                  { id: 'all', label: 'All Items' },
+                  { id: 'deals', label: '⚡ Flash Deals (60%+ OFF)' },
+                  { id: 'bestsellers', label: '⭐ Bestsellers' },
+                  { id: 'rating4plus', label: '★ 4.7+ Rated' },
+                  { id: 'under999', label: '🏷️ Under ₹799' },
+                ].map((chip) => (
+                  <button
+                    key={chip.id}
+                    onClick={() => {
+                      setFilterType(chip.id as any);
+                      if (chip.id !== 'all') setCustomMaxPrice(null);
+                    }}
+                    className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                      filterType === chip.id && customMaxPrice === null
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
               </div>
 
-              {/* Sort By Dropdown */}
-              <div className="flex items-center gap-2 self-end sm:self-auto">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-amber-500" /> Sort By:
+              {/* Integrated Sort By (Inside filter bar) */}
+              <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto sm:border-l sm:border-slate-200 sm:pl-3">
+                <span className="text-xs font-black text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-amber-500" /> Sort:
                 </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                  className="bg-white border border-slate-300 rounded-xl px-2.5 py-1 text-xs font-bold text-slate-800 focus:outline-none focus:border-amber-500 shadow-2xs cursor-pointer"
                 >
-                  <option value="popular">Popularity &amp; Bestsellers</option>
+                  <option value="popular">Popularity</option>
                   <option value="price-asc">Price: Low to High</option>
                   <option value="price-desc">Price: High to Low</option>
                   <option value="discount">Biggest Discount %</option>
                   <option value="rating">Customer Rating</option>
                 </select>
               </div>
-            </div>
 
-            {/* Filter Chips Bar */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-1">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-amber-500" /> Filter:
-              </span>
-
-              {[
-                { id: 'all', label: 'All Items' },
-                { id: 'deals', label: '⚡ Flash Deals (60%+ OFF)' },
-                { id: 'bestsellers', label: '⭐ Bestsellers' },
-                { id: 'rating4plus', label: '★ 4.7+ Rated' },
-                { id: 'under999', label: '🏷️ Under ₹799' },
-              ].map((chip) => (
-                <button
-                  key={chip.id}
-                  onClick={() => setFilterType(chip.id as any)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
-                    filterType === chip.id
-                      ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
-                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  {chip.label}
-                </button>
-              ))}
             </div>
 
             {/* Product Grid */}

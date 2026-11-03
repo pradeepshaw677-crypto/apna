@@ -952,6 +952,58 @@ export const Header: React.FC<HeaderProps> = ({
                 ))}
               </div>
 
+              {/* Section 2.5: Shop by Brand (Configurable Brand list with Image URL placeholders) */}
+              <div className="pt-4 space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                  <span>Shop by Brand</span>
+                  <span className="text-amber-600 font-bold">12 Brands</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { name: 'Snitch', category: 'Fashion', logoUrl: '' },
+                    { name: 'Campus', category: 'Footwear', logoUrl: '' },
+                    { name: 'Tokyo Talkies', category: 'Western', logoUrl: '' },
+                    { name: 'The Bear House', category: 'Casuals', logoUrl: '' },
+                    { name: 'Puma', category: 'Sports', logoUrl: '' },
+                    { name: 'Adidas', category: 'Sneakers', logoUrl: '' },
+                    { name: 'Cantabil', category: 'Formal', logoUrl: '' },
+                    { name: 'Safari', category: 'Luggage', logoUrl: '' },
+                    { name: 'Aristocrat', category: 'Travel', logoUrl: '' },
+                    { name: 'Libas', category: 'Ethnic', logoUrl: '' },
+                    { name: 'V-Mart', category: 'Apparel', logoUrl: '' },
+                    { name: 'Metronaut', category: 'Streetwear', logoUrl: '' },
+                  ].map((brand) => (
+                    <button
+                      key={brand.name}
+                      onClick={() => {
+                        setIsSidebarOpen(false);
+                        setSearchQuery(brand.name);
+                        onNavigateView('home');
+                      }}
+                      className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 hover:bg-amber-50 hover:border-amber-300 border border-slate-200 transition-all cursor-pointer text-left group"
+                    >
+                      {/* Brand Logo / Avatar Placeholder (Ready for user custom image URLs) */}
+                      <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-200 to-yellow-100 border border-amber-300 text-slate-900 font-black text-[11px] flex items-center justify-center shrink-0 overflow-hidden shadow-2xs group-hover:scale-105 transition-transform">
+                        {brand.logoUrl ? (
+                          <img src={brand.logoUrl} alt={brand.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span>{brand.name.charAt(0)}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-black text-slate-900 truncate group-hover:text-amber-700">
+                          {brand.name}
+                        </p>
+                        <p className="text-[9px] text-slate-400 font-medium truncate">
+                          {brand.category}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Section 3: User Request: Settings & Preferences */}
               <div className="pt-4 space-y-3">
                 <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">

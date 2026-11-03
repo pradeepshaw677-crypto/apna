@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Star, Heart, Share2, Plus, Minus, ShoppingBag, Banknote, Sparkles, RotateCcw } from 'lucide-react';
 import { Product } from '../types';
 import { getSizePriceDelta, formatINR } from '../utils/pricing';
+import { getProductSizes } from '../utils/productSizes';
 
 interface ProductCardProps {
   product: Product;
@@ -22,8 +23,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   onSelectProduct,
 }) => {
+  const availableSizes = getProductSizes(product);
   const [selectedSize, setSelectedSize] = useState<string>(
-    product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Standard'
+    availableSizes[0] || 'Standard'
   );
   const [selectedColor, setSelectedColor] = useState<string>(
     product.colors && product.colors.length > 0 ? product.colors[0].name : ''
@@ -190,18 +192,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               SAVE {formatINR(savings)}
             </span>
           )}
-        </div>
-
-        {/* 5-Day Return & COD Reassurance */}
-        <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-bold text-slate-500 pt-0.5 flex-wrap gap-1">
-          <span className="flex items-center gap-1 text-slate-600 whitespace-nowrap">
-            <Banknote className="w-3 h-3 text-amber-600 shrink-0" />
-            <span>Cash on Delivery</span>
-          </span>
-          <span className="flex items-center gap-1 text-amber-700 font-extrabold whitespace-nowrap">
-            <RotateCcw className="w-3 h-3 text-amber-600 shrink-0" />
-            <span>5-Day Return</span>
-          </span>
         </div>
       </div>
 

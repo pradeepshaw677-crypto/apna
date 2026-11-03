@@ -34,6 +34,7 @@ import { Product, ProductReview } from '../types';
 import { api } from '../utils/api';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { getSizePriceDelta, formatINR } from '../utils/pricing';
+import { getProductSizes } from '../utils/productSizes';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -62,10 +63,12 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 }) => {
   if (!product) return null;
 
+  const availableSizes = getProductSizes(product);
+
   // Selected Variant states
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>(
-    product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'Standard'
+    availableSizes[0] || 'Standard'
   );
   const [selectedColor, setSelectedColor] = useState<string>(
     product.colors && product.colors.length > 0 ? product.colors[0].name : ''
@@ -462,7 +465,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           </div>
 
           {/* Size Selector with Price Differences */}
-          {product.sizes && product.sizes.length > 0 && (
+          {availableSizes && availableSizes.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-black text-slate-900">
@@ -482,29 +485,61 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {isSizeGuideOpen && (
                 <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-xs space-y-1.5 animate-fadeIn">
                   <div className="flex items-center justify-between font-bold text-amber-900">
-                    <span>Standard India Fit Chart</span>
-                    <button onClick={() => setIsSizeGuideOpen(false)} className="text-amber-700 text-xs">✕</button>
+                    <span>
+                      {product.category === 'sarees'
+                        ? 'Saree Specifications & Fit Guide'
+                        : availableSizes.some((s) => s.includes('Y'))
+                        ? "Kids' Age & Height Fit Chart"
+                        : 'Standard India Fit Chart'}
+                    </span>
+                    <button onClick={() => setIsSizeGuideOpen(false)} className="text-amber-700 text-xs cursor-pointer">✕</button>
                   </div>
-                  <table className="w-full text-[11px] text-slate-700 border-collapse">
-                    <thead>
-                      <tr className="border-b border-amber-200 text-left font-bold">
-                        <th className="py-1">Size</th>
-                        <th className="py-1">Chest/Waist</th>
-                        <th className="py-1">Length</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-amber-100"><td>S / 38</td><td>38 inches</td><td>27 inches</td></tr>
-                      <tr className="border-b border-amber-100"><td>M / 40</td><td>40 inches</td><td>28 inches</td></tr>
-                      <tr className="border-b border-amber-100"><td>L / 42</td><td>42 inches</td><td>29 inches</td></tr>
-                      <tr><td>XL / 44</td><td>44 inches</td><td>30 inches</td></tr>
-                    </tbody>
-                  </table>
+                  {product.category === 'sarees' ? (
+                    <div className="text-[11px] text-slate-700 space-y-1 py-1">
+                      <p>• <strong>Saree Length:</strong> 5.5 Metres (Full standard drape length)</p>
+                      <p>• <strong>Blouse Piece:</strong> 0.8 Metres (Unstitched brocade/silk included)</p>
+                      <p>• <strong>Fit:</strong> Free Size (Universally fits all body shapes &amp; heights)</p>
+                    </div>
+                  ) : availableSizes.some((s) => s.includes('Y')) ? (
+                    <table className="w-full text-[11px] text-slate-700 border-collapse">
+                      <thead>
+                        <tr className="border-b border-amber-200 text-left font-bold">
+                          <th className="py-1">Age</th>
+                          <th className="py-1">Child Height</th>
+                          <th className="py-1">Chest/Waist</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-amber-100"><td>1-2 Y</td><td>80 - 90 cm</td><td>20 - 21 inches</td></tr>
+                        <tr className="border-b border-amber-100"><td>2-3 Y</td><td>90 - 98 cm</td><td>21 - 22 inches</td></tr>
+                        <tr className="border-b border-amber-100"><td>3-4 Y</td><td>98 - 104 cm</td><td>22 - 23 inches</td></tr>
+                        <tr className="border-b border-amber-100"><td>4-5 Y</td><td>104 - 110 cm</td><td>23 - 24 inches</td></tr>
+                        <tr className="border-b border-amber-100"><td>5-6 Y</td><td>110 - 116 cm</td><td>24 - 25 inches</td></tr>
+                        <tr><td>7-8 Y</td><td>122 - 128 cm</td><td>26 - 27 inches</td></tr>
+                      </tbody>
+                    </table>
+                  ) : (
+                    <table className="w-full text-[11px] text-slate-700 border-collapse">
+                      <thead>
+                        <tr className="border-b border-amber-200 text-left font-bold">
+                          <th className="py-1">Size</th>
+                          <th className="py-1">Chest/Waist</th>
+                          <th className="py-1">Length</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-amber-100"><td>S / 38</td><td>38 inches</td><td>27 inches</td></tr>
+                        <tr className="border-b border-amber-100"><td>M / 40</td><td>40 inches</td><td>28 inches</td></tr>
+                        <tr className="border-b border-amber-100"><td>L / 42</td><td>42 inches</td><td>29 inches</td></tr>
+                        <tr><td>XL / 44</td><td>44 inches</td><td>30 inches</td></tr>
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               )}
 
               <div className="flex items-center gap-2 flex-wrap">
-                {product.sizes.map((size) => {
+                {availableSizes.map((size) => {
                   const delta = getSizePriceDelta(size);
                   const isCurrent = selectedSize === size;
                   return (

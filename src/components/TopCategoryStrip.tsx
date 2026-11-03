@@ -100,8 +100,8 @@ export const TopCategoryStrip: React.FC<TopCategoryStripProps> = ({
                   )}
                 </div>
 
-                {/* Category Labels - User Request: Fashion & Apparel in a single line */}
-                <div className="text-center mt-2 w-24 sm:w-28 px-1">
+                {/* Category Labels - Clean single-line names without bottom subtext */}
+                <div className="text-center mt-1.5 w-20 sm:w-24 px-0.5">
                   <p
                     className={`text-xs sm:text-[13px] font-black leading-tight whitespace-nowrap truncate transition-colors ${
                       isSelected
@@ -110,13 +110,20 @@ export const TopCategoryStrip: React.FC<TopCategoryStripProps> = ({
                     }`}
                     title={cat.name}
                   >
-                    {cat.name}
+                    {cat.id === 'all'
+                      ? 'All Items'
+                      : cat.id === 'sarees'
+                      ? 'Sarees'
+                      : cat.id === 'fashion'
+                      ? 'Fashion'
+                      : cat.id === 'footwear'
+                      ? 'Footwear'
+                      : cat.id === 'toys'
+                      ? "Kids Store"
+                      : cat.id === 'accessories'
+                      ? 'Accessories'
+                      : cat.name}
                   </p>
-                  {cat.hindiName && (
-                    <p className="text-[10px] text-slate-400 font-medium whitespace-nowrap truncate mt-0.5">
-                      {cat.hindiName}
-                    </p>
-                  )}
                 </div>
               </button>
             );

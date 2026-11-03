@@ -52,13 +52,12 @@ export function getCloudinaryUrl(
 const IMAGE_FALLBACK =
   "data:image/svg+xml;charset=utf-8," +
   encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><rect width="100%" height="100%" fill="#f1f5f9"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#94a3b8">Apna Bazar</text></svg>',
+    '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="100%" height="100%" fill="#f8fafc"/><rect x="24" y="24" width="552" height="552" rx="28" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/><circle cx="300" cy="250" r="56" fill="#fef3c7"/><path d="M280 250 L320 250 M300 230 L300 270" stroke="#d97706" stroke-width="5" stroke-linecap="round"/><text x="300" y="350" dominant-baseline="middle" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-weight="900" font-size="26" fill="#0f172a">Apna Bazar</text><text x="300" y="385" dominant-baseline="middle" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-weight="700" font-size="14" fill="#d97706">100% Genuine Branded Quality</text></svg>',
   );
 
 /**
- * If a Cloudinary-fetch image fails, restore the original origin URL once, then
- * fall back to an inline placeholder. Prevents broken product tiles anywhere in
- * the app without touching every <img>.
+ * If an image fails, restore the original origin URL once or fall back
+ * to an inline pristine branded placeholder. Prevents broken image icons anywhere.
  */
 export function recoverImage(img: HTMLImageElement): void {
   if (img.dataset.recoveryDone === "1") return;
