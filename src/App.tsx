@@ -51,6 +51,27 @@ import { getSizePriceDelta, formatINR } from './utils/pricing';
 import { Header } from './components/Header';
 import { TopCategoryStrip } from './components/TopCategoryStrip';
 import { HeroBanner } from './components/HeroBanner';
+
+export interface FabricMaterial {
+  id: string;
+  name: string;
+  hindi: string;
+  icon: string;
+  keywords: string[];
+}
+
+export const FABRIC_MATERIALS: FabricMaterial[] = [
+  { id: 'all', name: 'All Fabrics', hindi: 'सभी फैब्रिक', icon: '✨', keywords: [] },
+  { id: 'cotton', name: 'Cotton', hindi: 'कॉटन / सूती', icon: '☁️', keywords: ['cotton', 'mulmul', 'oxford', 'khadi', 'twill', 'pique'] },
+  { id: 'silk', name: 'Silk', hindi: 'सिल्क / रेशम', icon: '🧵', keywords: ['silk', 'banarasi', 'katan', 'tussar', 'pattu', 'chanderi', 'zari', 'jacquard'] },
+  { id: 'wool', name: 'Wool & Fleece', hindi: 'ऊन / फ्लीस', icon: '🧶', keywords: ['wool', 'fleece', 'terry', 'knit', 'sweater', 'hoodie', 'winter', 'jacket', 'puffer', 'sweatshirt'] },
+  { id: 'polyester', name: 'Polyester', hindi: 'पॉलिएस्टर', icon: '⚡', keywords: ['polyester', 'poly', 'georgette', 'chiffon', 'organza', 'drycell', 'dri-fit', 'lycra', 'spandex', 'nylon'] },
+  { id: 'denim', name: 'Denim', hindi: 'डेनिम / जींस', icon: '👖', keywords: ['denim', 'jeans', 'trucker'] },
+  { id: 'linen', name: 'Linen', hindi: 'लिनन', icon: '🌿', keywords: ['linen', 'flax'] },
+  { id: 'velvet-satin', name: 'Velvet & Satin', hindi: 'वेलवेट / सैटिन', icon: '✨', keywords: ['velvet', 'satin', 'cowl', 'crepe'] },
+  { id: 'rayon', name: 'Rayon & Viscose', hindi: 'रेयॉन', icon: '🌸', keywords: ['rayon', 'viscose', 'modal'] },
+  { id: 'leather', name: 'Leather & EVA', hindi: 'लेदर / ईवा', icon: '👞', keywords: ['leather', 'pu', 'suede', 'eva', 'rubber', 'canvas'] },
+];
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { CartDrawer } from './components/CartDrawer';
@@ -63,6 +84,7 @@ import { LoginModal } from './components/LoginModal';
 import { WhyShopSection } from './components/WhyShopSection';
 import { CustomerReviewsSection } from './components/CustomerReviewsSection';
 import { MobileBottomNav, MobileTab } from './components/MobileBottomNav';
+import { MeeshoCategoryDrawer } from './components/MeeshoCategoryDrawer';
 import { DashboardOptionsModal } from './components/DashboardOptionsModal';
 import { FloatingActions } from './components/FloatingActions';
 import { AIAssistant } from './components/AIAssistant';
@@ -150,6 +172,7 @@ export default function App() {
   const [isPincodeOpen, setIsPincodeOpen] = useState(false);
   const [isVoiceSearchOpen, setIsVoiceSearchOpen] = useState(false);
   const [isDeliveryRadiusOpen, setIsDeliveryRadiusOpen] = useState(false);
+  const [isMeeshoDrawerOpen, setIsMeeshoDrawerOpen] = useState(false);
   const [isDashboardOptionsOpen, setIsDashboardOptionsOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
@@ -181,10 +204,12 @@ export default function App() {
   });
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'deals' | 'bestsellers' | 'rating4plus' | 'under999'>('all');
   const [customMaxPrice, setCustomMaxPrice] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<'popular' | 'price-asc' | 'price-desc' | 'discount' | 'rating'>('popular');
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('all');
   
   // 8 Products per batch pagination & persistence across refresh (fixes "refresh fir se suru se load ho raha hai")
   const [visibleCount, setVisibleCount] = useState<number>(() => {
@@ -344,7 +369,7 @@ export default function App() {
     try {
       sessionStorage.setItem('ab_visible_count', '8');
     } catch {}
-  }, [selectedCategory, searchQuery, filterType, sortBy]);
+  }, [selectedCategory, searchQuery, filterType, sortBy, selectedBrand, selectedMaterial]);
 
   // Set latest order to tracked
   useEffect(() => {
@@ -606,6 +631,17 @@ export default function App() {
       );
     }
 
+    // Brand filter (from Iconic Brands section)
+    if (selectedBrand) {
+      const b = selectedBrand.toLowerCase().trim();
+      result = result.filter(
+        (p) =>
+          p.brand?.toLowerCase() === b ||
+          p.brand?.toLowerCase().includes(b) ||
+          p.name.toLowerCase().includes(b)
+      );
+    }
+
     // Category filter
     if (selectedCategory && selectedCategory !== 'all') {
       result = result.filter((p) => p.category === selectedCategory);
@@ -627,6 +663,25 @@ export default function App() {
       result = result.filter((p) => p.price <= customMaxPrice);
     }
 
+    // Material / Fabric filter (Silk, Cotton, Wool, Polyester, Denim, etc.)
+    if (selectedMaterial && selectedMaterial !== 'all') {
+      const mat = FABRIC_MATERIALS.find((m) => m.id === selectedMaterial);
+      if (mat && mat.keywords.length > 0) {
+        result = result.filter((p) => {
+          const combined = [
+            p.name,
+            p.description,
+            p.subcategory || '',
+            ...(p.highlights || []),
+            ...(p.specifications || []).map((s) => `${s.label} ${s.value}`),
+          ]
+            .join(' ')
+            .toLowerCase();
+          return mat.keywords.some((k) => combined.includes(k));
+        });
+      }
+    }
+
     // Sort
     if (sortBy === 'price-asc') {
       result.sort((a, b) => a.price - b.price);
@@ -641,7 +696,28 @@ export default function App() {
     }
 
     return result;
-  }, [productsList, selectedCategory, searchQuery, filterType, customMaxPrice, sortBy]);
+  }, [productsList, selectedCategory, selectedBrand, searchQuery, filterType, customMaxPrice, sortBy, selectedMaterial]);
+
+  // Compute live product counts for each fabric material
+  const materialCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: productsList.length };
+    FABRIC_MATERIALS.forEach((mat) => {
+      if (mat.id === 'all') return;
+      counts[mat.id] = productsList.filter((p) => {
+        const combined = [
+          p.name,
+          p.description,
+          p.subcategory || '',
+          ...(p.highlights || []),
+          ...(p.specifications || []).map((s) => `${s.label} ${s.value}`),
+        ]
+          .join(' ')
+          .toLowerCase();
+        return mat.keywords.some((k) => combined.includes(k));
+      }).length;
+    });
+    return counts;
+  }, [productsList]);
 
   // Paginated visible products
   const visibleProducts = useMemo(() => {
@@ -714,8 +790,9 @@ export default function App() {
           setActiveView(view);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        onOpenLocationModal={() => setIsLocationModalOpen(true)}
+        onOpenLocationModal={() => setIsDeliveryRadiusOpen(true)}
         deliveryLocation={deliveryLocation}
+        onOpenMeeshoDrawer={() => setIsMeeshoDrawerOpen(true)}
       />
 
       {/* Order Success Top Banner (if recently ordered) */}
@@ -857,8 +934,11 @@ export default function App() {
                 setCustomMaxPrice(null);
                 productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
               }}
+              onOpenMeeshoDrawer={() => setIsMeeshoDrawerOpen(true)}
             />
           </div>
+
+
 
           {/* 3. Catalog Section with Integrated Filter & Sort Controls */}
           <main ref={productSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-6">
@@ -867,13 +947,30 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                  {selectedCategory === 'all'
+                  {selectedBrand
+                    ? `${selectedBrand} Brand Store`
+                    : selectedCategory === 'all'
                     ? (searchQuery ? `Results for "${searchQuery}"` : 'Trending Collections')
                     : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Collections'}
                 </h2>
                 <span className="text-xs font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
                   {filteredProducts.length} Styles Available
                 </span>
+                {selectedBrand && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950 text-amber-300 text-xs font-black shadow-xs">
+                    <span>Brand: {selectedBrand}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedBrand(null);
+                        setSearchQuery('');
+                      }}
+                      className="w-4 h-4 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-[10px] cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
@@ -950,6 +1047,85 @@ export default function App() {
 
             </div>
 
+            {/* Material & Fabric Filter Section (Silk, Wool, Cotton, Polyester, Denim, Linen, etc.) */}
+            <div className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center text-xs font-black shadow-2xs">
+                    🧵
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                      Material / फैब्रिक फिल्टर:
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
+                      (सिल्क, कॉटन, ऊन, पॉलिएस्टर, डेनिम...)
+                    </span>
+                  </div>
+
+                  {selectedMaterial !== 'all' && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[11px] font-black border border-amber-500 shadow-2xs">
+                      <span>{FABRIC_MATERIALS.find((m) => m.id === selectedMaterial)?.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMaterial('all')}
+                        className="w-3.5 h-3.5 rounded-full bg-slate-950 text-white flex items-center justify-center text-[9px] hover:bg-slate-800 cursor-pointer"
+                        title="Remove material filter"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                </div>
+
+                {selectedMaterial !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMaterial('all')}
+                    className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Clear Material Filter</span>
+                    <span className="text-[10px]">✕</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Horizontal Scrollable Material Chips */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+                {FABRIC_MATERIALS.map((mat) => {
+                  const isSelected = selectedMaterial === mat.id;
+                  const count = materialCounts[mat.id] ?? 0;
+
+                  return (
+                    <button
+                      key={mat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMaterial(isSelected && mat.id !== 'all' ? 'all' : mat.id);
+                      }}
+                      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer shrink-0 ${
+                        isSelected
+                          ? 'border-amber-500 bg-amber-400 text-slate-950 font-black shadow-xs ring-2 ring-amber-200'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-300 hover:bg-amber-50/50'
+                      }`}
+                    >
+                      <span className="text-sm">{mat.icon}</span>
+                      <span>{mat.name}</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-md font-black transition-colors ${
+                          isSelected
+                            ? 'bg-slate-950 text-amber-300'
+                            : 'bg-slate-200/80 text-slate-600 group-hover:bg-amber-200 group-hover:text-amber-950'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Product Grid */}
             {visibleProducts.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
@@ -982,12 +1158,15 @@ export default function App() {
                 <button
                   onClick={() => {
                     setSelectedCategory('all');
+                    setSelectedMaterial('all');
+                    setSelectedBrand(null);
+                    setCustomMaxPrice(null);
                     setSearchQuery('');
                     setFilterType('all');
                   }}
                   className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors cursor-pointer"
                 >
-                  Reset Filters
+                  Reset All Filters
                 </button>
               </div>
             )}
@@ -1054,11 +1233,7 @@ export default function App() {
             setActiveMobileTab('home');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (tab === 'categories') {
-            setActiveView('home');
-            setActiveMobileTab('categories');
-            setTimeout(() => {
-              categorySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 60);
+            setIsMeeshoDrawerOpen(true);
           } else if (tab === 'cart') {
             setIsCartOpen(true);
           } else if (tab === 'orders') {
@@ -1232,8 +1407,39 @@ export default function App() {
           <DeliveryRadiusModal
             isOpen={isDeliveryRadiusOpen}
             onClose={() => setIsDeliveryRadiusOpen(false)}
+            onSelectLocation={(locationName, coords, distance) => {
+              const locDisplay = `${locationName} (${distance})`;
+              setDeliveryLocation(locDisplay);
+              try {
+                localStorage.setItem('ab_delivery_location', locDisplay);
+              } catch {}
+              setSavedAddress((prev) => ({
+                ...prev,
+                streetAddress: locationName,
+                landmark: prev.landmark || 'Near Shitla Mandir / Central Hub',
+                city: 'Baharagora',
+                state: 'Jharkhand',
+                pincode: '832101',
+              }));
+            }}
           />
         )}
+
+        {/* Meesho-Style 2-Pane Dual-Column Category Drawer */}
+        <MeeshoCategoryDrawer
+          isOpen={isMeeshoDrawerOpen}
+          onClose={() => setIsMeeshoDrawerOpen(false)}
+          onSelectCategory={(categoryId, filterKeyword) => {
+            setSelectedCategory(categoryId);
+            setSearchQuery(filterKeyword || '');
+            setActiveView('home');
+            setIsMeeshoDrawerOpen(false);
+            setTimeout(() => {
+              productSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+          }}
+          selectedCategory={selectedCategory}
+        />
 
         {invoiceOrder && (
           <InvoiceModal

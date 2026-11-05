@@ -17,7 +17,7 @@ import { CartItem, Coupon, DeliveryAddress, Order } from '../types';
 import { formatINR, getSizePriceDelta } from '../utils/pricing';
 import { api } from '../utils/api';
 import { AbCoinLogo } from './AbCoinLogo';
-import { LocationPermissionModal } from './LocationPermissionModal';
+import { DeliveryRadiusModal } from './DeliveryRadiusModal';
 import confetti from 'canvas-confetti';
 
 interface CheckoutModalProps {
@@ -331,18 +331,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   type="button"
                   onClick={handleUseCurrentLocation}
                   disabled={detectingGps}
-                  className="text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                  className="text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs transition-all active:scale-95"
+                  title="1-Click fast live GPS location detection"
                 >
-                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{detectingGps ? 'Detecting...' : 'Auto-Detect GPS'}</span>
+                  <MapPin className="w-3.5 h-3.5 fill-current" />
+                  <span>{detectingGps ? 'Detecting GPS...' : '⚡ Use Live GPS (1-Click)'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsMapModalOpen(true)}
-                  className="text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                  className="text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 px-2.5 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  <span>🗺️ Drop Pin on Map</span>
+                  <span>🗺️ 10km Real Map (Drop Pin)</span>
                 </button>
               </div>
             </div>
@@ -693,20 +694,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </p>
         </form>
 
-        <LocationPermissionModal
+        <DeliveryRadiusModal
           isOpen={isMapModalOpen}
           onClose={() => setIsMapModalOpen(false)}
-          currentPincode={address.pincode}
-          onConfirmPincode={(pin, fullAddress, isJharkhand) => {
+          onSelectLocation={(locName, coords, dist) => {
             setIsMapModalOpen(false);
-            setAddress(prev => ({
+            setAddress((prev) => ({
               ...prev,
-              streetAddress: fullAddress,
-              pincode: pin,
+              streetAddress: locName,
+              landmark: prev.landmark || 'Near Shitla Mandir / Central Hub',
+              city: 'Baharagora',
+              state: 'Jharkhand',
+              pincode: '832101',
             }));
-            setGpsSuccessMsg(`✓ Google Map Delivery Point Confirmed!`);
+            setGpsSuccessMsg(`✓ Pin Point Confirmed: ${locName} (${dist} from Baharagora Hub • 15 Mins Delivery)`);
             setIsEditingAddress(true);
-            setTimeout(() => setGpsSuccessMsg(null), 5000);
+            setTimeout(() => setGpsSuccessMsg(null), 6000);
           }}
         />
       </div>

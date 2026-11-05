@@ -56,6 +56,7 @@ interface HeaderProps {
   onNavigateView: (view: 'home' | 'dashboard' | 'orders' | 'addresses' | 'refer' | 'support' | 'about' | 'shipping' | 'returns' | 'cancellation' | 'terms' | 'privacy' | 'disclaimer') => void;
   onOpenLocationModal?: () => void;
   deliveryLocation?: string;
+  onOpenMeeshoDrawer?: () => void;
 }
 
 const PLACEHOLDER_TEXTS = [
@@ -94,6 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
   onNavigateView,
   onOpenLocationModal,
   deliveryLocation = 'Baharagora 832101',
+  onOpenMeeshoDrawer,
 }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -677,35 +679,53 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="bg-slate-50/90 border-t border-slate-200/80 px-2.5 sm:px-6 lg:px-8 py-1.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-1.5 sm:gap-3">
           
-          {/* "All Collections ˅" Pill Dropdown Trigger */}
-          <div ref={categoryRef} className="relative min-w-0">
-            <button
-              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-amber-300 text-slate-900 bg-amber-50 hover:bg-amber-100 text-[11px] sm:text-xs font-black transition-all shadow-2xs cursor-pointer max-w-[150px] sm:max-w-none"
-            >
-              <span className="truncate">{currentCategoryName}</span>
-              <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Clean Dropdown Modal */}
-            {isCategoryDropdownOpen && (
-              <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn divide-y divide-slate-100">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleSelectCategory(cat.id)}
-                    className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
-                      selectedCategory === cat.id
-                        ? 'text-amber-900 bg-amber-50 font-black'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{cat.name}</span>
-                    {selectedCategory === cat.id && <span className="text-amber-600 font-black">✓</span>}
-                  </button>
-                ))}
-              </div>
+          {/* Left: Category Menu Button & All Collections Dropdown */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onOpenMeeshoDrawer && (
+              <button
+                type="button"
+                onClick={onOpenMeeshoDrawer}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 text-slate-950 hover:opacity-95 text-[11px] sm:text-xs font-black shadow-xs cursor-pointer active:scale-95 transition-all"
+                title="Browse All Categories"
+              >
+                <Sparkles className="w-3.5 h-3.5 fill-current" />
+                <span>Categories</span>
+                <span className="hidden xs:inline text-[9px] bg-slate-950 text-amber-300 px-1.5 py-0.2 rounded-full uppercase font-black">
+                  EXPLORE
+                </span>
+              </button>
             )}
+
+            {/* "All Collections ˅" Pill Dropdown Trigger */}
+            <div ref={categoryRef} className="relative min-w-0">
+              <button
+                onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-slate-300 text-slate-800 bg-white hover:bg-slate-50 text-[11px] sm:text-xs font-bold transition-all shadow-2xs cursor-pointer max-w-[130px] sm:max-w-none"
+              >
+                <span className="truncate">{currentCategoryName}</span>
+                <ChevronDown className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 transition-transform duration-200 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Clean Dropdown Modal */}
+              {isCategoryDropdownOpen && (
+                <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn divide-y divide-slate-100">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleSelectCategory(cat.id)}
+                      className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors flex items-center justify-between cursor-pointer ${
+                        selectedCategory === cat.id
+                          ? 'text-amber-900 bg-amber-50 font-black'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{cat.name}</span>
+                      {selectedCategory === cat.id && <span className="text-amber-600 font-black">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Quick horizontal categories scroll on desktop */}
@@ -725,17 +745,17 @@ export const Header: React.FC<HeaderProps> = ({
             ))}
           </div>
 
-          {/* Location / 10 km Radius Pill Button */}
+          {/* User Request: Deliver to reduced compact area ("deliver to ka area ghata dao") */}
           <button
             onClick={onOpenLocationModal}
-            className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black text-amber-950 bg-amber-100/90 hover:bg-amber-200 px-2 sm:px-2.5 py-1 rounded-full border border-amber-300 shrink-0 cursor-pointer transition-colors shadow-2xs max-w-[160px] sm:max-w-none"
-            title="Interactive 10km Radius Map"
+            className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black text-amber-950 bg-amber-100/90 hover:bg-amber-200 px-2 sm:px-2.5 py-1 rounded-full border border-amber-300 shrink-0 cursor-pointer transition-colors shadow-2xs max-w-[140px] sm:max-w-none"
+            title="Interactive Baharagora 10km Real Map"
           >
-            <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-700 shrink-0" />
+            <MapPin className="w-3 h-3 text-amber-700 shrink-0" />
             <span className="truncate">
-              {compactLocationDisplay} (10km)
+              Baharagora (10km)
             </span>
-            <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-800 shrink-0" />
+            <ChevronDown className="w-2.5 h-2.5 text-amber-800 shrink-0" />
           </button>
 
         </div>
@@ -824,6 +844,32 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">
                   Quick Shortcuts
                 </div>
+
+                {onOpenMeeshoDrawer && (
+                  <button
+                    onClick={() => {
+                      setIsSidebarOpen(false);
+                      onOpenMeeshoDrawer();
+                    }}
+                    className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-rose-500/15 border border-amber-300 hover:bg-amber-100/50 text-slate-900 font-extrabold transition-all cursor-pointer group shadow-2xs"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+                        <Sparkles className="w-4 h-4 fill-current" />
+                      </div>
+                      <div className="text-left">
+                        <div className="flex items-center gap-1.5">
+                          <span>Browse All Categories</span>
+                          <span className="text-[9px] bg-rose-500 text-white px-1.5 py-0.2 rounded-full font-black uppercase">
+                            Hot
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-medium">8 Hubs • 80+ Trending Styles</p>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-amber-700 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                )}
 
                 <button
                   onClick={() => {

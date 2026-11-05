@@ -34,18 +34,23 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           <span className="text-[10px] font-bold mt-0.5 tracking-tight">Home</span>
         </button>
 
-        {/* 2. Categories */}
+        {/* 2. Categories (Opens Meesho-style Drawer) */}
         <button
           type="button"
           onClick={() => onSelectTab('categories')}
-          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all cursor-pointer relative ${
             activeTab === 'categories'
               ? 'text-slate-950 font-black'
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          <div className={`p-1.5 rounded-xl transition-all ${activeTab === 'categories' ? 'bg-amber-400 text-slate-950 shadow-xs scale-105' : ''}`}>
-            <LayoutGrid className="w-5 h-5" />
+          <div className="relative p-1 rounded-xl transition-all">
+            <div className={`p-1 rounded-lg ${activeTab === 'categories' ? 'bg-amber-400 text-slate-950 shadow-xs scale-105' : ''}`}>
+              <LayoutGrid className="w-5 h-5" />
+            </div>
+            <span className="absolute -top-0.5 -right-1 bg-gradient-to-r from-rose-500 to-amber-500 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase leading-none shadow-2xs">
+              HOT
+            </span>
           </div>
           <span className="text-[10px] font-bold mt-0.5 tracking-tight">Categories</span>
         </button>
