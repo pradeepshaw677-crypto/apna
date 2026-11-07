@@ -45,7 +45,7 @@ export const Footer: React.FC<FooterProps> = ({
               <Truck className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
-              <h4 className="font-black text-xs sm:text-sm text-white">15-Min Express</h4>
+              <h4 className="font-black text-xs sm:text-sm text-white">Direct Express</h4>
               <p className="text-[11px] text-slate-400">Jharkhand Express Hub</p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export const Footer: React.FC<FooterProps> = ({
             <BrandLogo variant="footer" onClick={() => onNavigateView('home')} />
             
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              <strong>Apna Bazar</strong> is India&apos;s trusted fashion and lifestyle superstore. We empower shoppers in Baharagora and across Jharkhand with trending apparel, sneakers, toys, and luxury accessories at unbeatable wholesale prices with 15-minute express delivery.
+              <strong>Apna Bazar</strong> is India&apos;s trusted fashion and lifestyle superstore. We empower shoppers in Baharagora and across Jharkhand with trending apparel, sneakers, toys, and luxury accessories at unbeatable wholesale prices with express doorstep delivery.
             </p>
 
             <div className="space-y-2 text-xs text-slate-300 pt-2 font-medium">
@@ -232,10 +232,10 @@ export const Footer: React.FC<FooterProps> = ({
             <div className="space-y-1.5">
               <h4 className="font-bold text-slate-200 flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>15-Minute Doorstep Express in Jharkhand</span>
+                <span>Direct Doorstep Express in Jharkhand</span>
               </h4>
               <p className="text-[11px] text-slate-400">
-                Unlike traditional online stores that take 4 to 7 days, Apna Bazar operates dedicated express fulfillment hubs right in Baharagora. Order apparel, footwear, or toys and receive them within minutes.
+                Unlike traditional online stores that take 4 to 7 days, Apna Bazar operates dedicated express fulfillment hubs right in Baharagora. Order apparel, footwear, or toys and receive them directly.
               </p>
             </div>
 

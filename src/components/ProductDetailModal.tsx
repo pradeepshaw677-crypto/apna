@@ -40,6 +40,7 @@ interface ProductDetailModalProps {
   product: Product | null;
   quantityInCart: number;
   isWishlisted: boolean;
+  initialVibeColor?: string | null;
   onClose: () => void;
   onAddToCart: (product: Product, size?: string, color?: string, priceOverride?: number) => void;
   onUpdateQuantity: (product: Product, newQty: number) => void;
@@ -53,6 +54,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   product,
   quantityInCart,
   isWishlisted,
+  initialVibeColor,
   onClose,
   onAddToCart,
   onUpdateQuantity,
@@ -73,6 +75,35 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [selectedColor, setSelectedColor] = useState<string>(
     product.colors && product.colors.length > 0 ? product.colors[0].name : ''
   );
+
+  // Auto-select color matching active vibe
+  useEffect(() => {
+    if (!initialVibeColor || !product.colors || product.colors.length === 0) return;
+    const v = initialVibeColor.toLowerCase().trim();
+    const colorSynonyms: Record<string, string[]> = {
+      blue: ['blue', 'navy', 'cyan', 'sapphire', 'sky', 'indigo', 'denim'],
+      green: ['green', 'emerald', 'olive', 'mint', 'sage'],
+      pink: ['pink', 'rose', 'magenta', 'blush', 'peach'],
+      gold: ['gold', 'golden', 'yellow', 'mustard', 'zari'],
+      white: ['white', 'ivory', 'cream', 'off-white', 'pearl'],
+      black: ['black', 'noir', 'charcoal'],
+      red: ['red', 'crimson', 'maroon', 'ruby', 'scarlet']
+    };
+    const syns = colorSynonyms[v] || [v];
+    const matchIdx = product.colors.findIndex((c) =>
+      syns.some((syn) => c.name.toLowerCase().includes(syn))
+    );
+
+    if (matchIdx !== -1) {
+      const matched = product.colors[matchIdx];
+      setSelectedColor(matched.name);
+      const imgIdx = typeof matched.imageIndex === 'number' ? matched.imageIndex : matchIdx;
+      const gallery = product.images && product.images.length > 0 ? product.images : [product.image];
+      if (gallery[imgIdx]) {
+        setSelectedImageIndex(imgIdx);
+      }
+    }
+  }, [initialVibeColor, product]);
 
   // Expanded details toggle ("view all details")
   const [isFullDetailsOpen, setIsFullDetailsOpen] = useState(false);

@@ -2415,6 +2415,19 @@ async function startServer() {
       }
       next();
     });
+
+    // High-speed static caching for brand logos, fabric swatches & media assets
+    app.use(
+      "/assets",
+      express.static(path.join(process.cwd(), "public/assets"), {
+        maxAge: "30d",
+        immutable: true,
+        setHeaders: (res) => {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        },
+      })
+    );
+
     const vite = await createViteServer({
       server: {
         middlewareMode: true,

@@ -707,7 +707,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               state: 'Jharkhand',
               pincode: '832101',
             }));
-            setGpsSuccessMsg(`✓ Pin Point Confirmed: ${locName} (${dist} from Baharagora Hub • 15 Mins Delivery)`);
+            setGpsSuccessMsg(`✓ Pin Point Confirmed: ${locName} (${dist} from Baharagora Hub • Direct Doorstep Delivery)`);
             setIsEditingAddress(true);
             setTimeout(() => setGpsSuccessMsg(null), 6000);
           }}

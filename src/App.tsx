@@ -52,25 +52,98 @@ import { Header } from './components/Header';
 import { TopCategoryStrip } from './components/TopCategoryStrip';
 import { HeroBanner } from './components/HeroBanner';
 
+import { preloadCriticalAssets } from './utils/imagePreloader';
+
 export interface FabricMaterial {
   id: string;
   name: string;
   hindi: string;
   icon: string;
+  image: string;
   keywords: string[];
 }
 
 export const FABRIC_MATERIALS: FabricMaterial[] = [
-  { id: 'all', name: 'All Fabrics', hindi: 'सभी फैब्रिक', icon: '✨', keywords: [] },
-  { id: 'cotton', name: 'Cotton', hindi: 'कॉटन / सूती', icon: '☁️', keywords: ['cotton', 'mulmul', 'oxford', 'khadi', 'twill', 'pique'] },
-  { id: 'silk', name: 'Silk', hindi: 'सिल्क / रेशम', icon: '🧵', keywords: ['silk', 'banarasi', 'katan', 'tussar', 'pattu', 'chanderi', 'zari', 'jacquard'] },
-  { id: 'wool', name: 'Wool & Fleece', hindi: 'ऊन / फ्लीस', icon: '🧶', keywords: ['wool', 'fleece', 'terry', 'knit', 'sweater', 'hoodie', 'winter', 'jacket', 'puffer', 'sweatshirt'] },
-  { id: 'polyester', name: 'Polyester', hindi: 'पॉलिएस्टर', icon: '⚡', keywords: ['polyester', 'poly', 'georgette', 'chiffon', 'organza', 'drycell', 'dri-fit', 'lycra', 'spandex', 'nylon'] },
-  { id: 'denim', name: 'Denim', hindi: 'डेनिम / जींस', icon: '👖', keywords: ['denim', 'jeans', 'trucker'] },
-  { id: 'linen', name: 'Linen', hindi: 'लिनन', icon: '🌿', keywords: ['linen', 'flax'] },
-  { id: 'velvet-satin', name: 'Velvet & Satin', hindi: 'वेलवेट / सैटिन', icon: '✨', keywords: ['velvet', 'satin', 'cowl', 'crepe'] },
-  { id: 'rayon', name: 'Rayon & Viscose', hindi: 'रेयॉन', icon: '🌸', keywords: ['rayon', 'viscose', 'modal'] },
-  { id: 'leather', name: 'Leather & EVA', hindi: 'लेदर / ईवा', icon: '👞', keywords: ['leather', 'pu', 'suede', 'eva', 'rubber', 'canvas'] },
+  {
+    id: 'all',
+    name: 'All Fabrics',
+    hindi: 'सभी फैब्रिक',
+    icon: '✨',
+    image: '/assets/aistudio/Screenshot_2026_1106_205708_8a333b8c.png',
+    keywords: [],
+  },
+  {
+    id: 'cotton',
+    name: 'Cotton',
+    hindi: 'कॉटन / सूती',
+    icon: '☁️',
+    image: '/assets/aistudio/Screenshot_2026_1106_205750_2f8b4a8b.png',
+    keywords: ['cotton', 'mulmul', 'oxford', 'khadi', 'twill', 'pique', 'combed'],
+  },
+  {
+    id: 'silk',
+    name: 'Silk',
+    hindi: 'सिल्क / रेशम',
+    icon: '🧵',
+    image: '/assets/aistudio/Screenshot_2026_1106_210033_52aac3d0.png',
+    keywords: ['silk', 'banarasi', 'katan', 'tussar', 'pattu', 'chanderi', 'zari', 'jacquard'],
+  },
+  {
+    id: 'wool',
+    name: 'Wool & Fleece',
+    hindi: 'ऊन / फ्लीस',
+    icon: '🧶',
+    image: '/assets/aistudio/Screenshot_2026_1106_210111_cc73a541.png',
+    keywords: ['wool', 'fleece', 'terry', 'knit', 'sweater', 'hoodie', 'winter', 'jacket', 'puffer', 'sweatshirt'],
+  },
+  {
+    id: 'polyester',
+    name: 'Polyester',
+    hindi: 'पॉलिएस्टर / जॉर्जेट',
+    icon: '⚡',
+    image: '/assets/aistudio/Screenshot_2026_1106_210152_55383cbe.png',
+    keywords: ['polyester', 'poly', 'georgette', 'chiffon', 'organza', 'drycell', 'dri-fit', 'lycra', 'spandex', 'nylon'],
+  },
+  {
+    id: 'denim',
+    name: 'Denim',
+    hindi: 'डेनिम / जींस',
+    icon: '👖',
+    image: '/assets/aistudio/Screenshot_2026_1106_210218_95587bac.png',
+    keywords: ['denim', 'jeans', 'trucker', 'chambray', 'wide leg'],
+  },
+  {
+    id: 'linen',
+    name: 'Linen',
+    hindi: 'लिनन / फ्लैक्स',
+    icon: '🌿',
+    image: '/assets/aistudio/Screenshot_2026_1106_210253_da7d626d.png',
+    keywords: ['linen', 'flax', 'woven', 'slub'],
+  },
+  {
+    id: 'velvet-satin',
+    name: 'Velvet & Satin',
+    hindi: 'वेलवेट / सैटिन',
+    icon: '✨',
+    image: '/assets/aistudio/Screenshot_2026_1106_210327_7e2a0625.png',
+    keywords: ['velvet', 'satin', 'cowl', 'crepe'],
+  },
+  {
+    id: 'rayon',
+    name: 'Rayon & Viscose',
+    hindi: 'रेयॉन / विस्कोस',
+    icon: '🌸',
+    image: '/assets/aistudio/Screenshot_2026_1106_210352_31dcf9b6.png',
+    keywords: ['rayon', 'viscose', 'modal'],
+  },
+  {
+    id: 'leather',
+    name: 'Leather & EVA',
+    hindi: 'लेदर / ईवा',
+    icon: '👞',
+    image: '/assets/aistudio/Screenshot_2026_1106_210417_36af62fb.png',
+    keywords: ['leather', 'pu', 'suede', 'eva', 'rubber', 'canvas'],
+  },
 ];
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
@@ -90,6 +163,7 @@ import { FloatingActions } from './components/FloatingActions';
 import { AIAssistant } from './components/AIAssistant';
 import { Footer } from './components/Footer';
 import { recoverImage } from './utils/cloudinary';
+import { TurnOnLocationPopup } from './components/TurnOnLocationPopup';
 
 const CheckoutModal = lazy(() =>
   import('./components/CheckoutModal').then((module) => ({ default: module.CheckoutModal })),
@@ -161,6 +235,7 @@ export default function App() {
     return localStorage.getItem('ab_delivery_location') || 'Baharagora 832101 (Jharkhand)';
   });
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isTurnOnLocationPopupOpen, setIsTurnOnLocationPopupOpen] = useState(false);
 
   // Modals & Drawers
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -205,6 +280,7 @@ export default function App() {
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'deals' | 'bestsellers' | 'rating4plus' | 'under999'>('all');
   const [customMaxPrice, setCustomMaxPrice] = useState<number | null>(null);
@@ -271,6 +347,24 @@ export default function App() {
     return () => document.removeEventListener('error', handleImageError, true);
   }, []);
 
+  // Preload all 30 brand logos and 10 fabric material textures for instantaneous 0ms display
+  useEffect(() => {
+    preloadCriticalAssets();
+  }, []);
+
+  // User explicit instruction: "Web open hote hi pahale sirf turn on location ka popup aayaga only"
+  useEffect(() => {
+    const isLocationVerified = localStorage.getItem('ab_location_verified');
+    const hasPrompted = sessionStorage.getItem('ab_turn_on_location_prompted');
+    if (!isLocationVerified || !hasPrompted) {
+      const timer = setTimeout(() => {
+        setIsTurnOnLocationPopupOpen(true);
+        sessionStorage.setItem('ab_turn_on_location_prompted', 'true');
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // Capture referral invite code from URL like /?ref=AB1234
   useEffect(() => {
     try {
@@ -320,7 +414,16 @@ export default function App() {
     let isMounted = true;
     api.getProducts().then((res) => {
       if (isMounted && res.products && res.products.length > 0) {
-        setProductsList(res.products);
+        setProductsList((prev) => {
+          if (
+            prev.length === res.products.length &&
+            prev[0]?.id === res.products[0]?.id &&
+            prev[0]?.price === res.products[0]?.price
+          ) {
+            return prev;
+          }
+          return res.products;
+        });
         try {
           localStorage.setItem('ab_cached_products_v2', JSON.stringify(res.products));
         } catch {}
@@ -369,7 +472,7 @@ export default function App() {
     try {
       sessionStorage.setItem('ab_visible_count', '8');
     } catch {}
-  }, [selectedCategory, searchQuery, filterType, sortBy, selectedBrand, selectedMaterial]);
+  }, [selectedCategory, searchQuery, filterType, sortBy, selectedBrand, selectedMaterial, selectedVibe]);
 
   // Set latest order to tracked
   useEffect(() => {
@@ -642,6 +745,24 @@ export default function App() {
       );
     }
 
+    // Vibe / Color Mood filter (from Shop with Vibe section - strict color matching)
+    if (selectedVibe) {
+      const v = selectedVibe.toLowerCase().trim();
+      const colorSynonyms: Record<string, string[]> = {
+        blue: ['blue', 'navy', 'cyan', 'sapphire', 'sky', 'indigo', 'denim'],
+        green: ['green', 'emerald', 'olive', 'mint', 'sage'],
+        pink: ['pink', 'rose', 'magenta', 'blush', 'peach'],
+        gold: ['gold', 'golden', 'yellow', 'mustard', 'zari'],
+        white: ['white', 'ivory', 'cream', 'off-white', 'pearl'],
+        black: ['black', 'noir', 'charcoal'],
+        red: ['red', 'crimson', 'maroon', 'ruby', 'scarlet'],
+      };
+      const syns = colorSynonyms[v] || [v];
+      result = result.filter((p) =>
+        Boolean(p.colors && p.colors.some((c) => syns.some((syn) => c.name.toLowerCase().includes(syn))))
+      );
+    }
+
     // Category filter
     if (selectedCategory && selectedCategory !== 'all') {
       result = result.filter((p) => p.category === selectedCategory);
@@ -696,7 +817,7 @@ export default function App() {
     }
 
     return result;
-  }, [productsList, selectedCategory, selectedBrand, searchQuery, filterType, customMaxPrice, sortBy, selectedMaterial]);
+  }, [productsList, selectedCategory, selectedBrand, selectedVibe, searchQuery, filterType, customMaxPrice, sortBy, selectedMaterial]);
 
   // Compute live product counts for each fabric material
   const materialCounts = useMemo(() => {
@@ -790,7 +911,7 @@ export default function App() {
           setActiveView(view);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        onOpenLocationModal={() => setIsDeliveryRadiusOpen(true)}
+        onOpenLocationModal={() => setIsLocationModalOpen(true)}
         deliveryLocation={deliveryLocation}
         onOpenMeeshoDrawer={() => setIsMeeshoDrawerOpen(true)}
       />
@@ -912,15 +1033,33 @@ export default function App() {
               }
               productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
+            onAddToCartDirect={(deal) => {
+              const matched = productsList.find((x) => x.id === deal.targetProductId) || PRODUCTS.find((x) => x.id === deal.targetProductId);
+              if (matched) {
+                handleAddToCart(matched, undefined, undefined, deal.dealPrice);
+              }
+            }}
             onFilterByPrice={(maxPrice) => {
               setCustomMaxPrice(maxPrice);
               setSelectedCategory('all');
               productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
             onSelectBrand={(brandName) => {
-              setSearchQuery(brandName);
+              setSelectedBrand(brandName);
+              setSelectedVibe(null);
               setSelectedCategory('all');
+              setSelectedMaterial('all');
               setCustomMaxPrice(null);
+              setSearchQuery('');
+              productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            onSelectVibe={(vibeName) => {
+              setSelectedVibe(vibeName);
+              setSelectedBrand(null);
+              setSelectedCategory('all');
+              setSelectedMaterial('all');
+              setCustomMaxPrice(null);
+              setSearchQuery('');
               productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
           />
@@ -949,6 +1088,8 @@ export default function App() {
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                   {selectedBrand
                     ? `${selectedBrand} Brand Store`
+                    : selectedVibe
+                    ? `✨ ${selectedVibe} Vibe Collection`
                     : selectedCategory === 'all'
                     ? (searchQuery ? `Results for "${searchQuery}"` : 'Trending Collections')
                     : CATEGORIES.find((c) => c.id === selectedCategory)?.name || 'Collections'}
@@ -966,6 +1107,18 @@ export default function App() {
                         setSearchQuery('');
                       }}
                       className="w-4 h-4 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-[10px] cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+                {selectedVibe && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-slate-950 text-xs font-black shadow-xs">
+                    <span>✨ Vibe: {selectedVibe}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedVibe(null)}
+                      className="w-4 h-4 rounded-full bg-slate-950 text-white flex items-center justify-center text-[10px] cursor-pointer"
                     >
                       ✕
                     </button>
@@ -1048,28 +1201,28 @@ export default function App() {
             </div>
 
             {/* Material & Fabric Filter Section (Silk, Wool, Cotton, Polyester, Denim, Linen, etc.) */}
-            <div className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2.5">
+            <div className="bg-white p-3.5 sm:p-4 rounded-3xl border border-slate-200/90 shadow-xs space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center text-xs font-black shadow-2xs">
+                  <span className="w-7 h-7 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center text-sm font-black shadow-2xs">
                     🧵
                   </span>
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                      Material / फैब्रिक फिल्टर:
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
-                      (सिल्क, कॉटन, ऊन, पॉलिएस्टर, डेनिम...)
+                    <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                      Shop by Material / फैब्रिक व मटेरियल
+                    </h3>
+                    <span className="text-[11px] text-slate-500 font-medium hidden md:inline">
+                      (Touch any fabric swatch to explore 100% genuine weaves)
                     </span>
                   </div>
 
                   {selectedMaterial !== 'all' && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[11px] font-black border border-amber-500 shadow-2xs">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black border border-amber-500 shadow-2xs">
                       <span>{FABRIC_MATERIALS.find((m) => m.id === selectedMaterial)?.name}</span>
                       <button
                         type="button"
                         onClick={() => setSelectedMaterial('all')}
-                        className="w-3.5 h-3.5 rounded-full bg-slate-950 text-white flex items-center justify-center text-[9px] hover:bg-slate-800 cursor-pointer"
+                        className="w-4 h-4 rounded-full bg-slate-950 text-white flex items-center justify-center text-[10px] hover:bg-slate-800 cursor-pointer"
                         title="Remove material filter"
                       >
                         ✕
@@ -1090,37 +1243,68 @@ export default function App() {
                 )}
               </div>
 
-              {/* Horizontal Scrollable Material Chips */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+              {/* Horizontal Scrollable Visual Material Swatch Cards with Images on Top & Names Clearly Written Underneath */}
+              <div className="flex items-stretch gap-3 sm:gap-4 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory scroll-smooth py-1">
                 {FABRIC_MATERIALS.map((mat) => {
                   const isSelected = selectedMaterial === mat.id;
                   const count = materialCounts[mat.id] ?? 0;
 
                   return (
-                    <button
+                    <div
                       key={mat.id}
-                      type="button"
                       onClick={() => {
                         setSelectedMaterial(isSelected && mat.id !== 'all' ? 'all' : mat.id);
                       }}
-                      className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer shrink-0 ${
+                      className={`w-28 sm:w-32 shrink-0 p-2.5 rounded-2xl cursor-pointer text-center group active:scale-95 snap-start flex flex-col items-center justify-between border-2 transition-all duration-300 select-none ${
                         isSelected
-                          ? 'border-amber-500 bg-amber-400 text-slate-950 font-black shadow-xs ring-2 ring-amber-200'
-                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-amber-300 hover:bg-amber-50/50'
+                          ? 'bg-amber-50 border-amber-500 shadow-md ring-2 ring-amber-300/80 scale-[1.02]'
+                          : 'bg-white border-slate-200/90 shadow-2xs hover:border-amber-400 hover:shadow-sm'
                       }`}
                     >
-                      <span className="text-sm">{mat.icon}</span>
-                      <span>{mat.name}</span>
-                      <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-md font-black transition-colors ${
-                          isSelected
-                            ? 'bg-slate-950 text-amber-300'
-                            : 'bg-slate-200/80 text-slate-600 group-hover:bg-amber-200 group-hover:text-amber-950'
+                      {/* Fabric Texture Swatch Image */}
+                      <div
+                        className={`w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden relative border transition-transform duration-300 group-hover:scale-105 shadow-inner ${
+                          isSelected ? 'border-amber-500 ring-2 ring-amber-400' : 'border-slate-200/90 bg-slate-100'
                         }`}
                       >
-                        {count}
-                      </span>
-                    </button>
+                        <img
+                          src={mat.image}
+                          alt={mat.name}
+                          loading="eager"
+                          decoding="async"
+                          onError={(e) => recoverImage(e.currentTarget)}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        {isSelected && (
+                          <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-amber-400 text-slate-950 rounded-full flex items-center justify-center text-[10px] font-black shadow-xs border border-white">
+                            ✓
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Material Name Written Prominently & Cleanly Underneath Image */}
+                      <div className="mt-2.5 w-full space-y-0.5 text-center">
+                        <p
+                          className={`text-xs sm:text-[13px] font-black tracking-tight leading-tight ${
+                            isSelected ? 'text-amber-700' : 'text-slate-900 group-hover:text-amber-600'
+                          }`}
+                        >
+                          {mat.name}
+                        </p>
+                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 leading-tight">
+                          {mat.hindi}
+                        </p>
+                        <span
+                          className={`inline-block mt-1 text-[9px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full border transition-colors ${
+                            isSelected
+                              ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-2xs'
+                              : 'bg-slate-100 text-slate-600 border-slate-200 group-hover:bg-amber-100 group-hover:text-amber-900'
+                          }`}
+                        >
+                          {count} {mat.id === 'all' ? 'Total' : 'Styles'}
+                        </span>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -1140,6 +1324,7 @@ export default function App() {
                       product={product}
                       quantityInCart={qty}
                       isWishlisted={isWish}
+                      activeVibeColor={selectedVibe}
                       onAddToCart={handleAddToCart}
                       onUpdateQuantity={handleUpdateQuantity}
                       onToggleWishlist={handleToggleWishlist}
@@ -1160,6 +1345,7 @@ export default function App() {
                     setSelectedCategory('all');
                     setSelectedMaterial('all');
                     setSelectedBrand(null);
+                    setSelectedVibe(null);
                     setCustomMaxPrice(null);
                     setSearchQuery('');
                     setFilterType('all');
@@ -1278,6 +1464,7 @@ export default function App() {
             : 0
         }
         isWishlisted={selectedProduct ? wishlistIds.includes(selectedProduct.id) : false}
+        initialVibeColor={selectedVibe}
         onClose={closeProduct}
         onAddToCart={handleAddToCart}
         onUpdateQuantity={handleUpdateQuantity}
@@ -1357,7 +1544,15 @@ export default function App() {
         onPincodeSelected={setSelectedPincode}
       />
 
-      {/* User Request: Visual Card Location Permission Check Modal */}
+      {/* User Request: Lightweight Turn On Location Startup Popup (No map overload on start) */}
+      <TurnOnLocationPopup
+        isOpen={isTurnOnLocationPopupOpen}
+        onClose={() => setIsTurnOnLocationPopupOpen(false)}
+        onLocationConfirmed={handleLocationConfirmed}
+        onOpenFullMap={() => setIsLocationModalOpen(true)}
+      />
+
+      {/* User Request: Visual Card Location Permission Check Modal (Full map on demand) */}
       <Suspense fallback={null}>
         {isLocationModalOpen && (
           <LocationPermissionModal

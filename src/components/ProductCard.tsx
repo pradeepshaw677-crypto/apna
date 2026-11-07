@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, Heart, Share2, Plus, Minus, ShoppingBag, Banknote, Sparkles, RotateCcw } from 'lucide-react';
 import { Product } from '../types';
 import { getSizePriceDelta, formatINR } from '../utils/pricing';
@@ -8,6 +8,7 @@ interface ProductCardProps {
   product: Product;
   quantityInCart: number;
   isWishlisted: boolean;
+  activeVibeColor?: string | null;
   onAddToCart: (product: Product, size?: string, color?: string, priceOverride?: number) => void;
   onUpdateQuantity: (product: Product, newQty: number) => void;
   onToggleWishlist: (productId: string) => void;
@@ -18,6 +19,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   quantityInCart,
   isWishlisted,
+  activeVibeColor,
   onAddToCart,
   onUpdateQuantity,
   onToggleWishlist,
@@ -33,6 +35,34 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [cardImageIndex, setCardImageIndex] = useState(0);
 
   const galleryImages = product.images && product.images.length > 0 ? product.images : [product.image];
+
+  // Auto-switch to the selected vibe color variant whenever Shop with Vibe is active
+  useEffect(() => {
+    if (!activeVibeColor || !product.colors || product.colors.length === 0) return;
+    const v = activeVibeColor.toLowerCase().trim();
+    const colorSynonyms: Record<string, string[]> = {
+      blue: ['blue', 'navy', 'cyan', 'sapphire', 'sky', 'indigo', 'denim'],
+      green: ['green', 'emerald', 'olive', 'mint', 'sage'],
+      pink: ['pink', 'rose', 'magenta', 'blush', 'peach'],
+      gold: ['gold', 'golden', 'yellow', 'mustard', 'zari'],
+      white: ['white', 'ivory', 'cream', 'off-white', 'pearl'],
+      black: ['black', 'noir', 'charcoal'],
+      red: ['red', 'crimson', 'maroon', 'ruby', 'scarlet']
+    };
+    const syns = colorSynonyms[v] || [v];
+    const matchIdx = product.colors.findIndex((c) =>
+      syns.some((syn) => c.name.toLowerCase().includes(syn))
+    );
+
+    if (matchIdx !== -1) {
+      const matched = product.colors[matchIdx];
+      setSelectedColor(matched.name);
+      const imgIdx = typeof matched.imageIndex === 'number' ? matched.imageIndex : matchIdx;
+      if (galleryImages[imgIdx]) {
+        setCardImageIndex(imgIdx);
+      }
+    }
+  }, [activeVibeColor, product]);
 
   // Dynamic Size Price Adjustment
   const sizeDelta = getSizePriceDelta(selectedSize);

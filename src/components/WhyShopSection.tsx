@@ -31,7 +31,7 @@ export const WhyShopSection: React.FC<WhyShopSectionProps> = ({ onExploreShop })
           Why Shop From <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent">Apna Bazar?</span>
         </h2>
         <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
-          Delivering the latest trending fashion, footwear, toys, and lifestyle essentials at unbeatable wholesale prices with 15-minute doorstep express fulfillment.
+          Delivering the latest trending fashion, footwear, toys, and lifestyle essentials at unbeatable wholesale prices with direct doorstep express fulfillment.
         </p>
       </div>
 
@@ -46,9 +46,9 @@ export const WhyShopSection: React.FC<WhyShopSectionProps> = ({ onExploreShop })
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-2xs text-center space-y-1 hover:border-orange-400 hover:shadow-lg transition-all group">
           <h4 className="text-2xl sm:text-3xl font-black text-orange-600 group-hover:scale-105 transition-transform">
-            15 Mins
+            Express
           </h4>
-          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Express Delivery</p>
+          <p className="text-[11px] font-black uppercase tracking-wider text-slate-500">Doorstep Delivery</p>
         </div>
 
         <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-2xs text-center space-y-1 hover:border-rose-400 hover:shadow-lg transition-all group">
@@ -82,10 +82,10 @@ export const WhyShopSection: React.FC<WhyShopSectionProps> = ({ onExploreShop })
           </div>
           <div>
             <h3 className="font-black text-slate-900 text-base group-hover:text-amber-700 transition-colors">
-              15-Min Express Doorstep Delivery
+              Direct Express Doorstep Delivery
             </h3>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              Hyperlocal warehouse dispatch located right in Baharagora, Jharkhand. Order any trending fashion or footwear item and receive it at your doorstep within minutes.
+              Hyperlocal warehouse dispatch located right in Baharagora, Jharkhand. Order any trending fashion or footwear item and receive it directly at your doorstep.
             </p>
           </div>
           <span className="text-xs font-bold text-amber-700 flex items-center gap-1">

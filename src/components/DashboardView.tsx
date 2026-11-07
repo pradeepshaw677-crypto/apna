@@ -355,7 +355,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-black text-slate-900">
-                  {activeOrder.estimatedDeliveryDate || '15-Minute Express Delivery'}
+                  {activeOrder.estimatedDeliveryDate || 'Direct Express Delivery'}
                 </p>
                 <p className="text-[11px] text-slate-500 truncate">
                   Deliver to: {activeOrder.address?.fullName}, {activeOrder.address?.streetAddress}, {activeOrder.address?.city}

@@ -202,7 +202,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="py-2">
               <div className="px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between border-b border-slate-100 mb-1">
                 <span>Matching Styles ({searchResults.length})</span>
-                <span className="text-[10px] text-amber-700 font-bold">15-Min Delivery in Jharkhand</span>
+                <span className="text-[10px] text-amber-700 font-bold">Express Doorstep Delivery in Jharkhand</span>
               </div>
               
               <ul className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
@@ -449,7 +449,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="text-xs space-y-2">
                     <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200">
                       <p className="font-bold text-slate-900">🎉 Express Delivery Live in Jharkhand</p>
-                      <p className="text-[11px] text-slate-600 mt-0.5">15-minute doorstep fashion and footwear delivery active within 10 km!</p>
+                      <p className="text-[11px] text-slate-600 mt-0.5">Express doorstep fashion and footwear delivery active within 10 km!</p>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
                       <p className="font-bold text-slate-900">⚡ Promo Code FASHION100</p>
@@ -998,27 +998,29 @@ export const Header: React.FC<HeaderProps> = ({
                 ))}
               </div>
 
-              {/* Section 2.5: Shop by Brand (Configurable Brand list with Image URL placeholders) */}
+              {/* Section 2.5: Iconic Brands (Configurable Brand list with Image URL placeholders) */}
               <div className="pt-4 space-y-2">
                 <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                  <span>Shop by Brand</span>
-                  <span className="text-amber-600 font-bold">12 Brands</span>
+                  <span>Iconic Brands</span>
+                  <span className="text-amber-600 font-bold">Official Stores</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
                   {[
+                    { name: 'H&M', category: 'Up to 50% Off', logoUrl: '' },
+                    { name: 'Nike', category: 'Up to 50% Off', logoUrl: '' },
+                    { name: 'Cider', category: 'Up to 70% Off', logoUrl: '' },
+                    { name: 'Puma', category: '40-60% Off', logoUrl: '' },
+                    { name: 'U.S. Polo Assn.', category: 'Min 40% Off', logoUrl: '' },
                     { name: 'Snitch', category: 'Fashion', logoUrl: '' },
                     { name: 'Campus', category: 'Footwear', logoUrl: '' },
-                    { name: 'Tokyo Talkies', category: 'Western', logoUrl: '' },
                     { name: 'The Bear House', category: 'Casuals', logoUrl: '' },
-                    { name: 'Puma', category: 'Sports', logoUrl: '' },
                     { name: 'Adidas', category: 'Sneakers', logoUrl: '' },
-                    { name: 'Cantabil', category: 'Formal', logoUrl: '' },
+                    { name: 'Tokyo Talkies', category: 'Western', logoUrl: '' },
                     { name: 'Safari', category: 'Luggage', logoUrl: '' },
-                    { name: 'Aristocrat', category: 'Travel', logoUrl: '' },
+                    { name: 'Cantabil', category: 'Formal', logoUrl: '' },
                     { name: 'Libas', category: 'Ethnic', logoUrl: '' },
-                    { name: 'V-Mart', category: 'Apparel', logoUrl: '' },
-                    { name: 'Metronaut', category: 'Streetwear', logoUrl: '' },
+                    { name: 'Biba', category: 'Festive', logoUrl: '' },
                   ].map((brand) => (
                     <button
                       key={brand.name}
@@ -1112,12 +1114,12 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 </div>
 
-                {/* 15-Minute Fulfillment Mode */}
+                {/* Express Fulfillment Mode */}
                 <div className="p-3 bg-amber-50/80 rounded-2xl border border-amber-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Truck className="w-4 h-4 text-amber-700" />
                     <div>
-                      <p className="font-bold text-slate-900">15-Min Express Delivery</p>
+                      <p className="font-bold text-slate-900">Direct Express Delivery</p>
                       <p className="text-[10px] text-amber-800">Baharagora 10 km Active Zone</p>
                     </div>
                   </div>

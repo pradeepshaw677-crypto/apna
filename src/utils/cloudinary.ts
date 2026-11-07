@@ -167,3 +167,25 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = () => reject(new Error("Could not read the selected image."));
   });
 }
+
+/**
+ * Returns optimized Cloudinary URL if Cloudinary is configured,
+ * otherwise returns the high-speed local asset path with instant caching.
+ */
+export function getBrandOrAssetUrl(localAssetPath: string, publicIdOrBrand?: string): string {
+  if (!localAssetPath) return "";
+  // If remote Cloudinary URL is provided, return transformed Cloudinary URL
+  if (localAssetPath.startsWith("http://") || localAssetPath.startsWith("https://")) {
+    return getCloudinaryUrl(localAssetPath, { width: 400, format: "auto", quality: "auto" });
+  }
+  // If Cloudinary cloud name is available and an ID is passed
+  if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_CLOUD_NAME !== "apnabazar-cdn" && publicIdOrBrand) {
+    return getCloudinaryUrl(`brand_logos/${publicIdOrBrand}`, {
+      width: 400,
+      format: "auto",
+      quality: "auto",
+    });
+  }
+  return localAssetPath;
+}
+

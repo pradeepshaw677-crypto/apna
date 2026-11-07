@@ -247,7 +247,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
               <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
                 <span>Secure Customer Authentication</span>
                 <span>•</span>
-                <span className="text-amber-400 font-bold">15-Min Express Delivery</span>
+                <span className="text-amber-400 font-bold">Doorstep Express Delivery</span>
               </div>
             </div>
           </div>

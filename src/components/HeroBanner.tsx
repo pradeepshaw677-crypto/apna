@@ -10,14 +10,18 @@ import {
   Percent
 } from 'lucide-react';
 import { CategoryId } from '../types';
+import { DiwaliTopDealsSection, DiwaliDealItem } from './DiwaliTopDealsSection';
+import { recoverImage } from '../utils/cloudinary';
 
 interface HeroBannerProps {
   onSelectCategory: (categoryId: CategoryId) => void;
   onExploreShop?: () => void;
   onOpenCouponModal?: () => void;
   onSelectProductById?: (productId: string) => void;
+  onAddToCartDirect?: (deal: DiwaliDealItem) => void;
   onFilterByPrice?: (maxPrice: number) => void;
   onSelectBrand?: (brandName: string) => void;
+  onSelectVibe?: (vibeName: string) => void;
 }
 
 // =========================================================================
@@ -181,8 +185,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   onExploreShop,
   onOpenCouponModal,
   onSelectProductById,
+  onAddToCartDirect,
   onFilterByPrice,
   onSelectBrand,
+  onSelectVibe,
 }) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -345,90 +351,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       </section>
 
       {/* ========================================================================= */}
-      {/* 3. SHOWCASE B: BRANDS UNDER ₹599 (HORIZONTAL SCROLLING CAROUSEL)         */}
+      {/* 3. DIWALI SPECIAL OFFER: TOP DEALS (MEN & WOMEN FASHION UP TO 70% OFF)     */}
       {/* ========================================================================= */}
-      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-            Brands under ₹599
-          </h3>
-          <span className="text-xs font-bold text-slate-500">Swipe for more &rarr;</span>
-        </div>
+      <DiwaliTopDealsSection
+        onSelectProductById={onSelectProductById}
+        onExploreShop={onExploreShop}
+        onAddToCartDirect={onAddToCartDirect}
+      />
 
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
-          {[
-            {
-              id: 'snitch-green',
-              brand: 'SNITCH',
-              name: 'Linen Casual Shirt',
-              tag: 'Under ₹599',
-              image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80',
-              productId: 'fsh-002',
-            },
-            {
-              id: 'campus-blue',
-              brand: 'CAMPUS',
-              name: 'Air Running Trainers',
-              tag: 'Under ₹599',
-              image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80',
-              productId: 'ftw-002',
-            },
-            {
-              id: 'tokyo-talkies',
-              brand: 'TOKYO TALKIES',
-              name: 'Pleated Flared Dress',
-              tag: 'Under ₹599',
-              image: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=400&q=80',
-              productId: 'fsh-003',
-            },
-            {
-              id: 'bear-house-polo',
-              brand: 'THE BEAR HOUSE',
-              name: 'Pique Cotton Polo',
-              tag: 'Under ₹599',
-              image: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=400&q=80',
-              productId: 'fsh-001',
-            },
-            {
-              id: 'cantabil-chinos',
-              brand: 'CANTABIL',
-              name: 'Stretch Slim Chinos',
-              tag: 'Under ₹599',
-              image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=400&q=80',
-              productId: 'fsh-004',
-            },
-          ].map((item) => (
-            <div
-              key={item.id}
-              onClick={() => onSelectProductById ? onSelectProductById(item.productId) : onSelectCategory('fashion')}
-              className="w-36 sm:w-44 shrink-0 rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all active:scale-95 snap-start group"
-            >
-              <div className="relative aspect-3/4 w-full bg-slate-100 overflow-hidden">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                {/* Brand Badge (White Pill matching screenshot) */}
-                <div className="absolute top-2 left-2 right-2 flex justify-center">
-                  <span className="bg-white/95 backdrop-blur-xs text-slate-900 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs border border-slate-200 tracking-wider">
-                    {item.brand}
-                  </span>
-                </div>
-              </div>
-              {/* Gold Bottom Badge */}
-              <div className="p-2 bg-gradient-to-r from-amber-400 to-yellow-400 text-center">
-                <span className="text-xs font-black text-slate-950 block">{item.tag}</span>
-                <span className="text-[10px] text-amber-950 font-bold truncate block">{item.name}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 4. SHOWCASE C: WINTER FASHION ESSENTIALS (ROYAL BLUE CARDS WITH GOLD FRAME) */}
-      {/* ========================================================================= */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
@@ -920,50 +850,146 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       </section>
 
       {/* ========================================================================= */}
-      {/* 11. SHOP BY BRAND: ALL TOP FLIPKART FASHION LABELS WITH GENEROUS LOGO SPACE */}
+      {/* 11. SHOP WITH VIBE (SINGLE SLIDING ROW WITH GLOSSY SILK CARDS & GOLD FRAMES) */}
+      {/* ========================================================================= */}
+      <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3 pt-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+              <span>Shop with Vibe</span>
+              <span className="text-[10px] bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
+                Aesthetic Moods
+              </span>
+            </h3>
+          </div>
+          <span className="text-xs font-bold text-amber-700">Slide for Colors &rarr;</span>
+        </div>
+
+        {/* User Request: Single continuous sliding row with exact uploaded vibe cards */}
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory scroll-smooth">
+          {[
+            {
+              id: 'blue',
+              name: 'BLUE',
+              image: '/assets/aistudio/Screenshot_2026_1106_193236_878675a3.png',
+              alt: 'BLUE Vibe Silk Card',
+            },
+            {
+              id: 'green',
+              name: 'GREEN',
+              image: '/assets/aistudio/Screenshot_2026_1106_193250_e5234f97.png',
+              alt: 'GREEN Vibe Silk Card',
+            },
+            {
+              id: 'pink',
+              name: 'PINK',
+              image: '/assets/aistudio/Screenshot_2026_1106_193304_a72a30aa.png',
+              alt: 'PINK Vibe Silk Card',
+            },
+            {
+              id: 'gold',
+              name: 'GOLD',
+              image: '/assets/aistudio/Screenshot_2026_1106_193323_1841ecb8.png',
+              alt: 'GOLD Vibe Silk Card',
+            },
+            {
+              id: 'white',
+              name: 'WHITE',
+              image: '/assets/aistudio/Screenshot_2026_1106_193339_fb9f86c9.png',
+              alt: 'WHITE Vibe Silk Card',
+            },
+            {
+              id: 'black',
+              name: 'BLACK',
+              image: '/assets/aistudio/Screenshot_2026_1106_193352_75987c0e.png',
+              alt: 'BLACK Vibe Silk Card',
+            },
+            {
+              id: 'red',
+              name: 'RED',
+              image: '/assets/aistudio/Screenshot_2026_1106_193400_e9c57b25.png',
+              alt: 'RED Vibe Silk Card',
+            },
+          ].map((vibe) => (
+            <div
+              key={vibe.id}
+              onClick={() => {
+                if (onSelectVibe) {
+                  onSelectVibe(vibe.name);
+                } else if (onSelectBrand) {
+                  onSelectBrand(vibe.name);
+                }
+              }}
+              className="relative w-36 sm:w-44 shrink-0 rounded-2xl sm:rounded-3xl shadow-[0_6px_20px_rgba(251,191,36,0.35)] cursor-pointer snap-start transition-all duration-300 hover:scale-105 active:scale-95 group overflow-hidden select-none border-2 border-amber-400/60 bg-slate-900"
+            >
+              <div className="aspect-[3/4.2] w-full overflow-hidden relative">
+                <img
+                  src={vibe.image}
+                  alt={vibe.alt}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover object-center group-hover:scale-103 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-2.5">
+                  <span className="text-[10px] font-black text-amber-300 bg-slate-950/80 px-2.5 py-0.5 rounded-full border border-amber-400/60 shadow-xs">
+                    View {vibe.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 12. ICONIC BRANDS: ALL TOP LABELS WITH DIRECT FILTERING & GENEROUS LOGO SPACE */}
       {/* ========================================================================= */}
       <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3 pt-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-              Shop by brand
+              Iconic Brands
             </h3>
             <span className="text-[10px] bg-slate-900 text-amber-300 font-black px-2 py-0.5 rounded-full uppercase">
-              100% Genuine
+              100% Genuine • Official Stores
             </span>
           </div>
           <span className="text-xs font-bold text-amber-700">All Labels &rarr;</span>
         </div>
 
-        {/* Horizontal Brand Strip with Dedicated Logo Containers (Ready for User image URLs) */}
-        <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory">
+        {/* Horizontal Brand Strip with Dedicated Enlarged Logo Containers */}
+        <div className="flex gap-3.5 sm:gap-4 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory scroll-smooth">
           {[
-            { name: 'Snitch', offer: 'Under ₹599', logoUrl: '', bg: 'from-amber-500 to-orange-500' },
-            { name: 'Campus', offer: 'Under ₹599', logoUrl: '', bg: 'from-blue-600 to-cyan-600' },
-            { name: 'Tokyo Talkies', offer: 'Min. 55% Off', logoUrl: '', bg: 'from-pink-500 to-rose-500' },
-            { name: 'The Bear House', offer: 'Min. 75% Off', logoUrl: '', bg: 'from-stone-800 to-amber-900' },
-            { name: 'Puma', offer: 'Min. 65% Off', logoUrl: '', bg: 'from-indigo-600 to-blue-700' },
-            { name: 'Adidas', offer: 'Min. 50% Off', logoUrl: '', bg: 'from-emerald-600 to-teal-700' },
-            { name: 'Cantabil', offer: 'Min. 65% Off', logoUrl: '', bg: 'from-amber-700 to-yellow-800' },
-            { name: 'Safari', offer: 'Min. 80% Off', logoUrl: '', bg: 'from-rose-600 to-orange-600' },
-            { name: 'Aristocrat', offer: 'Min. 75% Off', logoUrl: '', bg: 'from-purple-600 to-indigo-700' },
-            { name: 'Libas', offer: 'Min. 65% Off', logoUrl: '', bg: 'from-red-600 to-amber-600' },
-            { name: 'V-Mart', offer: 'Under ₹299', logoUrl: '', bg: 'from-sky-600 to-blue-700' },
-            { name: 'Metronaut', offer: 'Under ₹499', logoUrl: '', bg: 'from-slate-700 to-zinc-900' },
-            { name: 'Allen Solly', offer: 'Min. 40% Off', logoUrl: '', bg: 'from-teal-700 to-emerald-900' },
-            { name: 'Peter England', offer: 'Min. 45% Off', logoUrl: '', bg: 'from-red-800 to-rose-950' },
-            { name: 'Flying Machine', offer: 'Min. 50% Off', logoUrl: '', bg: 'from-blue-700 to-indigo-900' },
-            { name: 'Killer', offer: 'Min. 60% Off', logoUrl: '', bg: 'from-zinc-800 to-black' },
-            { name: 'Sparx', offer: 'Under ₹499', logoUrl: '', bg: 'from-orange-600 to-red-600' },
-            { name: 'Red Tape', offer: 'Min. 70% Off', logoUrl: '', bg: 'from-rose-700 to-red-900' },
-            { name: 'Biba', offer: 'Min. 50% Off', logoUrl: '', bg: 'from-pink-600 to-fuchsia-800' },
-            { name: 'W for Woman', offer: 'Min. 55% Off', logoUrl: '', bg: 'from-purple-600 to-pink-700' },
-            { name: 'Aurelia', offer: 'Min. 50% Off', logoUrl: '', bg: 'from-amber-600 to-rose-700' },
-            { name: 'Manyavar', offer: 'Festive Wear', logoUrl: '', bg: 'from-yellow-600 to-amber-800' },
-            { name: 'Wrogn', offer: 'Min. 60% Off', logoUrl: '', bg: 'from-neutral-800 to-stone-950' },
-            { name: 'Roadster', offer: 'Under ₹399', logoUrl: '', bg: 'from-blue-800 to-slate-900' },
-            { name: 'HRX', offer: 'Min. 60% Off', logoUrl: '', bg: 'from-amber-500 to-yellow-600' },
-            { name: 'Highlander', offer: 'Min. 70% Off', logoUrl: '', bg: 'from-cyan-700 to-blue-900' },
+            { name: 'Adidas', offer: 'Min. 50% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201142_d415b265.png', bg: 'bg-white' },
+            { name: 'Nike', offer: 'Up to 50% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_200435_83a20aa4.png', bg: 'bg-white' },
+            { name: 'Campus', offer: 'Under ₹599', logoUrl: '/assets/aistudio/Screenshot_2026_1106_200959_d4c9aac8.png', bg: 'bg-white' },
+            { name: 'Puma', offer: 'Min. 40%-60% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_200624_e72f4277.png', bg: 'bg-black' },
+            { name: 'H&M', offer: 'Up to 50% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_200334_9fd39ff1.png', bg: 'bg-white' },
+            { name: 'Cider', offer: 'Up to 70% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_200535_2605e0c4.png', bg: 'bg-white' },
+            { name: 'Raymond', offer: 'Min. 40% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201459_8115fdd5.png', bg: 'bg-white' },
+            { name: 'Allen Solly', offer: 'Min. 40% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202444_4f8a8a8d.png', bg: 'bg-black' },
+            { name: 'W for Woman', offer: 'Min. 55% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202642_6357bb7f.png', bg: 'bg-[#dc2626]' },
+            { name: 'Manyavar', offer: 'Festive Wear', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202804_2634fa53.png', bg: 'bg-white' },
+            { name: 'Killer', offer: 'Min. 60% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202557_38db2bff.png', bg: 'bg-white' },
+            { name: 'Sparx', offer: 'Under ₹499', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202618_36c67d2a.png', bg: 'bg-black' },
+            { name: 'The Bear House', offer: 'Min. 75% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201107_80aed23a.png', bg: 'bg-white' },
+            { name: 'Aurelia', offer: 'Min. 50% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202724_7319d819.png', bg: 'bg-[#f59e0b]' },
+            { name: 'V-Mart', offer: 'Under ₹299', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202316_8c01cc26.png', bg: 'bg-[#dc2626]' },
+            { name: 'Peter England', offer: 'Min. 45% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202512_111de0df.png', bg: 'bg-white' },
+            { name: 'Wrogn', offer: 'Min. 60% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202016_9c8e47da.png', bg: 'bg-black' },
+            { name: 'HRX', offer: 'Min. 60% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201816_ccf3035a.png', bg: 'bg-black' },
+            { name: 'Safari', offer: 'Min. 80% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201352_e49a416b.png', bg: 'bg-white' },
+            { name: 'Libas', offer: 'Min. 65% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201546_37174aa3.png', bg: 'bg-white' },
+            { name: 'Aristocrat', offer: 'Min. 75% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202400_06d885e8.png', bg: 'bg-[#eab308]' },
+            { name: 'Flying Machine', offer: 'Min. 50% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202533_11a8fedd.png', bg: 'bg-white' },
+            { name: 'Red Tape', offer: 'Min. 70% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202129_13aedfdc.png', bg: 'bg-white' },
+            { name: 'Biba', offer: 'Min. 50% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202055_a1733b9e.png', bg: 'bg-white' },
+            { name: 'Metronaut', offer: 'Under ₹499', logoUrl: '/assets/aistudio/Screenshot_2026_1106_202231_0ebcbbbb.png', bg: 'bg-white' },
+            { name: 'Tokyo Talkies', offer: 'Min. 55% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201303_79fb576a.png', bg: 'bg-white' },
+            { name: 'U.S. Polo Assn.', offer: 'Min. 40% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_200822_7769a814.png', bg: 'bg-white' },
+            { name: 'Snitch', offer: 'Under ₹599', logoUrl: '/assets/aistudio/Screenshot_2026_1106_200930_d1493351.png', bg: 'bg-black' },
+            { name: 'Highlander', offer: 'Min. 70% Off', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201709_e9f46b3b.png', bg: 'bg-white' },
+            { name: 'Roadster', offer: 'Under ₹399', logoUrl: '/assets/aistudio/Screenshot_2026_1106_201936_d673a14e.png', bg: 'bg-white' },
           ].map((brand) => (
             <div
               key={brand.name}
@@ -974,29 +1000,32 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                   onExploreShop?.();
                 }
               }}
-              className="w-36 sm:w-44 shrink-0 p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs hover:shadow-lg hover:border-amber-400 transition-all cursor-pointer text-center group active:scale-95 snap-start flex flex-col items-center justify-between"
+              className="w-44 sm:w-52 shrink-0 p-3 sm:p-4 rounded-3xl bg-white border-2 border-slate-200/90 shadow-sm hover:shadow-xl hover:border-amber-400 transition-all cursor-pointer text-center group active:scale-95 snap-start flex flex-col items-center justify-between"
             >
-              {/* Generous Brand Logo Space Container (Ready for User to paste image URLs) */}
-              <div className="w-full h-16 sm:h-20 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center p-2 overflow-hidden shadow-inner group-hover:scale-105 transition-transform">
+              {/* Generous Enlarged Brand Logo Container (Clean & High Resolution) */}
+              <div className={`w-full h-24 sm:h-28 rounded-2xl flex items-center justify-center p-2.5 overflow-hidden border border-slate-200/80 shadow-inner group-hover:scale-105 transition-transform ${brand.bg || 'bg-white'}`}>
                 {brand.logoUrl ? (
                   <img
                     src={brand.logoUrl}
                     alt={brand.name}
-                    className="w-full h-full object-contain"
+                    loading="eager"
+                    decoding="async"
+                    onError={(e) => recoverImage(e.currentTarget)}
+                    className="w-full h-full object-contain max-h-20 sm:max-h-24 transition-opacity duration-300"
                   />
                 ) : (
-                  <div className={`w-full h-full rounded-lg bg-gradient-to-br ${brand.bg} text-white flex items-center justify-center font-black text-xl shadow-xs`}>
-                    <span className="drop-shadow-sm">{brand.name.slice(0, 2).toUpperCase()}</span>
+                  <div className="w-full h-full rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xl shadow-xs">
+                    <span>{brand.name.slice(0, 2).toUpperCase()}</span>
                   </div>
                 )}
               </div>
 
               {/* Brand Name & Promotional Offer Tag */}
-              <div className="mt-2 w-full">
-                <p className="font-black text-xs sm:text-sm text-slate-900 truncate group-hover:text-amber-600 transition-colors">
+              <div className="mt-2.5 w-full">
+                <p className="font-black text-sm sm:text-base text-slate-900 truncate group-hover:text-amber-600 transition-colors">
                   {brand.name}
                 </p>
-                <span className="inline-block mt-1 text-[10px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                <span className="inline-block mt-1 text-[11px] font-black text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 shadow-2xs">
                   {brand.offer}
                 </span>
               </div>

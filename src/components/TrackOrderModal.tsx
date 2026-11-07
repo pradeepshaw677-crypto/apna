@@ -387,7 +387,7 @@ export const TrackOrderModal: React.FC<TrackOrderModalProps> = ({
               {/* Visual Timeline Stepper */}
               <div className="p-4 rounded-2xl border border-slate-200 bg-white">
                 <p className="text-xs font-black text-slate-900 uppercase tracking-wider mb-4">
-                  Estimated Delivery: <span className="text-amber-600">{displayedOrder.estimatedDeliveryDate || 'Today in 15 mins'}</span>
+                  Estimated Delivery: <span className="text-amber-600">{displayedOrder.estimatedDeliveryDate || 'Today Express Delivery'}</span>
                 </p>
 
                 <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">

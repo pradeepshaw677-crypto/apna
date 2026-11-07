@@ -725,7 +725,7 @@ export const MeeshoCategoryDrawer: React.FC<MeeshoCategoryDrawerProps> = ({
         <div className="p-3 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 shadow-md">
           <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
             <Package className="w-4 h-4 text-emerald-600" />
-            <span>15-Min Express Delivery in Baharagora</span>
+            <span>Express Doorstep Delivery in Baharagora</span>
           </div>
 
           <button

@@ -48,7 +48,7 @@ export const TopCategoryStrip: React.FC<TopCategoryStripProps> = ({
 
             <div className="hidden md:flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>15-Min Express in Jharkhand</span>
+              <span>Express Delivery in Jharkhand</span>
             </div>
           </div>
         </div>

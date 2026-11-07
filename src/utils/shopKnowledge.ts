@@ -370,9 +370,9 @@ export function buildAssistantReply(rawInput: string, context: AssistantContext)
     };
   }
 
-  if (/(delivery|deliver|shipping|ship|kitna time|kab tak|express|pincode|pin code|15 minute)/.test(text)) {
+  if (/(delivery|deliver|shipping|ship|kitna time|kab tak|express|pincode|pin code)/.test(text)) {
     return {
-      text: "Delivery information:\n\n• Baharagora area me 15-minute express doorstep delivery.\n• ₹499 se upar free delivery; usse kam par chhoti delivery fee.\n• COD, UPI aur Card available hain.\n• Order place hone ke baad live tracking aur delivery OTP milta hai.\n\nBaharagora (832101) ke bahar service PIN code check karke confirm hoti hai.",
+      text: "Delivery information:\n\n• Baharagora area me direct express doorstep delivery.\n• ₹499 se upar free delivery; usse kam par chhoti delivery fee.\n• COD, UPI aur Card available hain.\n• Order place hone ke baad live tracking aur delivery OTP milta hai.\n\nBaharagora (832101) ke bahar service PIN code check karke confirm hoti hai.",
       chips: ["Order status", "Best sellers", "Coupons"],
     };
   }

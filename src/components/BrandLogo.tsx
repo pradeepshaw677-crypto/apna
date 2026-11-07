@@ -35,7 +35,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       >
         {!logoLoadError ? (
           <img
-            src="/logo.png"
+            src="/assets/aistudio/IMG_20261102_120048_b98f504b.png"
             alt="Apna Bazar"
             onError={() => setLogoLoadError(true)}
             className="w-full h-full object-cover rounded-2xl"
@@ -83,7 +83,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           >
             <span>Trends &amp; Footwear</span>
             <span>•</span>
-            <span className="text-amber-600 font-extrabold">15 Min Express</span>
+            <span className="text-amber-600 font-extrabold">Doorstep Express</span>
           </span>
         )}
       </div>

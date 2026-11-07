@@ -7,17 +7,17 @@ import {
   AlertTriangle, 
   Search, 
   Navigation, 
-  Zap, 
   Phone,
   Compass,
   ArrowRight,
   Check,
   ExternalLink,
   Layers,
-  Sparkles
+  Sparkles,
+  Route
 } from 'lucide-react';
 import L from 'leaflet';
-import { api, ReverseGeocodeResult } from '../utils/api';
+import { api } from '../utils/api';
 
 interface DeliveryRadiusModalProps {
   isOpen: boolean;
@@ -25,24 +25,28 @@ interface DeliveryRadiusModalProps {
   onSelectLocation?: (locationName: string, coords: [number, number], distance: string) => void;
 }
 
+// Apna Bazar Center verified Google Maps location:
+// https://maps.app.goo.gl/tWAwLEFvWePRQNSC8?g_st=ac
+// Apka Apna Bazar, Dadu Complex, Baharagora Main Rd, Market, Baharagora, Jharkhand 832101
+export const APNA_BAZAR_GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/tWAwLEFvWePRQNSC8?g_st=ac';
 const STORE_COORDS: [number, number] = [22.2828, 86.7196]; // Baharagora Dadu Complex
 const RADIUS_METERS = 10000; // 10 km delivery radius
 
-// Comprehensive local database of Baharagora villages & landmarks
+// Comprehensive local database of Baharagora villages & landmarks (Cleaned of 15-min timers)
 export const BAHARAGORA_AREAS = [
-  { name: 'Dadu Complex & Main Market', village: 'Baharagora Main Market', coords: [22.2828, 86.7196] as [number, number], distance: '0.1 km', time: '3 Mins', eligible: true, plusCode: '6PFP+W7H' },
-  { name: 'Near Shitla Mandir', village: 'Shitla Mandir Mohalla', coords: [22.2835, 86.7188] as [number, number], distance: '0.3 km', time: '5 Mins', eligible: true, plusCode: '6PFP+W6X' },
-  { name: 'Town High School Road', village: 'High School Para', coords: [22.2870, 86.7230] as [number, number], distance: '0.8 km', time: '7 Mins', eligible: true, plusCode: '6PFP+7F6' },
-  { name: 'Baharagora College Campus', village: 'College Road', coords: [22.2910, 86.7280] as [number, number], distance: '1.4 km', time: '9 Mins', eligible: true, plusCode: '6PFP+P98' },
-  { name: 'Sakha Maidan & Sub-div Hospital', village: 'Sakha Maidan', coords: [22.2940, 86.7120] as [number, number], distance: '1.8 km', time: '10 Mins', eligible: true, plusCode: '6PFP+6V5' },
-  { name: 'Matihanna Chowk', village: 'Matihanna', coords: [22.3020, 86.7410] as [number, number], distance: '3.2 km', time: '12 Mins', eligible: true, plusCode: '6PFP+R85' },
-  { name: 'Khandamouda Village', village: 'Khandamouda', coords: [22.3150, 86.7550] as [number, number], distance: '4.5 km', time: '14 Mins', eligible: true, plusCode: '6PFP+9J4' },
-  { name: 'Barasol Junction', village: 'Barasol', coords: [22.2450, 86.7320] as [number, number], distance: '5.2 km', time: '15 Mins', eligible: true, plusCode: '6PFP+JHQ' },
-  { name: 'Gamharia Border Village', village: 'Gamharia', coords: [22.3200, 86.6850] as [number, number], distance: '6.4 km', time: '15 Mins', eligible: true, plusCode: '6PFP+CPW' },
-  { name: 'Kesarda & Kumrasol', village: 'Kesarda', coords: [22.2600, 86.7600] as [number, number], distance: '7.8 km', time: '15 Mins', eligible: true, plusCode: '6PFP+R48' },
-  { name: 'Jamua & Pathra', village: 'Jamua Village', coords: [22.2750, 86.7450] as [number, number], distance: '8.4 km', time: '15 Mins', eligible: true, plusCode: '6PFP+JWH' },
-  { name: 'Benagaria Village', village: 'Benagaria', coords: [22.2680, 86.6950] as [number, number], distance: '9.2 km', time: '15 Mins', eligible: true, plusCode: '6PFP+76J' },
-  { name: 'Jamshedpur Tatanagar (Outer)', village: 'Tatanagar', coords: [22.8046, 86.2029] as [number, number], distance: '78 km', time: 'Not Available', eligible: false, plusCode: '7P2R+RJ' },
+  { name: 'Dadu Complex & Main Market', village: 'Baharagora Main Market', coords: [22.2828, 86.7196] as [number, number], distance: '0.1 km', badge: 'Hub Center', eligible: true, plusCode: '6PFP+W7H' },
+  { name: 'Near Shitla Mandir', village: 'Shitla Mandir Mohalla', coords: [22.2835, 86.7188] as [number, number], distance: '0.3 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+W6X' },
+  { name: 'Town High School Road', village: 'High School Para', coords: [22.2870, 86.7230] as [number, number], distance: '0.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+7F6' },
+  { name: 'Baharagora College Campus', village: 'College Road', coords: [22.2910, 86.7280] as [number, number], distance: '1.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+P98' },
+  { name: 'Sakha Maidan & Sub-div Hospital', village: 'Sakha Maidan', coords: [22.2940, 86.7120] as [number, number], distance: '1.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+6V5' },
+  { name: 'Matihanna Chowk', village: 'Matihanna', coords: [22.3020, 86.7410] as [number, number], distance: '3.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+R85' },
+  { name: 'Khandamouda Village', village: 'Khandamouda', coords: [22.3150, 86.7550] as [number, number], distance: '4.5 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+9J4' },
+  { name: 'Barasol Junction', village: 'Barasol', coords: [22.2450, 86.7320] as [number, number], distance: '5.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+JHQ' },
+  { name: 'Gamharia Border Village', village: 'Gamharia', coords: [22.3200, 86.6850] as [number, number], distance: '6.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+CPW' },
+  { name: 'Kesarda & Kumrasol', village: 'Kesarda', coords: [22.2600, 86.7600] as [number, number], distance: '7.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+R48' },
+  { name: 'Jamua & Pathra', village: 'Jamua Village', coords: [22.2750, 86.7450] as [number, number], distance: '8.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+JWH' },
+  { name: 'Benagaria Village', village: 'Benagaria', coords: [22.2680, 86.6950] as [number, number], distance: '9.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+76J' },
+  { name: 'Jamshedpur Tatanagar (Outer)', village: 'Tatanagar', coords: [22.8046, 86.2029] as [number, number], distance: '78 km', badge: 'Outside 10km', eligible: false, plusCode: '7P2R+RJ' },
 ];
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -89,6 +93,7 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
   onClose,
   onSelectLocation 
 }) => {
+  const [activeTab, setActiveTab] = useState<'interactive' | 'google-iframe'>('interactive');
   const [searchArea, setSearchArea] = useState('');
   const [currentCoords, setCurrentCoords] = useState<[number, number]>(STORE_COORDS);
   
@@ -98,7 +103,6 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
   const [cityName, setCityName] = useState('Baharagora, Jharkhand 832101');
   const [currentDistance, setCurrentDistance] = useState('0.1 km');
   const [isEligible, setIsEligible] = useState(true);
-  const [deliveryTime, setDeliveryTime] = useState('3-5 Mins');
   const [hasLocationVerified, setHasLocationVerified] = useState(true);
   
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -107,6 +111,7 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const selectedMarkerRef = useRef<L.Marker | null>(null);
+  const routePolylineRef = useRef<L.Polyline | null>(null);
 
   // Instant local lookup + Async backend reverse geocode
   const updateLocationByCoords = async (lat: number, lng: number, customVillage?: string) => {
@@ -136,7 +141,6 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
     setCityName(dist <= 10 ? 'Baharagora, Jharkhand 832101' : 'Outer Region (Jharkhand)');
     setCurrentDistance(`${dist.toFixed(1)} km`);
     setIsEligible(eligible);
-    setDeliveryTime(eligible ? `${Math.max(3, Math.round(5 + dist * 1.1))} Mins` : 'Outside Zone');
     setHasLocationVerified(true);
 
     // Step 2: Async reverse geocode to fetch real OpenStreetMap/Google address details
@@ -151,13 +155,13 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
         const detectedCity = `${geoResult.city || 'Baharagora'}, ${geoResult.state || 'Jharkhand'} ${geoResult.pincode || '832101'}`;
         setCityName(detectedCity);
       }
-    } catch (e) {
+    } catch {
       // Local fallback already applied
     }
   };
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || activeTab !== 'interactive') return;
 
     const timer = setTimeout(() => {
       if (!mapContainerRef.current) return;
@@ -187,20 +191,20 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
       const storeIcon = L.divIcon({
         className: 'custom-store-pin',
         html: `
-          <div style="background-color: #0f172a; border: 3px solid #f59e0b; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.35); color: #f59e0b;">
+          <div style="background-color: #0f172a; border: 3px solid #f59e0b; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.45); color: #f59e0b;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
           </div>
         `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        iconSize: [38, 38],
+        iconAnchor: [19, 19],
       });
 
       const storeMarker = L.marker(STORE_COORDS, { icon: storeIcon }).addTo(map);
       storeMarker.bindPopup(`
         <div style="font-family: inherit; padding: 4px; font-size: 12px;">
           <b style="color: #0f172a; font-size: 13px;">Apna Bazar Central Hub</b><br/>
-          <span style="color: #475569;">Dadu Complex, Near Shitla Mandir, Baharagora</span><br/>
-          <b style="color: #d97706;">10 km 15-Minute Instant Dispatch</b>
+          <span style="color: #475569;">Dadu Complex, Baharagora Main Rd (832101)</span><br/>
+          <b style="color: #2563eb;">Official Store &amp; Fulfillment Center</b>
         </div>
       `);
 
@@ -209,21 +213,33 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
         radius: RADIUS_METERS,
         color: '#10b981',
         fillColor: '#10b981',
-        fillOpacity: 0.12,
+        fillOpacity: 0.1,
         weight: 2.5,
         dashArray: '6, 6',
       }).addTo(map);
+
+      // User Request: Direction Blue Line connecting Apna Bazar Hub and Customer Location
+      const blueLine = L.polyline([STORE_COORDS, currentCoords], {
+        color: '#2563eb', // Royal Blue direction line
+        weight: 5,
+        opacity: 0.9,
+        dashArray: '8, 8',
+        lineCap: 'round',
+        lineJoin: 'round',
+      }).addTo(map);
+
+      routePolylineRef.current = blueLine;
 
       // Customer Dropped Pin Marker (Draggable)
       const pinIcon = L.divIcon({
         className: 'custom-drop-pin',
         html: `
-          <div style="background-color: #f59e0b; border: 3px solid #ffffff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.45); color: #0f172a; cursor: grab;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <div style="background-color: #2563eb; border: 3px solid #ffffff; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(37,99,235,0.6); color: #ffffff; cursor: grab;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
         `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18],
+        iconSize: [38, 38],
+        iconAnchor: [19, 19],
       });
 
       const marker = L.marker(currentCoords, { 
@@ -233,19 +249,36 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
 
       selectedMarkerRef.current = marker;
 
-      // Handle Pin Drag: Update village, coordinates code, city, green tick
+      // Handle Pin Drag: Update village, coordinates code, city, green tick, and blue route line
+      marker.on('drag', (e) => {
+        const newPos = e.target.getLatLng();
+        if (routePolylineRef.current) {
+          routePolylineRef.current.setLatLngs([STORE_COORDS, [newPos.lat, newPos.lng]]);
+        }
+      });
+
       marker.on('dragend', (e) => {
         const newPos = e.target.getLatLng();
         updateLocationByCoords(newPos.lat, newPos.lng);
+        if (routePolylineRef.current) {
+          routePolylineRef.current.setLatLngs([STORE_COORDS, [newPos.lat, newPos.lng]]);
+        }
       });
 
       // Handle Map Click: User taps anywhere on map to drop pin
       map.on('click', (e) => {
         const { lat, lng } = e.latlng;
         marker.setLatLng([lat, lng]);
+        if (routePolylineRef.current) {
+          routePolylineRef.current.setLatLngs([STORE_COORDS, [lat, lng]]);
+        }
         updateLocationByCoords(lat, lng);
         map.panTo([lat, lng], { animate: true });
       });
+
+      // Fit bounds to show both Apna Bazar Hub and customer dropped pin
+      const bounds = L.latLngBounds([STORE_COORDS, currentCoords]);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
 
       // Fix map viewport sizing
       map.invalidateSize();
@@ -258,12 +291,15 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
         mapInstanceRef.current = null;
       }
     };
-  }, [isOpen]);
+  }, [isOpen, activeTab]);
 
-  // Update marker position if currentCoords changes
+  // Update marker position and blue route line if currentCoords changes
   useEffect(() => {
     if (!mapInstanceRef.current || !selectedMarkerRef.current) return;
     selectedMarkerRef.current.setLatLng(currentCoords);
+    if (routePolylineRef.current) {
+      routePolylineRef.current.setLatLngs([STORE_COORDS, currentCoords]);
+    }
     mapInstanceRef.current.panTo(currentCoords, { animate: true });
   }, [currentCoords]);
 
@@ -315,29 +351,32 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
 
   const googleMapsUrl = `https://www.google.com/maps?q=${currentCoords[0]},${currentCoords[1]}`;
   const googleDirectionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${STORE_COORDS[0]},${STORE_COORDS[1]}&destination=${currentCoords[0]},${currentCoords[1]}`;
+  
+  // Google Maps Iframe Embed with Dadu Complex Baharagora Hub
+  const googleMapsIframeUrl = `https://maps.google.com/maps?q=Apka+Apna+Bazar,+Dadu+Complex,+Baharagora+Main+Rd,+Market,+Baharagora,+Jharkhand+832101&t=&z=16&ie=UTF8&iwloc=&output=embed`;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-x-hidden overflow-y-auto animate-fadeIn">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-xs overflow-x-hidden overflow-y-auto animate-fadeIn">
       {/* Modal Container: Screen-constrained with zero horizontal overflow */}
       <div 
-        className="bg-white w-full max-w-xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col my-auto max-h-[92dvh] box-border"
+        className="bg-white w-full max-w-xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col my-auto max-h-[94dvh] box-border"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-4 sm:px-6 py-3.5 bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white flex items-center justify-between shrink-0">
+        <div className="px-4 sm:px-6 py-3.5 bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 text-white flex items-center justify-between shrink-0 border-b border-white/10">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-xs">
               <MapPin className="w-4 h-4 fill-current" />
             </div>
             <div className="min-w-0">
               <h3 className="font-extrabold text-sm sm:text-base flex items-center gap-2 truncate">
-                <span>Baharagora 10-Km Live Map</span>
-                <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.2 rounded-full font-black">
-                  15 MINS
+                <span>Apna Bazar Live Delivery Map</span>
+                <span className="text-[10px] bg-blue-600 text-white px-2 py-0.2 rounded-full font-black uppercase tracking-wider">
+                  Blue Route
                 </span>
               </h3>
               <p className="text-[11px] text-amber-200/90 truncate">
-                Apna Bazar Hub: Dadu Complex, Near Shitla Mandir (832101)
+                Hub: Dadu Complex, Baharagora Main Rd (832101)
               </p>
             </div>
           </div>
@@ -351,27 +390,103 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
           </button>
         </div>
 
+        {/* View Switcher: Interactive Map with Blue Route vs Official Google Maps Iframe */}
+        <div className="flex border-b border-slate-200 bg-slate-50 px-3 sm:px-5 py-2 gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('interactive')}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'interactive'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <Route className="w-3.5 h-3.5 text-blue-400" />
+            <span>Interactive Blue Route</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('google-iframe')}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              activeTab === 'google-iframe'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5 text-rose-500" />
+            <span>Google Maps Screen (iframe)</span>
+          </button>
+        </div>
+
         {/* Scrollable Body */}
         <div className="p-3.5 sm:p-5 space-y-3.5 overflow-y-auto flex-1">
           
-          {/* Interactive Leaflet Map Container */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-              <span className="flex items-center gap-1.5">
-                <Navigation className="w-3.5 h-3.5 text-amber-600" />
-                <span>Tap or drag pin to set live delivery point</span>
-              </span>
-              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-extrabold border border-emerald-200">
-                10km Green Zone
-              </span>
-            </div>
+          {/* TAB 1: Interactive Leaflet Map with Blue Direction Line */}
+          {activeTab === 'interactive' && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-3 h-1 bg-blue-600 rounded-full inline-block"></span>
+                  <span className="text-blue-900 font-black">Blue line: Direction to Apna Bazar Hub</span>
+                </span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-extrabold border border-emerald-200">
+                  10km Zone
+                </span>
+              </div>
 
-            <div
-              ref={mapContainerRef}
-              className="w-full h-52 sm:h-60 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-inner relative z-0 box-border bg-slate-100"
-              style={{ minHeight: '200px' }}
-            />
-          </div>
+              <div
+                ref={mapContainerRef}
+                className="w-full h-52 sm:h-60 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-inner relative z-0 box-border bg-slate-100"
+                style={{ minHeight: '210px' }}
+              />
+            </div>
+          )}
+
+          {/* TAB 2: Google Maps Official Screen (iframe) Embed */}
+          {activeTab === 'google-iframe' && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span className="flex items-center gap-1.5 text-slate-900 font-black">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Apna Bazar Store Center (Google Maps Screen)</span>
+                </span>
+                <a
+                  href={APNA_BAZAR_GOOGLE_MAPS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-blue-700 hover:text-blue-800 font-extrabold flex items-center gap-1 underline"
+                >
+                  <span>Open in App</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+
+              {/* Responsive Google Maps Iframe */}
+              <div className="w-full h-60 sm:h-72 rounded-2xl overflow-hidden border-2 border-slate-300 shadow-md relative bg-slate-100">
+                <iframe
+                  title="Apna Bazar Google Maps Center"
+                  src={googleMapsIframeUrl}
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-950 font-semibold flex items-center justify-between">
+                <span>📍 Apka Apna Bazar, Dadu Complex, Baharagora Main Rd (832101)</span>
+                <a
+                  href={APNA_BAZAR_GOOGLE_MAPS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] shrink-0"
+                >
+                  Open Direct Link
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Fast 1-Click GPS Live Detection Action */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -379,7 +494,7 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
               type="button"
               onClick={handleUseGps}
               disabled={gpsLoading}
-              className="py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer active:scale-98"
+              className="py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer active:scale-98"
             >
               <Compass className={`w-4 h-4 stroke-[2.5] ${gpsLoading ? 'animate-spin' : ''}`} />
               <span>{gpsLoading ? 'Detecting Live Location...' : '⚡ Use Live GPS (1-Click)'}</span>
@@ -410,7 +525,7 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
                     Live Dropped Location
                   </span>
                   {hasLocationVerified && isEligible && (
-                    <span className="inline-flex items-center gap-1 bg-emerald-500 text-white font-black text-[10px] px-2 py-0.2 rounded-full shadow-2xs animate-pulse">
+                    <span className="inline-flex items-center gap-1 bg-emerald-500 text-white font-black text-[10px] px-2 py-0.2 rounded-full shadow-2xs">
                       <Check className="w-3 h-3 stroke-[3]" />
                       <span>Verified Live Location</span>
                     </span>
@@ -433,11 +548,11 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
                   City: <b className="text-slate-900">{cityName}</b>
                 </p>
 
-                {/* Distance & Delivery Time */}
+                {/* Distance & Delivery Mode (Removed 15 min timers) */}
                 <div className="flex items-center gap-3 text-xs text-slate-600 font-bold mt-1.5">
                   <span>Distance: <b className="text-slate-900">{currentDistance}</b></span>
                   <span>•</span>
-                  <span>Delivery: <b className="text-slate-900">{deliveryTime}</b></span>
+                  <span>Route: <b className="text-blue-700">Direct Doorstep Delivery</b></span>
                 </div>
               </div>
 
@@ -445,8 +560,8 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
               <div className="shrink-0">
                 {isEligible ? (
                   <div className="p-2 rounded-2xl bg-emerald-100 border border-emerald-300 flex flex-col items-center justify-center text-center">
-                    <CheckCircle2 className="w-6 h-6 text-emerald-600 animate-bounce" />
-                    <span className="text-[9px] font-black text-emerald-900 uppercase mt-0.5">15-Min Active</span>
+                    <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                    <span className="text-[9px] font-black text-emerald-900 uppercase mt-0.5">Active Zone</span>
                   </div>
                 ) : (
                   <div className="p-2 rounded-2xl bg-rose-100 border border-rose-300 flex flex-col items-center justify-center text-center">
@@ -460,13 +575,13 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
             {/* Google Maps Actions Row */}
             <div className="flex flex-wrap items-center gap-2 pt-0.5">
               <a
-                href={googleMapsUrl}
+                href={APNA_BAZAR_GOOGLE_MAPS_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
-                <span>Open in Google Maps</span>
+                <span>Apna Bazar Store Map</span>
               </a>
 
               <a
@@ -479,16 +594,6 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
                 <span>Directions from Hub</span>
               </a>
             </div>
-
-            {/* Confirm Location Button */}
-            <button
-              type="button"
-              onClick={handleConfirmLocation}
-              className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer active:scale-98"
-            >
-              <Check className="w-4 h-4 text-amber-400 stroke-[3]" />
-              <span>Confirm &amp; Deliver to this Dropped Pin</span>
-            </button>
           </div>
 
           {/* Quick Select Baharagora Areas */}
@@ -528,7 +633,7 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
                   <div className="flex items-center gap-2 text-[10px] shrink-0">
                     <span className="text-slate-500 font-bold">{area.distance}</span>
                     <span className={`px-1.5 py-0.2 rounded font-black ${area.eligible ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
-                      {area.time}
+                      {area.badge}
                     </span>
                   </div>
                 </button>
@@ -538,18 +643,27 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
 
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
-          <p className="text-[11px] text-slate-500 font-medium">
-            15-minute doorstep delivery within 10 km radius of Baharagora
-          </p>
+        {/* Footer with Sticky Confirm Location CTA (Fixes Mobile CTA cut-off issue) */}
+        <div className="px-4 py-3 bg-white/95 backdrop-blur-md border-t border-slate-200 space-y-2 shrink-0 z-20">
           <button
             type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs transition-colors cursor-pointer"
+            onClick={handleConfirmLocation}
+            className="w-full py-3 px-4 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer active:scale-98"
           >
-            Close
+            <Check className="w-4 h-4 text-amber-400 stroke-[3]" />
+            <span>Confirm &amp; Deliver to this Dropped Pin</span>
           </button>
+          
+          <div className="flex items-center justify-between text-[11px] text-slate-500">
+            <span>Doorstep delivery within 10 km radius of Baharagora Hub</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
