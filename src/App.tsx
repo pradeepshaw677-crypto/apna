@@ -352,17 +352,50 @@ export default function App() {
     preloadCriticalAssets();
   }, []);
 
-  // User explicit instruction: "Web open hote hi pahale sirf turn on location ka popup aayaga only"
+  // User explicit instruction: "first time ya jab vi web open hoga check karaga location on hai ya nahi nahi to turn on karne ko bolaga bas"
   useEffect(() => {
-    const isLocationVerified = localStorage.getItem('ab_location_verified');
-    const hasPrompted = sessionStorage.getItem('ab_turn_on_location_prompted');
-    if (!isLocationVerified || !hasPrompted) {
-      const timer = setTimeout(() => {
-        setIsTurnOnLocationPopupOpen(true);
-        sessionStorage.setItem('ab_turn_on_location_prompted', 'true');
-      }, 350);
-      return () => clearTimeout(timer);
-    }
+    let timer: NodeJS.Timeout;
+
+    const verifyLocationOnStartup = async () => {
+      const isVerified = localStorage.getItem('ab_location_verified');
+      if (isVerified === 'true') {
+        return;
+      }
+
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const perm = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+          if (perm.state !== 'granted') {
+            timer = setTimeout(() => setIsTurnOnLocationPopupOpen(true), 350);
+            return;
+          } else {
+            // Already permitted: fetch live coords silently and set location
+            navigator.geolocation.getCurrentPosition(
+              async (pos) => {
+                try {
+                  const rev = await api.reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+                  const pin = rev.pincode || '832101';
+                  const addr = rev.fullFormatted || `${rev.locality || 'Baharagora'}, Jharkhand ${pin}`;
+                  handleLocationConfirmed(pin, addr, rev.isInside10Km ?? true);
+                } catch {}
+              },
+              () => {
+                timer = setTimeout(() => setIsTurnOnLocationPopupOpen(true), 350);
+              },
+              { enableHighAccuracy: true, timeout: 6000 }
+            );
+            return;
+          }
+        } catch {
+          // Fall through
+        }
+      }
+
+      timer = setTimeout(() => setIsTurnOnLocationPopupOpen(true), 350);
+    };
+
+    verifyLocationOnStartup();
+    return () => { if (timer) clearTimeout(timer); };
   }, []);
 
   // Capture referral invite code from URL like /?ref=AB1234

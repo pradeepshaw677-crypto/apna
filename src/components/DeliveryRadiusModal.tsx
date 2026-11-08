@@ -181,10 +181,11 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
 
       mapInstanceRef.current = map;
 
-      // Free OpenStreetMap Tiles with reliable CDN
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
-        maxZoom: 18,
+      // High-Res Google Maps Roadmap Layer
+      L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        subdomains: ['0', '1', '2', '3'],
+        maxZoom: 20,
+        keepBuffer: 6,
       }).addTo(map);
 
       // Central Store Hub Marker (Apna Bazar Central Hub)

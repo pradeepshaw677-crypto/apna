@@ -246,12 +246,8 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
 
       // Invalidate size immediately and after delay to avoid screen overflow glitches
       map.invalidateSize();
-      setTimeout(() => {
-        try { map.invalidateSize(); } catch {}
-      }, 150);
-      setTimeout(() => {
-        try { map.invalidateSize(); } catch {}
-      }, 400);
+      setTimeout(() => { try { map.invalidateSize(); } catch {} }, 100);
+      setTimeout(() => { try { map.invalidateSize(); } catch {} }, 300);
 
       const tileUrl = mapType === 'satellite'
         ? 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'
@@ -260,7 +256,15 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
       L.tileLayer(tileUrl, {
         subdomains: ['0', '1', '2', '3'],
         maxZoom: 20,
+        tileSize: 256,
+        keepBuffer: 8,
+        updateWhenIdle: false,
+        updateWhenZooming: true,
       }).addTo(map);
+
+      // Auto-fit map whenever container dimensions change (mobile rotation, layout adjustments)
+      const handleResize = () => { try { map.invalidateSize(); } catch {} };
+      window.addEventListener('resize', handleResize);
 
       // 1. Apna Bazar Central Hub Marker (Center)
       const hubIcon = L.divIcon({
@@ -513,8 +517,8 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
           </div>
         </div>
 
-        {/* 3. Interactive Map (Fits Perfectly in Available Height) */}
-        <div className="relative flex-1 w-full bg-slate-100 min-h-[200px] overflow-hidden">
+        {/* 3. Interactive Map (Fits Screen with Real Blue Navigation Line) */}
+        <div className="relative w-full h-56 sm:h-64 bg-slate-100 shrink-0 overflow-hidden">
           <div ref={mapContainerRef} className="w-full h-full z-0" />
 
           {/* Top Floating Badge */}
@@ -547,30 +551,45 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
           </div>
         </div>
 
-        {/* 4. Dropped Pin Address Summary Box */}
-        <div className="p-3 bg-white border-t border-slate-200 shrink-0 space-y-1 text-left">
+        {/* 4. Dropped Pin Address & LIVE REAL COORDINATES Summary Box */}
+        <div className="p-3 sm:p-3.5 bg-white border-t border-slate-200 shrink-0 space-y-1.5 text-left">
+          {/* Header Row: Title & PIN */}
           <div className="flex items-center justify-between text-[11px]">
-            <span className="font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+            <span className="font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-amber-600" />
               Selected Delivery Address
             </span>
-            <span className="text-[10px] font-bold font-mono text-slate-500">
+            <span className="text-xs font-black font-mono text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
               PIN: {structuredAddress.pincode}
             </span>
           </div>
 
-          <p className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 leading-snug">
+          {/* Full Formatted Address */}
+          <p className="text-xs sm:text-sm font-black text-slate-900 line-clamp-2 leading-snug">
             {structuredAddress.fullFormatted || `${structuredAddress.road}, ${structuredAddress.city}, Jharkhand ${structuredAddress.pincode}`}
           </p>
 
+          {/* Live Real Coordinates & Google Location Code Badges */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <span className="font-mono text-[11px] font-black bg-slate-950 text-amber-300 px-2.5 py-1 rounded-lg border border-amber-400/50 flex items-center gap-1.5 shadow-2xs">
+              <span className="text-amber-400">🌐 GPS Coords:</span>
+              <span className="text-white">{selectedCoords[0].toFixed(5)}° N, {selectedCoords[1].toFixed(5)}° E</span>
+            </span>
+            <span className="font-mono text-[11px] font-black bg-blue-950 text-blue-300 px-2.5 py-1 rounded-lg border border-blue-400/50 flex items-center gap-1.5 shadow-2xs">
+              <span className="text-blue-400">📍 Code:</span>
+              <span className="text-white">{structuredAddress.plusCode || '6PFP+W7H'}</span>
+            </span>
+          </div>
+
+          {/* Distance and Express Zone Tag */}
           <div className="flex items-center gap-2 pt-0.5 text-[11px]">
             <span className={`px-2 py-0.5 rounded-full font-black ${
               isInside10Km ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
             }`}>
               {isInside10Km ? '✓ 10-KM Express Zone' : 'Standard Shipping'}
             </span>
-            <span className="text-slate-500 font-medium">
-              Shortest Distance: <strong className="text-slate-800">{distanceKm} km</strong> from Apna Bazar Hub
+            <span className="text-slate-600 font-semibold">
+              Shortest Distance: <strong className="text-slate-900 font-black">{distanceKm} km</strong> from Apna Bazar Hub
             </span>
           </div>
         </div>

@@ -87,9 +87,13 @@ export const TrackingMap: React.FC<TrackingMapProps> = ({
         }
       }, 250);
 
-      // OpenStreetMap Tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
+      // Google Maps High-Res Roadmap Layer (Anti-glitch, crisp contrast)
+      L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        subdomains: ['0', '1', '2', '3'],
+        maxZoom: 20,
+        keepBuffer: 8,
+        updateWhenIdle: false,
+        updateWhenZooming: true,
       }).addTo(map);
 
       // 1. Apna Bazar Hub Marker

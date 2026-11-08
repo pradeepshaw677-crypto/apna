@@ -133,80 +133,15 @@ export const DiwaliTopDealsSection: React.FC<DiwaliTopDealsSectionProps> = ({
         <div className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-amber-400/30 to-transparent pointer-events-none" />
 
         {/* ========================================================================= */}
-        {/* HEADER: DIWALI SPECIAL OFFER | TOP DEALS | HAPPY DIWALI & 70% OFF TAG     */}
+        {/* HEADER: AUTHENTIC 3D BANNER (IMAGE 3 - CROWN, TOP DEALS, RIBBON)          */}
         {/* ========================================================================= */}
-        <div className="relative flex flex-col md:flex-row items-center justify-between gap-3 pb-4 border-b border-amber-400/40">
-          
-          {/* Left: Glowing Diya + Diwali Special Offer Medallion */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-[#991b1b] via-[#dc2626] to-[#f59e0b] p-1 shadow-lg shadow-amber-500/30 border-2 border-amber-300 flex flex-col items-center justify-center text-center leading-none">
-              <span className="text-sm sm:text-base">🪔</span>
-              <span className="text-[10px] sm:text-[11px] font-black uppercase text-amber-200 mt-0.5">Diwali</span>
-              <span className="text-[9px] sm:text-[10px] font-extrabold text-white">Special</span>
-              <span className="text-[8px] font-bold text-amber-300">Offer</span>
-            </div>
-          </div>
-
-          {/* Center: Crown + TOP DEALS 3D Banner + Gold Ribbon */}
-          <div className="text-center space-y-1 my-1">
-            <div className="flex items-center justify-center gap-1.5 text-amber-400">
-              <span className="text-xl sm:text-2xl">👑</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-400 drop-shadow-[0_4px_12px_rgba(251,191,36,0.6)] uppercase">
-              TOP DEALS
-            </h2>
-            <div className="inline-block bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 font-black text-xs sm:text-sm px-4 sm:px-6 py-1 rounded-full shadow-md uppercase tracking-wider">
-              Men &amp; Women Fashion
-            </div>
-            <p className="text-[11px] sm:text-xs font-bold text-amber-200/90 tracking-wide pt-0.5">
-              Shop Smart • Dress Better
-            </p>
-          </div>
-
-          {/* Right: UP TO 70% OFF Tag + Happy Diwali Glowing Script */}
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            <div className="bg-gradient-to-b from-red-600 to-rose-700 text-white p-2 rounded-2xl border-2 border-amber-300 shadow-md text-center leading-tight">
-              <span className="text-[9px] font-bold uppercase block text-amber-200">UP TO</span>
-              <span className="text-base sm:text-xl font-black text-white block">70%</span>
-              <span className="text-[10px] font-black text-amber-300 uppercase block">OFF</span>
-            </div>
-            <div className="text-right">
-              <span className="text-xs sm:text-sm font-black text-amber-300 block tracking-wider">Happy</span>
-              <span className="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 block drop-shadow-xs italic">
-                Diwali 🪔
-              </span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* ========================================================================= */}
-        {/* TRUST BADGES STRIP (MATCHING SCREENSHOT SIDE PILLARS)                     */}
-        {/* ========================================================================= */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2 py-3 border-b border-amber-400/25 text-[10px] sm:text-xs font-bold text-amber-100/90 text-center">
-          <div className="flex items-center justify-center gap-1 bg-white/5 py-1 px-1.5 rounded-lg border border-amber-400/20">
-            <Gem className="w-3 h-3 text-amber-400" />
-            <span className="truncate">Premium Quality</span>
-          </div>
-          <div className="flex items-center justify-center gap-1 bg-white/5 py-1 px-1.5 rounded-lg border border-amber-400/20">
-            <ShieldCheck className="w-3 h-3 text-emerald-400" />
-            <span className="truncate">Secure Shopping</span>
-          </div>
-          <div className="flex items-center justify-center gap-1 bg-white/5 py-1 px-1.5 rounded-lg border border-amber-400/20">
-            <Truck className="w-3 h-3 text-amber-400" />
-            <span className="truncate">Free Shipping</span>
-          </div>
-          <div className="flex items-center justify-center gap-1 bg-white/5 py-1 px-1.5 rounded-lg border border-amber-400/20">
-            <RefreshCcw className="w-3 h-3 text-sky-400" />
-            <span className="truncate">Easy Returns</span>
-          </div>
-          <div className="flex items-center justify-center gap-1 bg-white/5 py-1 px-1.5 rounded-lg border border-amber-400/20">
-            <Tag className="w-3 h-3 text-rose-400" />
-            <span className="truncate">Lowest Price</span>
-          </div>
-          <div className="flex items-center justify-center gap-1 bg-white/5 py-1 px-1.5 rounded-lg border border-amber-400/20">
-            <Smile className="w-3 h-3 text-yellow-400" />
-            <span className="truncate">Happy Customers</span>
+        <div className="relative flex flex-col items-center justify-center py-2 sm:py-3 border-b-2 border-amber-400/50">
+          <div className="w-full max-w-xl sm:max-w-2xl px-2">
+            <img
+              src="/assets/aistudio/Screenshot_2026_1107_101847_0856fc38.png"
+              alt="TOP DEALS - Men & Women Fashion - Shop Smart • Dress Better"
+              className="w-full h-auto object-contain drop-shadow-[0_8px_30px_rgba(251,191,36,0.65)] hover:scale-[1.01] transition-transform"
+            />
           </div>
         </div>
 
