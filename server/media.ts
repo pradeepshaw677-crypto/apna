@@ -53,9 +53,6 @@ const FETCHABLE_HOSTS = new Set([
   "images.unsplash.com",
   "plus.unsplash.com",
   "res.cloudinary.com",
-  "pradeepshaw677-crypto.github.io",
-  "images.higgs.ai",
-  "d8j0ntlcm91z4.cloudfront.net",
 ]);
 
 export const CLOUDINARY_MEDIA_READY = Boolean(CLOUD_NAME && FETCH_ENABLED);

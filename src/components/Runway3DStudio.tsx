@@ -49,13 +49,13 @@ const TOTAL_PIECES = RUNWAY_ALL_PIECES.length;
 const AUTO_RESUME_DELAY_MS = 2000;
 
 const DEPTH_X = [1.18, 0.74, 0.38, 0.14, -0.05, -0.18, -0.28];
-const DEPTH_Y = [0.97, 0.96, 0.89, 0.82, 0.76, 0.71, 0.67];
-const DEPTH_SCALE = [0.92, 0.86, 0.60, 0.42, 0.28, 0.18, 0.12];
+const DEPTH_Y = [0.99, 0.98, 0.91, 0.84, 0.78, 0.72, 0.68];
+const DEPTH_SCALE = [0.98, 0.94, 0.68, 0.48, 0.32, 0.20, 0.14];
 // 100% HD crystal-clear models — zero blur at all positions
 const DEPTH_BLUR = [0, 0, 0, 0, 0, 0, 0];
 const DEPTH_OPACITY = [0, 1, 0.92, 0.65, 0, 0, 0];
 
-const DB_ASSETS_CACHE_KEY = 'ab_runway_3d_db_assets_v1';
+const DB_ASSETS_CACHE_KEY = 'ab_runway_3d_db_assets_v2';
 
 function wrapMod(val: number, max: number): number {
   return ((val % max) + max) % max;
@@ -69,25 +69,43 @@ function interpolateCurve(arr: number[], offset: number): number {
 }
 
 /**
- * Resolves the database/Cloudinary URL for a given 3D Runway look or piece,
- * falling back to the canonical sprite/model URL.
+ * Strips broken Cloudinary `/image/fetch/` wrappers if present, keeping genuine
+ * `/image/upload/` Cloudinary URLs or falling back to local `/assets/runway/` and direct CDN URLs.
  */
+function sanitizeRunwayUrl(url: string | undefined, fallback: string): string {
+  if (!url) return fallback;
+  if (url.includes('/image/fetch/')) return fallback;
+  return url;
+}
+
 function resolveModelUrl(look: any, dbAssets: Record<string, string>): string {
+  const localSprite = '/assets/runway/models_sprite.webp';
+  const localSolo = `/assets/runway/look_${String(look.lookNumber).padStart(2, '0')}.png`;
+  const defaultUrl = look.sourceType === 'higgs_models' ? localSprite : localSolo;
+
   const fromDb =
     dbAssets[`look_${look.lookNumber}`] ||
     (look.sourceType === 'higgs_models' ? dbAssets.sprite_models : '');
-  const raw =
-    fromDb || (look.sourceType === 'higgs_models' ? HIGGS_MODELS_SPRITE : look.soloImageUrl);
-  return getCloudinaryUrl(raw, { width: 1400, quality: 'auto:good' }) || raw;
+
+  if (fromDb && fromDb.includes('res.cloudinary.com') && fromDb.includes('/image/upload/')) {
+    return getCloudinaryUrl(fromDb, { width: 1400, quality: 'auto:good' }) || defaultUrl;
+  }
+  return sanitizeRunwayUrl(defaultUrl, look.soloImageUrl || HIGGS_MODELS_SPRITE);
 }
 
 function resolvePieceUrl(piece: any, dbAssets: Record<string, string>): string {
+  const localSprite = '/assets/runway/pieces_sprite.webp';
+  const localSolo = `/assets/runway/look_${String(piece.lookNumber).padStart(2, '0')}.png`;
+  const defaultUrl = piece.sourceType === 'higgs_pieces' ? localSprite : localSolo;
+
   const fromDb =
     dbAssets[`piece_${piece.id}`] ||
     (piece.sourceType === 'higgs_pieces' ? dbAssets.sprite_pieces : '');
-  const raw =
-    fromDb || (piece.sourceType === 'higgs_pieces' ? HIGGS_PIECES_SPRITE : piece.soloImageUrl);
-  return getCloudinaryUrl(raw, { width: 1200, quality: 'auto:good' }) || raw;
+
+  if (fromDb && fromDb.includes('res.cloudinary.com') && fromDb.includes('/image/upload/')) {
+    return getCloudinaryUrl(fromDb, { width: 1200, quality: 'auto:good' }) || defaultUrl;
+  }
+  return sanitizeRunwayUrl(defaultUrl, piece.soloImageUrl || HIGGS_PIECES_SPRITE);
 }
 
 /**
@@ -205,6 +223,12 @@ const RunwayModelSprite: React.FC<{
       decoding="async"
       loading="eager"
       draggable={false}
+      onError={(e) => {
+        const img = e.currentTarget;
+        if (look.soloImageUrl && img.src !== look.soloImageUrl) {
+          img.src = look.soloImageUrl;
+        }
+      }}
       className={`${className} w-full h-full object-contain object-bottom select-none pointer-events-none block`}
     />
   );
@@ -459,7 +483,8 @@ export const Runway3DStudio: React.FC<Runway3DStudioProps> = ({
       if (stageEl && stageEl.clientWidth > 0) {
         const cw = stageEl.clientWidth;
         const ch = stageEl.clientHeight;
-        const baseH = ch * 0.88;
+        // Taller full-height runway models (96% of stage height)
+        const baseH = ch * 0.96;
         const baseW = (960 / 1080) * baseH;
 
         for (let i = 0; i < TOTAL_LOOKS; i++) {
@@ -698,7 +723,7 @@ export const Runway3DStudio: React.FC<Runway3DStudioProps> = ({
 
   return (
     <div
-      className="w-full h-[calc(100dvh-134px)] sm:h-[calc(100dvh-88px)] min-h-[500px] max-h-[820px] bg-[#f1f5fa] overflow-hidden relative z-0 isolate"
+      className="w-full h-[calc(100dvh-76px)] sm:h-[calc(100dvh-64px)] min-h-[620px] sm:min-h-[720px] max-h-[960px] bg-[#f1f5fa] overflow-hidden relative z-0 isolate"
       style={{ isolation: 'isolate', contain: 'layout paint' }}
     >
       {/* ===================================================================== */}
