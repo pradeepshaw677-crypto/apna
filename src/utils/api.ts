@@ -201,6 +201,15 @@ export const api = {
     }
   },
 
+  async getRunway3DAssets(): Promise<Record<string, string>> {
+    try {
+      const data = await requestJson<{ assets?: Record<string, string> }>('/api/runway-3d-assets');
+      return data.assets || {};
+    } catch {
+      return {};
+    }
+  },
+
   async checkPincode(pincode: string): Promise<PincodeResult> {
     try {
       return await requestJson<PincodeResult>('/api/check-pincode', {

@@ -1,14 +1,29 @@
+import crypto from "node:crypto";
+
 /**
- * Catalog image delivery through the configured Cloudinary account.
- * Unsplash is only the origin; production serves optimised WebP/AVIF via
- * Cloudinary Fetch. If Cloudinary is not configured (or fetch is disabled)
- * the original URL is returned untouched so the storefront never breaks.
+ * Catalog & 3D Runway image delivery and upload through the configured Cloudinary account.
+ * Production serves optimised WebP/AVIF/PNG via Cloudinary Upload / Fetch.
+ * If Cloudinary is not configured, the original CDN URL is returned untouched so the storefront never breaks.
  */
 
-const CLOUD_NAME = (
+const PARSED_ENV_URL = parseCloudinaryUrl(process.env.CLOUDINARY_URL);
+
+export const CLOUD_NAME = (
   process.env.CLOUDINARY_CLOUD_NAME ||
   process.env.VITE_CLOUDINARY_CLOUD_NAME ||
-  parseCloudinaryUrl(process.env.CLOUDINARY_URL)?.cloudName ||
+  PARSED_ENV_URL?.cloudName ||
+  ""
+).trim();
+
+const API_KEY = (
+  process.env.CLOUDINARY_API_KEY ||
+  PARSED_ENV_URL?.apiKey ||
+  ""
+).trim();
+
+const API_SECRET = (
+  process.env.CLOUDINARY_API_SECRET ||
+  PARSED_ENV_URL?.apiSecret ||
   ""
 ).trim();
 
@@ -38,9 +53,13 @@ const FETCHABLE_HOSTS = new Set([
   "images.unsplash.com",
   "plus.unsplash.com",
   "res.cloudinary.com",
+  "pradeepshaw677-crypto.github.io",
+  "images.higgs.ai",
+  "d8j0ntlcm91z4.cloudfront.net",
 ]);
 
 export const CLOUDINARY_MEDIA_READY = Boolean(CLOUD_NAME && FETCH_ENABLED);
+export const CLOUDINARY_UPLOAD_READY = Boolean(CLOUD_NAME && API_KEY && API_SECRET);
 
 function cloudinaryTransform(width: number): string {
   return `f_auto,q_auto:good,w_${Math.max(64, Math.min(2000, Math.round(width)))},c_limit`;
@@ -57,7 +76,6 @@ export function deliverCatalogImage(url: string, width = 800): string {
 
   try {
     if (url.includes("/image/fetch/")) {
-      // Replace (or add) the transform so every breakpoint gets the right size.
       const [prefix, remainder] = url.split("/image/fetch/");
       const slash = remainder.indexOf("/");
       const first = slash >= 0 ? remainder.slice(0, slash) : remainder;
@@ -103,4 +121,65 @@ export function canonicalCatalogImage(url: string): string {
 
 export function deliverCatalogImages(images: string[] | undefined, width = 800): string[] {
   return (images || []).map((image) => deliverCatalogImage(image, width));
+}
+
+/**
+ * Uploads a remote PNG/WebP image URL directly to Cloudinary (signed upload)
+ * and returns the permanent `https://res.cloudinary.com/.../image/upload/...` URL.
+ * Falls back to canonical Cloudinary Fetch URL or original URL if upload credentials are absent.
+ */
+export async function uploadRemoteImageToCloudinary(
+  remoteUrl: string,
+  publicId: string,
+  folder = "apnabazar_runway_3d"
+): Promise<string> {
+  if (!remoteUrl) return "";
+  if (remoteUrl.includes("res.cloudinary.com") && remoteUrl.includes("/image/upload/")) {
+    return remoteUrl;
+  }
+
+  if (!CLOUDINARY_UPLOAD_READY) {
+    return canonicalCatalogImage(remoteUrl);
+  }
+
+  try {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const overwrite = "true";
+    const toSign = `folder=${folder}&overwrite=${overwrite}&public_id=${publicId}&timestamp=${timestamp}${API_SECRET}`;
+    const signature = crypto.createHash("sha1").update(toSign).digest("hex");
+
+    const body = new URLSearchParams({
+      file: remoteUrl,
+      folder,
+      public_id: publicId,
+      overwrite,
+      timestamp: String(timestamp),
+      api_key: API_KEY,
+      signature,
+    });
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(CLOUD_NAME)}/image/upload`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timer);
+
+    if (response.ok) {
+      const data = (await response.json()) as { secure_url?: string };
+      if (data?.secure_url) {
+        return data.secure_url;
+      }
+    }
+  } catch {
+    // Fall back gracefully if network/credential error occurs
+  }
+
+  return canonicalCatalogImage(remoteUrl);
 }

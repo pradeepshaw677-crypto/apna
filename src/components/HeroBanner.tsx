@@ -9,8 +9,9 @@ import {
   ShoppingBag,
   Percent
 } from 'lucide-react';
-import { CategoryId } from '../types';
+import { CategoryId, Product } from '../types';
 import { DiwaliTopDealsSection, DiwaliDealItem } from './DiwaliTopDealsSection';
+import { Runway3DStudio } from './Runway3DStudio';
 import { recoverImage } from '../utils/cloudinary';
 
 interface HeroBannerProps {
@@ -22,6 +23,13 @@ interface HeroBannerProps {
   onFilterByPrice?: (maxPrice: number) => void;
   onSelectBrand?: (brandName: string) => void;
   onSelectVibe?: (vibeName: string) => void;
+  onAddToCartProduct?: (product: Product, size?: string, color?: string, priceOverride?: number) => void;
+  onBuyNowProduct?: (product: Product, size?: string, color?: string, priceOverride?: number) => void;
+  onToggleWishlist?: (productId: string) => void;
+  wishlistIds?: string[];
+  cartCount?: number;
+  onOpenCart?: () => void;
+  pincode?: string;
 }
 
 // =========================================================================
@@ -189,6 +197,13 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   onFilterByPrice,
   onSelectBrand,
   onSelectVibe,
+  onAddToCartProduct,
+  onBuyNowProduct,
+  onToggleWishlist,
+  wishlistIds = [],
+  cartCount = 0,
+  onOpenCart,
+  pincode = '832101',
 }) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -233,7 +248,29 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   const currentSlide = TOP_CAROUSEL_SLIDES[currentSlideIndex];
 
   return (
-    <div className="w-full space-y-6 pt-1 pb-4">
+    <div className="w-full space-y-6 pb-4">
+
+      {/* ========================================================================= */}
+      {/* 0. TOP 3D RUNWAY & 360° COUTURE ANIMATION (FULL ORIGINAL WIDTH & HEIGHT)  */}
+      {/* ========================================================================= */}
+      <section
+        className="w-full m-0 p-0 overflow-hidden bg-[#f1f5fa] relative z-0 isolate"
+        style={{ isolation: 'isolate', contain: 'layout paint' }}
+      >
+        <Runway3DStudio
+          onAddToCart={(product, size, color, priceOverride) => {
+            onAddToCartProduct?.(product, size, color, priceOverride);
+          }}
+          onBuyNow={(product, size, color, priceOverride) => {
+            onBuyNowProduct?.(product, size, color, priceOverride);
+          }}
+          onToggleWishlist={onToggleWishlist}
+          wishlistIds={wishlistIds}
+          cartCount={cartCount}
+          onOpenCart={onOpenCart}
+          pincode={pincode}
+        />
+      </section>
 
       {/* ========================================================================= */}
       {/* 1. TOP CAROUSEL: 10 HIGH-IMPACT FESTIVE BANNERS WITH SLIDING PILLS        */}

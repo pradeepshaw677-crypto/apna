@@ -572,6 +572,7 @@ export default function App() {
       try {
         sessionStorage.setItem('ab_pending_cart_action', JSON.stringify({
           productId: product.id,
+          productObject: product,
           size: targetSize,
           color: targetColor,
           quantity: 1,
@@ -597,6 +598,7 @@ export default function App() {
       try {
         sessionStorage.setItem('ab_pending_cart_action', JSON.stringify({
           productId: product.id,
+          productObject: product,
           size: targetSize,
           color: targetColor,
           quantity: 1,
@@ -647,7 +649,7 @@ export default function App() {
       if (rawPending) {
         sessionStorage.removeItem('ab_pending_cart_action');
         const pending = JSON.parse(rawPending);
-        const targetProd = productsList.find((p) => p.id === pending.productId);
+        const targetProd = productsList.find((p) => p.id === pending.productId) || pending.productObject;
         if (targetProd) {
           executeAddToCart(targetProd, pending.size, pending.color, pending.priceOverride);
           if (pending.isBuyNow) {
@@ -1095,6 +1097,13 @@ export default function App() {
               setSearchQuery('');
               productSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
             }}
+            onAddToCartProduct={handleAddToCart}
+            onBuyNowProduct={handleBuyNow}
+            onToggleWishlist={handleToggleWishlist}
+            wishlistIds={wishlistIds}
+            cartCount={cartItems.reduce((sum, it) => sum + it.quantity, 0)}
+            onOpenCart={() => setIsCartOpen(true)}
+            pincode={selectedPincode}
           />
 
           {/* 2. User Explicit Request: "isme banner ke baad shop by category do" */}

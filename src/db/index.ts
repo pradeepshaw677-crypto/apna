@@ -1,7 +1,18 @@
 import 'dotenv/config';
 import { createClient } from '@libsql/client';
 import { PRODUCTS, SAMPLE_REVIEWS } from '../data/products';
-import { CLOUDINARY_MEDIA_READY, canonicalCatalogImage } from '../../server/media';
+import {
+  HIGGS_MODELS_SPRITE,
+  HIGGS_PIECES_SPRITE,
+  RUNWAY_LOOKS,
+  RUNWAY_ALL_PIECES,
+} from '../data/runway3dData';
+import {
+  CLOUDINARY_MEDIA_READY,
+  CLOUDINARY_UPLOAD_READY,
+  canonicalCatalogImage,
+  uploadRemoteImageToCloudinary,
+} from '../../server/media';
 
 /*
  * Turso in production, embedded SQLite in development. The previous /web
@@ -200,6 +211,19 @@ export async function initDatabase(): Promise<void> {
     );
   `);
 
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS runway_3d_assets (
+      asset_key TEXT PRIMARY KEY,
+      asset_type TEXT NOT NULL,
+      look_number INTEGER NOT NULL,
+      piece_id INTEGER,
+      name TEXT NOT NULL,
+      original_url TEXT NOT NULL,
+      cloudinary_url TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+
   await ensureColumn('users', 'google_sub', 'TEXT');
   await ensureColumn('users', 'avatar', 'TEXT');
   await ensureColumn('users', 'token_version', 'INTEGER NOT NULL DEFAULT 1');
@@ -337,7 +361,185 @@ export async function initDatabase(): Promise<void> {
     });
   }
 
+  await seedAndSyncRunway3DAssets();
   await persistCloudinaryMediaUrls();
+}
+
+/**
+ * Seeds all 3D Runway models and 40 Couture pieces into `runway_3d_assets` and `products` tables,
+ * and uploads/syncs their PNGs to Cloudinary in the background so the database serves Cloudinary URLs.
+ */
+async function seedAndSyncRunway3DAssets(): Promise<void> {
+  const now = Date.now();
+  const assetRows: {
+    key: string;
+    type: string;
+    lookNumber: number;
+    pieceId: number | null;
+    name: string;
+    url: string;
+  }[] = [
+    {
+      key: 'sprite_models',
+      type: 'sprite',
+      lookNumber: 0,
+      pieceId: null,
+      name: 'Higgs 3D Runway Models Sprite',
+      url: HIGGS_MODELS_SPRITE,
+    },
+    {
+      key: 'sprite_pieces',
+      type: 'sprite',
+      lookNumber: 0,
+      pieceId: null,
+      name: 'Higgs 3D Runway Pieces Sprite',
+      url: HIGGS_PIECES_SPRITE,
+    },
+  ];
+
+  for (const look of RUNWAY_LOOKS as any[]) {
+    const srcUrl =
+      look.sourceType === 'higgs_models' ? HIGGS_MODELS_SPRITE : String(look.soloImageUrl || '');
+    assetRows.push({
+      key: `look_${look.lookNumber}`,
+      type: 'model',
+      lookNumber: Number(look.lookNumber),
+      pieceId: null,
+      name: String(look.title || `Look ${look.lookNumber}`),
+      url: srcUrl,
+    });
+  }
+
+  for (const piece of RUNWAY_ALL_PIECES as any[]) {
+    const srcUrl =
+      piece.sourceType === 'higgs_pieces' ? HIGGS_PIECES_SPRITE : String(piece.soloImageUrl || '');
+    assetRows.push({
+      key: `piece_${piece.id}`,
+      type: 'piece',
+      lookNumber: Number(piece.lookNumber),
+      pieceId: Number(piece.id),
+      name: String(piece.name),
+      url: srcUrl,
+    });
+  }
+
+  await client.batch(
+    assetRows.map((a) => ({
+      sql: `INSERT OR IGNORE INTO runway_3d_assets
+        (asset_key, asset_type, look_number, piece_id, name, original_url, cloudinary_url, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        a.key,
+        a.type,
+        a.lookNumber,
+        a.pieceId,
+        a.name,
+        a.url,
+        canonicalCatalogImage(a.url),
+        now,
+      ],
+    }))
+  );
+
+  // Also ensure all 40 3D Runway pieces exist in `products` table for Cart / Orders / Reviews
+  await client.batch(
+    (RUNWAY_ALL_PIECES as any[]).map((piece) => {
+      const prodId = `runway-3d-piece-${piece.id}`;
+      const rawUrl =
+        piece.sourceType === 'higgs_pieces' ? HIGGS_PIECES_SPRITE : String(piece.soloImageUrl || '');
+      const cloudUrl = canonicalCatalogImage(rawUrl);
+      const discount =
+        piece.mrpNumeric > piece.priceNumeric
+          ? Math.round(((piece.mrpNumeric - piece.priceNumeric) / piece.mrpNumeric) * 100)
+          : 40;
+      return {
+        sql: `INSERT OR IGNORE INTO products (
+          id, name, hindi_name, price, stock, image_url, category, subcategory, brand, description,
+          original_price, rating, reviews_count, is_best_seller, is_trending, is_flash_deal,
+          discount_percent, unit, sizes_json, colors_json, images_json, highlights_json,
+          specifications_json, is_plus_free_delivery, delivery_days, deal_ends_at, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          prodId,
+          String(piece.name),
+          `${piece.category} • Look ${String(piece.lookNumber).padStart(2, '0')}`,
+          Number(piece.priceNumeric),
+          20,
+          cloudUrl,
+          'fashion',
+          String(piece.category || 'Luxury Couture'),
+          'Apna Bazar 3D Couture',
+          String(piece.description || piece.subtitle || ''),
+          Number(piece.mrpNumeric || piece.priceNumeric),
+          Number(piece.rating || 4.8),
+          Number(piece.reviewsCount || 160),
+          1,
+          1,
+          0,
+          discount,
+          'piece',
+          JSON.stringify(piece.sizes || ['XS', 'S', 'M', 'L', 'XL', 'XXL']),
+          JSON.stringify(piece.colors || []),
+          JSON.stringify([cloudUrl]),
+          JSON.stringify([
+            `Fabric: ${piece.fabric}`,
+            `Fit: ${piece.fit}`,
+            `Occasion: ${piece.occasion}`,
+            `Care: ${piece.care}`,
+          ]),
+          JSON.stringify([
+            { label: 'Fabric', value: String(piece.fabric || 'Pure Silk') },
+            { label: 'Fit', value: String(piece.fit || 'Tailored') },
+            { label: 'Occasion', value: String(piece.occasion || 'Festive & Wedding') },
+          ]),
+          1,
+          2,
+          null,
+          now,
+        ],
+      };
+    })
+  );
+
+  // If Cloudinary Upload API credentials are set, upload each unique PNG to Cloudinary in the background
+  // and update `runway_3d_assets.cloudinary_url` & `products.image_url` in the database.
+  if (CLOUDINARY_UPLOAD_READY || CLOUDINARY_MEDIA_READY) {
+    void (async () => {
+      try {
+        const existing = await client.execute(
+          `SELECT asset_key, original_url, cloudinary_url FROM runway_3d_assets;`
+        );
+        const uniqueUrls = new Map<string, string>();
+        for (const row of existing.rows) {
+          const orig = String(row.original_url || '');
+          const curr = String(row.cloudinary_url || '');
+          if (orig && !curr.includes('/image/upload/')) {
+            uniqueUrls.set(orig, String(row.asset_key));
+          }
+        }
+
+        for (const [origUrl, sampleKey] of uniqueUrls.entries()) {
+          const uploadedUrl = await uploadRemoteImageToCloudinary(
+            origUrl,
+            `runway_${sampleKey}`,
+            'apnabazar_runway_3d'
+          );
+          if (uploadedUrl && uploadedUrl !== origUrl) {
+            await client.execute({
+              sql: `UPDATE runway_3d_assets SET cloudinary_url = ?, updated_at = ? WHERE original_url = ?;`,
+              args: [uploadedUrl, Date.now(), origUrl],
+            });
+            await client.execute({
+              sql: `UPDATE products SET image_url = ?, images_json = ? WHERE image_url = ? AND id LIKE 'runway-3d-piece-%';`,
+              args: [uploadedUrl, JSON.stringify([uploadedUrl]), origUrl],
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('[db] Runway 3D Cloudinary background sync skipped:', err);
+      }
+    })();
+  }
 }
 
 function parseJsonArray<T>(raw: unknown): T[] {

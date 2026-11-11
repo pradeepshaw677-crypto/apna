@@ -1117,7 +1117,9 @@ app.get(
     const filter = typeof req.query.filter === "string" ? req.query.filter.slice(0, 30) : "";
     const sort = typeof req.query.sort === "string" ? req.query.sort.slice(0, 30) : "";
 
-    let list: Product[] = [...(await getCatalogProducts())];
+    let list: Product[] = [...(await getCatalogProducts())].filter(
+      (p) => !p.id.startsWith("runway-3d-piece-") || Boolean(search.trim())
+    );
 
     if (search.trim()) {
       const q = search.toLowerCase().trim();
@@ -1148,6 +1150,27 @@ app.get(
 
     res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
     res.json({ products: list, total: list.length });
+  }),
+);
+
+app.get(
+  "/api/runway-3d-assets",
+  rateLimit({ windowMs: 60_000, max: 120, prefix: "runway-3d-assets" }),
+  asyncHandler(async (_req, res) => {
+    const result = await client.execute(
+      "SELECT asset_key, asset_type, look_number, piece_id, name, original_url, cloudinary_url FROM runway_3d_assets;"
+    );
+    const assets: Record<string, string> = {};
+    for (const row of result.rows) {
+      const key = String(row.asset_key || "");
+      const cloudUrl = String(row.cloudinary_url || row.original_url || "");
+      const origUrl = String(row.original_url || "");
+      if (key) {
+        assets[key] = deliverCatalogImage(cloudUrl || origUrl, 1400) || origUrl;
+      }
+    }
+    res.setHeader("Cache-Control", "public, max-age=120, stale-while-revalidate=300");
+    res.json({ assets });
   }),
 );
 
