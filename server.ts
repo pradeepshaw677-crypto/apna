@@ -1968,37 +1968,38 @@ const geocodeLimiter = rateLimit({ windowMs: 60_000, max: 60, prefix: "geocode" 
 const OLC_ALPHABET = "23456789CFGHJMPQRVWX";
 
 function computeOpenLocationCode(lat: number, lng: number): string {
-  if (Math.abs(lat - 22.2815) < 0.0015 && Math.abs(lng - 86.7198) < 0.0015) {
-    return "6PFP+W7H";
+  let clampedLat = Math.min(Math.max(lat, -90), 90);
+  if (clampedLat === 90) clampedLat -= 0.0000125;
+  let normLng = lng;
+  while (normLng < -180) normLng += 360;
+  while (normLng >= 180) normLng -= 360;
+
+  let latVal = Math.floor(Math.round((clampedLat + 90) * 4000000) / 100);
+  let lngVal = Math.floor(Math.round((normLng + 180) * 3200000) / 100);
+
+  const gridRow = ((latVal % 5) + 5) % 5;
+  const gridCol = ((lngVal % 4) + 4) % 4;
+  const char11 = OLC_ALPHABET[gridRow * 4 + gridCol] || "2";
+
+  latVal = Math.floor(latVal / 5);
+  lngVal = Math.floor(lngVal / 4);
+
+  const latDigits: string[] = [];
+  const lngDigits: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const lIdx = ((latVal % 20) + 20) % 20;
+    const gIdx = ((lngVal % 20) + 20) % 20;
+    latDigits.unshift(OLC_ALPHABET[lIdx] || "2");
+    lngDigits.unshift(OLC_ALPHABET[gIdx] || "2");
+    latVal = Math.floor(latVal / 20);
+    lngVal = Math.floor(lngVal / 20);
   }
-  let normalLat = Math.min(Math.max(lat, -90), 90) + 90;
-  let normalLng = lng;
-  while (normalLng < -180) normalLng += 360;
-  while (normalLng >= 180) normalLng -= 360;
-  normalLng += 180;
 
-  const charAt = (value: number): string => {
-    const index = Math.floor(value);
-    return OLC_ALPHABET[Math.min(OLC_ALPHABET.length - 1, Math.max(0, index))] || "C";
-  };
+  const p3 = latDigits[2] + lngDigits[2];
+  const p4 = latDigits[3] + lngDigits[3];
+  const p5 = latDigits[4] + lngDigits[4];
 
-  normalLat %= 20;
-  normalLng %= 20;
-  const d1 = charAt(normalLat);
-  const d2 = charAt(normalLng);
-  normalLat %= 1;
-  normalLng %= 1;
-  const d3 = charAt(normalLat / 0.05);
-  const d4 = charAt(normalLng / 0.05);
-  normalLat %= 0.05;
-  normalLng %= 0.05;
-  const d5 = charAt(normalLat / 0.0025);
-  const d6 = charAt(normalLng / 0.0025);
-  normalLat %= 0.0025;
-  normalLng %= 0.0025;
-  const d7 = charAt(normalLat / 0.000125);
-
-  return `${d1}${d2}${d3}${d4}+${d5}${d6}${d7}`;
+  return `${p3}${p4}+${p5}${char11}`;
 }
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -2260,6 +2261,82 @@ app.post(
     });
   }),
 );
+
+/* ------------------------------------------------------------------ */
+/* SEO, Google Search Console (GSC), Sitemap & LLM Indexing Routes     */
+/* ------------------------------------------------------------------ */
+
+function escapeXml(str: string): string {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+app.get("/sitemap.xml", (_req, res) => {
+  const baseUrl = "https://apkaapnabazar.vercel.app";
+  const today = new Date().toISOString().split("T")[0];
+
+  const categoryUrls = CATEGORIES.filter((c) => c.id !== "all")
+    .map(
+      (cat) => `  <url>
+    <loc>${baseUrl}/?category=${encodeURIComponent(cat.id)}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>`,
+    )
+    .join("\n");
+
+  const productUrls = PRODUCTS.slice(0, 200)
+    .map((p) => {
+      const imgUrl = p.image?.startsWith("http") ? p.image : `${baseUrl}${p.image || "/logo.png"}`;
+      return `  <url>
+    <loc>${baseUrl}/?product=${encodeURIComponent(p.id)}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+    <image:image>
+      <image:loc>${escapeXml(imgUrl)}</image:loc>
+      <image:title>${escapeXml(`${p.name} - Apna Bazar Baharagora Shopping Mall`)}</image:title>
+      <image:caption>${escapeXml(`${p.name} at ₹${p.price} on Apna Bazar (Apka Apna Bazar), No 1 Shopping Mall in Baharagora, Jharkhand 832101`)}</image:caption>
+    </image:image>
+  </url>`;
+    })
+    .join("\n");
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+>
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>${baseUrl}/logo.png</image:loc>
+      <image:title>Apna Bazar (Apka Apna Bazar) - No 1 Shopping Mall in Baharagora Jharkhand 832101</image:title>
+      <image:caption>Apna Bazar Dadu Complex, Baharagora Main Road, Market, Baharagora, Jharkhand 832101</image:caption>
+    </image:image>
+  </url>
+${categoryUrls}
+${productUrls}
+  <url>
+    <loc>${baseUrl}/llms.txt</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+</urlset>`;
+
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.send(xml);
+});
 
 /* ------------------------------------------------------------------ */
 /* Admin                                                               */

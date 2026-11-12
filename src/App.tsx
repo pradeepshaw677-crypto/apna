@@ -165,6 +165,7 @@ import { Footer } from './components/Footer';
 import { recoverImage } from './utils/cloudinary';
 import { TurnOnLocationPopup } from './components/TurnOnLocationPopup';
 import { startLiveGpsWatcher } from './utils/fastGps';
+import { updateDynamicSeo } from './utils/seo';
 
 const CheckoutModal = lazy(() =>
   import('./components/CheckoutModal').then((module) => ({ default: module.CheckoutModal })),
@@ -380,21 +381,43 @@ export default function App() {
     } catch {}
   }, []);
 
-  // Deep links like /?product=fsh-001 open the exact product page.
+  // Deep links like /?product=fsh-001, /?category=sarees, or /?search=... from Sitemap & Google Search
   useEffect(() => {
-    const openProductFromUrl = () => {
-      const productId = new URLSearchParams(window.location.search).get('product');
-      if (!productId) return;
-      const product =
-        productsList.find((item) => item.id === productId) ||
-        PRODUCTS.find((item) => item.id === productId);
-      if (product) setSelectedProduct(product);
+    const syncStateFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('product');
+      const categoryParam = params.get('category');
+      const searchParam = params.get('search');
+
+      if (categoryParam && CATEGORIES.some((c) => c.id === categoryParam)) {
+        setSelectedCategory(categoryParam);
+      }
+      if (searchParam) {
+        setSearchQuery(searchParam);
+      }
+      if (productId) {
+        const product =
+          productsList.find((item) => item.id === productId) ||
+          PRODUCTS.find((item) => item.id === productId);
+        if (product) setSelectedProduct(product);
+      }
     };
 
-    openProductFromUrl();
-    window.addEventListener('popstate', openProductFromUrl);
-    return () => window.removeEventListener('popstate', openProductFromUrl);
+    syncStateFromUrl();
+    window.addEventListener('popstate', syncStateFromUrl);
+    return () => window.removeEventListener('popstate', syncStateFromUrl);
   }, [productsList]);
+
+  // Dynamic SEO Title, Meta Description, OpenGraph & Product JSON-LD
+  useEffect(() => {
+    const matchedCat = CATEGORIES.find((c) => c.id === selectedCategory);
+    updateDynamicSeo({
+      categoryId: selectedCategory,
+      categoryName: matchedCat?.name,
+      searchQuery,
+      product: selectedProduct,
+    });
+  }, [selectedCategory, searchQuery, selectedProduct]);
 
   const openProduct = (product: Product) => {
     setSelectedProduct(product);

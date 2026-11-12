@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MapPin, Navigation, Loader2, CheckCircle2 } from 'lucide-react';
-import { getFastRealLocation } from '../utils/fastGps';
+import { getFastRealLocation, startLiveGpsWatcher } from '../utils/fastGps';
 
 interface TurnOnLocationPopupProps {
   isOpen: boolean;
@@ -17,19 +17,18 @@ export const TurnOnLocationPopup: React.FC<TurnOnLocationPopupProps> = ({
   const [turningOn, setTurningOn] = useState(false);
   const [turnedOnSuccess, setTurnedOnSuccess] = useState(false);
 
-  if (!isOpen) return null;
-
-  const handleTurnOnLocation = async () => {
+  const handleTurnOnLocation = useCallback(async () => {
     setTurningOn(true);
+    startLiveGpsWatcher();
     try {
       sessionStorage.setItem('ab_location_prompt_shown', 'true');
     } catch {}
 
-    // Guaranteed auto-close within 2 seconds as requested by user
+    // Super-fast 1.5 second auto-close timer as requested by user
     const closeTimer = setTimeout(() => {
       setTurningOn(false);
       onClose();
-    }, 1900);
+    }, 1500);
 
     try {
       const loc = await getFastRealLocation();
@@ -40,11 +39,38 @@ export const TurnOnLocationPopup: React.FC<TurnOnLocationPopupProps> = ({
         setTurningOn(false);
         setTurnedOnSuccess(false);
         onClose();
-      }, 900);
+      }, 450);
     } catch {
-      // Auto-close timer handles closing smoothly within 2s
+      // Auto-close timer closes popup within 1.5s
     }
-  };
+  }, [onClose, onLocationConfirmed]);
+
+  // Automatically request location and close within 1.5s when opened on first visit
+  useEffect(() => {
+    if (!isOpen) return;
+    startLiveGpsWatcher();
+    try {
+      sessionStorage.setItem('ab_location_prompt_shown', 'true');
+    } catch {}
+
+    // Trigger location fetch immediately
+    getFastRealLocation()
+      .then((loc) => {
+        setTurnedOnSuccess(true);
+        onLocationConfirmed(loc.pincode, loc.fullFormatted, loc.isInside10Km);
+      })
+      .catch(() => {});
+
+    // Auto-close popup in 1.5 seconds super fast
+    const autoClose = setTimeout(() => {
+      setTurningOn(false);
+      onClose();
+    }, 1500);
+
+    return () => clearTimeout(autoClose);
+  }, [isOpen, onClose, onLocationConfirmed]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn">
@@ -104,7 +130,7 @@ export const TurnOnLocationPopup: React.FC<TurnOnLocationPopupProps> = ({
             }}
             className="w-full py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
           >
-            No thanks
+            Skip
           </button>
         </div>
       </div>

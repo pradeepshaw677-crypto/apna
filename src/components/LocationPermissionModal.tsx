@@ -19,6 +19,7 @@ import {
   APNA_BAZAR_COORDS,
   DELIVERY_CIRCLE_RADIUS_KM,
   calculateDistanceFromApnaBazarKm,
+  computePlusCodeFast,
   fastReverseGeocode,
   getFastRealCoordinates,
   getLatestCachedGpsFix,
@@ -92,17 +93,20 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     calculateDistanceFromApnaBazarKm(selectedCoords[0], selectedCoords[1]) <= DELIVERY_CIRCLE_RADIUS_KM
   );
 
-  const [structuredAddress, setStructuredAddress] = useState<StructuredAddress>({
-    plusCode: '6PFP+W7H',
-    road: 'Baharagora Main Road',
-    locality: 'Baharagora',
-    village: 'Baharagora',
-    city: 'Baharagora',
-    landmark: 'Near Apna Bazar, Dadu Complex',
-    nearby: 'Near Apna Bazar',
-    state: 'Jharkhand',
-    pincode: '832101',
-    fullFormatted: '6PFP+W7H, Baharagora Main Road, Baharagora, Jharkhand - 832101',
+  const [structuredAddress, setStructuredAddress] = useState<StructuredAddress>(() => {
+    const code = computePlusCodeFast(selectedCoords[0], selectedCoords[1]);
+    return {
+      plusCode: code,
+      road: 'Baharagora Main Road',
+      locality: 'Baharagora',
+      village: 'Baharagora',
+      city: 'Baharagora',
+      landmark: 'Near Apna Bazar, Dadu Complex',
+      nearby: 'Near Apna Bazar',
+      state: 'Jharkhand',
+      pincode: '832101',
+      fullFormatted: `${code}, Baharagora Main Road, Baharagora, Jharkhand - 832101`,
+    };
   });
 
   // Fast Reverse Geocode on every pin drag, drop, tap, or GPS click
@@ -142,8 +146,13 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
     setSelectedCoords(newCoords);
     const dist = calculateDistanceFromApnaBazarKm(lat, lng);
     const inside = dist <= DELIVERY_CIRCLE_RADIUS_KM;
+    const instantPlusCode = computePlusCodeFast(lat, lng);
     setDistanceKm(dist);
     setIsInside10Km(inside);
+    setStructuredAddress((prev) => ({
+      ...prev,
+      plusCode: instantPlusCode,
+    }));
 
     try {
       localStorage.setItem('ab_is_inside_10km', inside ? 'true' : 'false');
@@ -636,9 +645,14 @@ export const LocationPermissionModal: React.FC<LocationPermissionModalProps> = (
             </p>
 
             <div className="flex flex-wrap items-center justify-between gap-1.5 pt-0.5 text-[11px]">
-              <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                GPS: {selectedCoords[0].toFixed(5)}°N, {selectedCoords[1].toFixed(5)}°E
-              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-mono text-[10px] font-black text-amber-950 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+                  Code: {structuredAddress.plusCode}
+                </span>
+                <span className="font-mono text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                  GPS: {selectedCoords[0].toFixed(5)}°N, {selectedCoords[1].toFixed(5)}°E
+                </span>
+              </div>
               <span className="text-slate-600 font-bold">
                 Distance: <strong className="text-slate-950 font-black">{distanceKm} km</strong> from Apna Bazar
               </span>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+>
+  <!-- Primary Homepage: Apna Bazar (Apka Apna Bazar) - #1 Shopping Mall in Baharagora -->
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://apkaapnabazar.vercel.app/logo.png</image:loc>
+      <image:title>Apna Bazar (Apka Apna Bazar) - No 1 Shopping Mall &amp; Fashion Website in Baharagora Jharkhand 832101</image:title>
+      <image:caption>Apna Bazar Dadu Complex, Baharagora Main Road, Market, Baharagora, Jharkhand 832101</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Core Fashion & Shopping Mall Categories -->
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=sarees</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=kurtis</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=women</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=men</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=kids</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=footwear</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.90</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=watches</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=jewellery</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=beauty</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=bags</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=toys</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/?category=home</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+
+  <!-- LLM Knowledge Index -->
+  <url>
+    <loc>https://apkaapnabazar.vercel.app/llms.txt</loc>
+    <lastmod>2026-11-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+</urlset>

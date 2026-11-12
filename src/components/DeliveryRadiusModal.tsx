@@ -17,7 +17,7 @@ import {
   Route
 } from 'lucide-react';
 import L from 'leaflet';
-import { getFastRealCoordinates, fastReverseGeocode } from '../utils/fastGps';
+import { getFastRealCoordinates, fastReverseGeocode, computePlusCodeFast } from '../utils/fastGps';
 
 interface DeliveryRadiusModalProps {
   isOpen: boolean;
@@ -34,19 +34,19 @@ const RADIUS_METERS = 10000; // 10 km delivery radius
 
 // Comprehensive local database of Baharagora villages & landmarks
 export const BAHARAGORA_AREAS = [
-  { name: 'Dadu Complex & Main Market', village: 'Baharagora Main Market', coords: [22.2828, 86.7196] as [number, number], distance: '0.1 km', badge: 'Apna Bazar', eligible: true, plusCode: '6PFP+W7H' },
-  { name: 'Near Shitla Mandir', village: 'Shitla Mandir Mohalla', coords: [22.2835, 86.7188] as [number, number], distance: '0.3 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+W6X' },
-  { name: 'Town High School Road', village: 'High School Para', coords: [22.2870, 86.7230] as [number, number], distance: '0.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+7F6' },
-  { name: 'Baharagora College Campus', village: 'College Road', coords: [22.2910, 86.7280] as [number, number], distance: '1.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+P98' },
-  { name: 'Sakha Maidan & Sub-div Hospital', village: 'Sakha Maidan', coords: [22.2940, 86.7120] as [number, number], distance: '1.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+6V5' },
-  { name: 'Matihanna Chowk', village: 'Matihanna', coords: [22.3020, 86.7410] as [number, number], distance: '3.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+R85' },
-  { name: 'Khandamouda Village', village: 'Khandamouda', coords: [22.3150, 86.7550] as [number, number], distance: '4.5 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+9J4' },
-  { name: 'Barasol Junction', village: 'Barasol', coords: [22.2450, 86.7320] as [number, number], distance: '5.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+JHQ' },
-  { name: 'Gamharia Border Village', village: 'Gamharia', coords: [22.3200, 86.6850] as [number, number], distance: '6.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+CPW' },
-  { name: 'Kesarda & Kumrasol', village: 'Kesarda', coords: [22.2600, 86.7600] as [number, number], distance: '7.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+R48' },
-  { name: 'Jamua & Pathra', village: 'Jamua Village', coords: [22.2750, 86.7450] as [number, number], distance: '8.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+JWH' },
-  { name: 'Benagaria Village', village: 'Benagaria', coords: [22.2680, 86.6950] as [number, number], distance: '9.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PFP+76J' },
-  { name: 'Jamshedpur Tatanagar (Outer)', village: 'Tatanagar', coords: [22.8046, 86.2029] as [number, number], distance: '78 km', badge: 'Outside 10km', eligible: false, plusCode: '7P2R+RJ' },
+  { name: 'Dadu Complex & Main Market', village: 'Baharagora Main Market', coords: [22.2828, 86.7196] as [number, number], distance: '0.1 km', badge: 'Apna Bazar', eligible: true, plusCode: '7PM9+4RG' },
+  { name: 'Near Shitla Mandir', village: 'Shitla Mandir Mohalla', coords: [22.2835, 86.7188] as [number, number], distance: '0.3 km', badge: 'Fast Delivery', eligible: true, plusCode: '7PM9+CV9' },
+  { name: 'Town High School Road', village: 'High School Para', coords: [22.2870, 86.7230] as [number, number], distance: '0.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '7PPF+R62' },
+  { name: 'Baharagora College Campus', village: 'College Road', coords: [22.2910, 86.7280] as [number, number], distance: '1.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '7PRH+C62' },
+  { name: 'Sakha Maidan & Sub-div Hospital', village: 'Sakha Maidan', coords: [22.2940, 86.7120] as [number, number], distance: '1.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '7PV6+JR2' },
+  { name: 'Matihanna Chowk', village: 'Matihanna', coords: [22.3020, 86.7410] as [number, number], distance: '3.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '8P2R+RC2' },
+  { name: 'Khandamouda Village', village: 'Khandamouda', coords: [22.3150, 86.7550] as [number, number], distance: '4.5 km', badge: 'Fast Delivery', eligible: true, plusCode: '8Q84+222' },
+  { name: 'Barasol Junction', village: 'Barasol', coords: [22.2450, 86.7320] as [number, number], distance: '5.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '6PWJ+2R2' },
+  { name: 'Gamharia Border Village', village: 'Gamharia', coords: [22.3200, 86.6850] as [number, number], distance: '6.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '8MCP+222' },
+  { name: 'Kesarda & Kumrasol', village: 'Kesarda', coords: [22.2600, 86.7600] as [number, number], distance: '7.8 km', badge: 'Fast Delivery', eligible: true, plusCode: '7Q66+222' },
+  { name: 'Jamua & Pathra', village: 'Jamua Village', coords: [22.2750, 86.7450] as [number, number], distance: '8.4 km', badge: 'Fast Delivery', eligible: true, plusCode: '7PFW+222' },
+  { name: 'Benagaria Village', village: 'Benagaria', coords: [22.2680, 86.6950] as [number, number], distance: '9.2 km', badge: 'Fast Delivery', eligible: true, plusCode: '7M9W+622' },
+  { name: 'Jamshedpur Tatanagar (Outer)', village: 'Tatanagar', coords: [22.8046, 86.2029] as [number, number], distance: '78 km', badge: 'Outside 10km', eligible: false, plusCode: 'R633+R5J' },
 ];
 
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -63,29 +63,8 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   return R * c;
 }
 
-// Compute Plus Code algorithmically
 function computePlusCode(lat: number, lng: number): string {
-  const ALPHABET = "23456789CFGHJMPQRVWX";
-  let normalLat = Math.min(Math.max(lat, -90), 90) + 90;
-  let normalLng = lng;
-  while (normalLng < -180) normalLng += 360;
-  while (normalLng >= 180) normalLng -= 360;
-  normalLng += 180;
-
-  const charAt = (v: number) => ALPHABET[Math.min(ALPHABET.length - 1, Math.max(0, Math.floor(v)))] || "C";
-  normalLat %= 20;
-  normalLng %= 20;
-  const d1 = charAt(normalLat);
-  const d2 = charAt(normalLng);
-  normalLat %= 1;
-  normalLng %= 1;
-  const d3 = charAt(normalLat / 0.05);
-  const d4 = charAt(normalLng / 0.05);
-  normalLat %= 0.05;
-  normalLng %= 0.05;
-  const d5 = charAt(normalLat / 0.0025);
-  const d6 = charAt(normalLng / 0.0025);
-  return `${d1}${d2}${d3}${d4}+${d5}${d6}`;
+  return computePlusCodeFast(lat, lng);
 }
 
 export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({ 
@@ -99,7 +78,7 @@ export const DeliveryRadiusModal: React.FC<DeliveryRadiusModalProps> = ({
   
   // Real Geocoded Location State (Village, Coordinate Code, City, Green Tick)
   const [villageName, setVillageName] = useState('Dadu Complex & Main Market');
-  const [coordinateCode, setCoordinateCode] = useState('6PFP+W7H (22.2828° N, 86.7196° E)');
+  const [coordinateCode, setCoordinateCode] = useState('7PM9+4RG (22.2828° N, 86.7196° E)');
   const [cityName, setCityName] = useState('Baharagora, Jharkhand 832101');
   const [currentDistance, setCurrentDistance] = useState('0.1 km');
   const [isEligible, setIsEligible] = useState(true);

@@ -1,0 +1,73 @@
+# Apna Bazar (Apka Apna Bazar) - Official robots.txt
+# #1 Shopping Mall & Fashion Website in Baharagora, Jharkhand (832101)
+# Official Domain: https://apkaapnabazar.vercel.app
+
+User-agent: *
+Allow: /
+Disallow: /api/admin/
+Disallow: /api/auth/
+
+# Explicitly allow Google Search, Google Shopping & Google AI Overviews
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# Explicitly allow AI & LLM Search Engines (ChatGPT, Perplexity, Claude, Bing Copilot, Apple)
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# Block Third-Party Source Code Readers, Website Rippers & Cloner Bots
+User-agent: HTTrack
+Disallow: /
+
+User-agent: WebCopier
+Disallow: /
+
+User-agent: Teleport
+Disallow: /
+
+User-agent: TeleportPro
+Disallow: /
+
+User-agent: SiteSucker
+Disallow: /
+
+User-agent: WebZIP
+Disallow: /
+
+User-agent: WebStripper
+Disallow: /
+
+User-agent: Offline Explorer
+Disallow: /
+
+User-agent: CyotekWebCopy
+Disallow: /
+
+Sitemap: https://apkaapnabazar.vercel.app/sitemap.xml

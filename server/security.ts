@@ -64,13 +64,22 @@ const CSP_DIRECTIVES = [
   "media-src 'self' https://pradeepshaw677-crypto.github.io",
 ];
 
-export function securityHeaders(_req: Request, res: Response, next: NextFunction): void {
+const SCRAPER_UA_REGEX =
+  /\b(httrack|webcopier|teleport|sitesucker|webzip|webstripper|cyotekwebcopy|offline explorer|blackwidow|nikto|sqlmap)\b/i;
+
+export function securityHeaders(req: Request, res: Response, next: NextFunction): void {
+  const ua = String(req.headers["user-agent"] || "");
+  if (ua && SCRAPER_UA_REGEX.test(ua)) {
+    res.status(403).send("Access Denied");
+    return;
+  }
+
   res.removeHeader("X-Powered-By");
   res.setHeader("X-Content-Type-Options", "nosniff");
   // X-Frame-Options DENY is omitted so the applet can render inside AI Studio's preview iframe
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
-  res.setHeader("X-DNS-Prefetch-Control", "off");
+  res.setHeader("X-DNS-Prefetch-Control", "on");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   res.setHeader(
     "Permissions-Policy",

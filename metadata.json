@@ -1,7 +1,8 @@
 {
   "name": "Apna Bazar",
-  "description": "Apna Bazar - India's trusted fashion and lifestyle superstore with 3-day doorstep delivery, Cash on Delivery and 5-day returns.",
+  "description": "Apna Bazar (Apka Apna Bazar) - No. 1 Shopping Mall & Best Fashion Website in Baharagora, Jharkhand (832101). Shop Sarees, Women's & Men's Fashion, Kids Wear, Footwear & Watches at wholesale prices with 10-KM Express Doorstep Delivery, Cash on Delivery & 5-Day Returns.",
   "requestFramePermissions": [
     "geolocation"
   ]
 }
+
