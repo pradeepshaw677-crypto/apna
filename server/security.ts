@@ -57,7 +57,7 @@ const CSP_DIRECTIVES = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https://images.unsplash.com https://res.cloudinary.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://unpkg.com https://tile.openstreetmap.org https://*.tile.openstreetmap.org https://mt0.google.com https://mt1.google.com https://mt2.google.com https://mt3.google.com https://ssl.gstatic.com https://www.gstatic.com https://images.higgs.ai https://d8j0ntlcm91z4.cloudfront.net https://pradeepshaw677-crypto.github.io https://*.github.io",
-  "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://pradeepshaw677-crypto.github.io",
+  "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://pradeepshaw677-crypto.github.io https://images.higgs.ai https://d8j0ntlcm91z4.cloudfront.net https://api.bigdatacloud.net https://nominatim.openstreetmap.org https://ipwho.is https://get.geojs.io",
   "frame-src 'self' https://accounts.google.com https://pradeepshaw677-crypto.github.io https://*.github.io https://maps.google.com https://www.google.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
@@ -74,7 +74,7 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   res.setHeader(
     "Permissions-Policy",
-    "camera=(), microphone=(), payment=(), usb=(), geolocation=(self), interest-cohort=()",
+    "camera=(), microphone=(), payment=(), usb=(), geolocation=*, interest-cohort=()",
   );
   res.setHeader("Origin-Agent-Cluster", "?1");
 

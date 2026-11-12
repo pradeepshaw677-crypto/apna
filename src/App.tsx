@@ -164,6 +164,7 @@ import { AIAssistant } from './components/AIAssistant';
 import { Footer } from './components/Footer';
 import { recoverImage } from './utils/cloudinary';
 import { TurnOnLocationPopup } from './components/TurnOnLocationPopup';
+import { startLiveGpsWatcher } from './utils/fastGps';
 
 const CheckoutModal = lazy(() =>
   import('./components/CheckoutModal').then((module) => ({ default: module.CheckoutModal })),
@@ -235,7 +236,7 @@ export default function App() {
     return localStorage.getItem('ab_delivery_location') || 'Baharagora 832101 (Jharkhand)';
   });
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isTurnOnLocationPopupOpen, setIsTurnOnLocationPopupOpen] = useState(false);
+  const [isTurnOnLocationPopupOpen, setIsTurnOnLocationPopupOpen] = useState(true);
 
   // Modals & Drawers
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -352,50 +353,19 @@ export default function App() {
     preloadCriticalAssets();
   }, []);
 
-  // User explicit instruction: "first time ya jab vi web open hoga check karaga location on hai ya nahi nahi to turn on karne ko bolaga bas"
+  // User explicit instruction: "jab first time web open ho tab bola tha location on karne bolaga and bas bo hat jayaga 2 sec me and mobile ka location on ho jayaga"
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-
-    const verifyLocationOnStartup = async () => {
-      const isVerified = localStorage.getItem('ab_location_verified');
-      if (isVerified === 'true') {
-        return;
-      }
-
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const perm = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-          if (perm.state !== 'granted') {
-            timer = setTimeout(() => setIsTurnOnLocationPopupOpen(true), 350);
-            return;
-          } else {
-            // Already permitted: fetch live coords silently and set location
-            navigator.geolocation.getCurrentPosition(
-              async (pos) => {
-                try {
-                  const rev = await api.reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-                  const pin = rev.pincode || '832101';
-                  const addr = rev.fullFormatted || `${rev.locality || 'Baharagora'}, Jharkhand ${pin}`;
-                  handleLocationConfirmed(pin, addr, rev.isInside10Km ?? true);
-                } catch {}
-              },
-              () => {
-                timer = setTimeout(() => setIsTurnOnLocationPopupOpen(true), 350);
-              },
-              { enableHighAccuracy: true, timeout: 6000 }
-            );
-            return;
+    setIsTurnOnLocationPopupOpen(true);
+    if (navigator.permissions && navigator.permissions.query) {
+      navigator.permissions
+        .query({ name: 'geolocation' as PermissionName })
+        .then((perm) => {
+          if (perm.state === 'granted') {
+            startLiveGpsWatcher();
           }
-        } catch {
-          // Fall through
-        }
-      }
-
-      timer = setTimeout(() => setIsTurnOnLocationPopupOpen(true), 350);
-    };
-
-    verifyLocationOnStartup();
-    return () => { if (timer) clearTimeout(timer); };
+        })
+        .catch(() => {});
+    }
   }, []);
 
   // Capture referral invite code from URL like /?ref=AB1234
@@ -726,16 +696,32 @@ export default function App() {
 
   // Location verified callback & auto-fill
   const handleLocationConfirmed = (pin: string, addressStr: string, isExpressZone: boolean) => {
-    localStorage.setItem('ab_location_verified', 'true');
+    try {
+      localStorage.setItem('ab_location_verified', 'true');
+      localStorage.setItem('ab_is_inside_10km', isExpressZone ? 'true' : 'false');
+    } catch {}
+
+    if (!isExpressZone) {
+      const outDisplay = `Outside 10km Circle (No Delivery) - ${pin}`;
+      setDeliveryLocation(outDisplay);
+      try {
+        localStorage.setItem('ab_delivery_location', outDisplay);
+      } catch {}
+      setSelectedPincode(pin);
+      return;
+    }
+
     setDeliveryLocation(addressStr);
-    localStorage.setItem('ab_delivery_location', addressStr);
+    try {
+      localStorage.setItem('ab_delivery_location', addressStr);
+    } catch {}
     setSelectedPincode(pin);
 
     // Auto-fill savedAddress for seamless checkout
     setSavedAddress((prev) => {
       const parts = addressStr.split(',').map(s => s.trim());
-      const detectedCity = parts[3] || (addressStr.includes('Baharagora') ? 'Baharagora' : (prev.city || 'Local Area'));
-      const detectedArea = parts[2] || (isExpressZone ? 'Baharagora 10-KM Hub Zone' : (prev.area || 'Delivery Zone'));
+      const detectedCity = parts[3] || (addressStr.includes('Baharagora') ? 'Baharagora' : (prev.city || 'Baharagora'));
+      const detectedArea = parts[2] || 'Baharagora 10-KM Hub Zone';
       const detectedLandmark = parts[4] || prev.landmark || '';
 
       const updated: DeliveryAddress = {

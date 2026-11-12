@@ -2053,7 +2053,7 @@ app.get(
             Accept: "application/json",
             "Accept-Language": "en",
           },
-          signal: AbortSignal.timeout(8_000),
+          signal: AbortSignal.timeout(1_800),
         },
       );
 
@@ -2074,7 +2074,7 @@ app.get(
           "";
         city = addr.city || addr.town || addr.municipality || addr.county || addr.state_district || "";
         landmark = addr.amenity || addr.building || addr.shop || addr.commercial || addr.office || addr.tourism || addr.historic || addr.place || "";
-        nearby = landmark || (village ? `Near ${village}` : locality ? `Near ${locality}` : `Near ${city || "Hub"}`);
+        nearby = landmark || (village ? `Near ${village}` : locality ? `Near ${locality}` : `Near ${city || "Apna Bazar"}`);
         state = addr.state || "";
         pincode = addr.postcode || "";
       }
@@ -2094,7 +2094,19 @@ app.get(
     if (!landmark) landmark = nearby || `Near ${locality}`;
     if (!nearby) nearby = landmark;
 
-    const fullFormatted = `${plusCode}, ${road}, ${village ? `${village}, ` : ""}${locality}, ${city}, ${nearby}, ${state} ${pincode}`;
+    // Deduplicate address parts so city/locality never repeats multiple times
+    const seenParts = new Set<string>();
+    const uniqueParts: string[] = [];
+    for (const part of [plusCode, road, village, locality, city]) {
+      const trimmed = (part || "").trim();
+      if (!trimmed) continue;
+      const key = trimmed.toLowerCase();
+      if (!seenParts.has(key)) {
+        seenParts.add(key);
+        uniqueParts.push(trimmed);
+      }
+    }
+    const fullFormatted = `${uniqueParts.join(", ")}, ${state} ${pincode}`;
 
     res.json({
       plusCode,
@@ -2133,7 +2145,7 @@ app.get(
             Accept: "application/json",
             "Accept-Language": "en",
           },
-          signal: AbortSignal.timeout(8_000),
+          signal: AbortSignal.timeout(4_000),
         },
       );
 
@@ -2169,18 +2181,58 @@ app.get(
   }),
 );
 
-app.get("/api/geoip", rateLimit({ windowMs: 60_000, max: 60, prefix: "geoip" }), (_req, res) => {
-  res.json({
-    success: true,
-    lat: 22.2815,
-    lon: 86.7198,
-    city: "Baharagora",
-    state: "Jharkhand",
-    pincode: "832101",
-    distanceKm: 0,
-    isInside10Km: true,
-  });
-});
+app.get(
+  "/api/geoip",
+  rateLimit({ windowMs: 60_000, max: 60, prefix: "geoip" }),
+  asyncHandler(async (req, res) => {
+    const rawIp = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "")
+      .split(",")[0]
+      .trim();
+    const isPublicIp =
+      rawIp &&
+      !rawIp.startsWith("127.") &&
+      !rawIp.startsWith("10.") &&
+      !rawIp.startsWith("192.168.") &&
+      rawIp !== "::1";
+
+    try {
+      const url = isPublicIp ? `https://ipwho.is/${encodeURIComponent(rawIp)}` : `https://ipwho.is/`;
+      const ipRes = await fetch(url, { signal: AbortSignal.timeout(1_500) });
+      if (ipRes.ok) {
+        const data = (await ipRes.json()) as Record<string, unknown>;
+        const lat = Number(data.latitude);
+        const lon = Number(data.longitude);
+        if (!Number.isNaN(lat) && !Number.isNaN(lon) && lat !== 0 && lon !== 0) {
+          const dist = calculateDistanceKm(22.2815, 86.7198, lat, lon);
+          res.json({
+            success: true,
+            lat,
+            lon,
+            city: String(data.city || "Baharagora"),
+            state: String(data.region || "Jharkhand"),
+            pincode: String(data.postal || (dist <= 10 ? "832101" : "831001")),
+            distanceKm: dist,
+            isInside10Km: dist <= 10,
+          });
+          return;
+        }
+      }
+    } catch {
+      /* fall through */
+    }
+
+    res.json({
+      success: true,
+      lat: 22.2815,
+      lon: 86.7198,
+      city: "Baharagora",
+      state: "Jharkhand",
+      pincode: "832101",
+      distanceKm: 0,
+      isInside10Km: true,
+    });
+  }),
+);
 
 app.post(
   "/api/check-pincode",

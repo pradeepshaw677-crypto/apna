@@ -16,6 +16,7 @@ import {
 import { CartItem, Coupon, DeliveryAddress, Order } from '../types';
 import { formatINR, getSizePriceDelta } from '../utils/pricing';
 import { api } from '../utils/api';
+import { getFastRealLocation } from '../utils/fastGps';
 import { AbCoinLogo } from './AbCoinLogo';
 import { DeliveryRadiusModal } from './DeliveryRadiusModal';
 import confetti from 'canvas-confetti';
@@ -55,6 +56,22 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [detectingGps, setDetectingGps] = useState(false);
   const [gpsSuccessMsg, setGpsSuccessMsg] = useState<string | null>(null);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [isOutsideCircle, setIsOutsideCircle] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('ab_is_inside_10km') === 'false';
+    } catch {
+      return false;
+    }
+  });
+
+  // Valid 10-km Baharagora circle pincodes
+  const ELIGIBLE_CIRCLE_PINCODES = ['832101', '832102', '832103', '832104', '832301', '721507', '757032'];
+  const isPincodeOutsideCircle = Boolean(
+    address.pincode &&
+    address.pincode.length === 6 &&
+    !ELIGIBLE_CIRCLE_PINCODES.includes(address.pincode.trim())
+  );
+  const isDeliveryBlocked = isOutsideCircle || isPincodeOutsideCircle;
 
   // Sync savedAddress changes
   useEffect(() => {
@@ -66,108 +83,41 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   }, [savedAddress]);
 
-  // Fast multi-tier GPS / IP Geolocation detection
+  // Fast <2s 1-Click Real Current Location detection
   const handleUseCurrentLocation = async () => {
     setDetectingGps(true);
     setGpsSuccessMsg(null);
     setErrorMessage(null);
 
-    const applyAddress = (street: string, city: string, state: string, pincode: string, landmark: string, fullFormatted?: string) => {
+    try {
+      const loc = await getFastRealLocation();
+      const outside = !loc.isInside10Km;
+      setIsOutsideCircle(outside);
+
       setAddress((prev) => ({
         ...prev,
-        streetAddress: street || 'Live GPS Location Point',
-        landmark: landmark || '',
-        area: `${city || ''}, ${state || ''}`,
-        city: city || 'Local Area',
-        state: state || 'India',
-        pincode: pincode || '832101',
+        streetAddress: loc.fullFormatted || `${loc.plusCode}, ${loc.road}, ${loc.locality}`,
+        landmark: loc.landmark || prev.landmark || 'Near Apna Bazar',
+        area: `${loc.city}, ${loc.state}`,
+        city: loc.city || 'Baharagora',
+        state: loc.state || 'Jharkhand',
+        pincode: loc.pincode || '832101',
       }));
-      setGpsSuccessMsg(`✓ Live Address Detected: ${street || city} (${pincode})`);
-      setIsEditingAddress(true);
-      setDetectingGps(false);
-      setTimeout(() => setGpsSuccessMsg(null), 5000);
-    };
 
-    // Helper for fast browser geolocation
-    const getGPS = (highAccuracy: boolean, timeoutMs: number): Promise<{ latitude: number; longitude: number }> => {
-      return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error('Geolocation unsupported'));
-          return;
-        }
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-          (err) => reject(err),
-          { enableHighAccuracy: highAccuracy, timeout: timeoutMs, maximumAge: 30000 }
+      if (outside) {
+        setErrorMessage(
+          `❌ Outside 10-KM Circle Area (${loc.distanceKm} km from Apna Bazar) — Delivery Not Available! सर्कल एरिया (10 KM) से बाहर डिलीवरी नहीं होगी।`
         );
-      });
-    };
-
-    // Tier 1: Real Device Browser GPS
-    if (navigator.geolocation) {
-      try {
-        let coords: { latitude: number; longitude: number };
-        try {
-          coords = await getGPS(true, 7000);
-        } catch {
-          // Fast fallback to network/cell tower triangulation
-          coords = await getGPS(false, 5000);
-        }
-
-        // Live Server-side reverse geocode
-        try {
-          const res = await api.reverseGeocode(coords.latitude, coords.longitude);
-          if (res && res.fullFormatted) {
-            applyAddress(
-              `${res.plusCode || ''}, ${res.road || ''}, ${res.locality || ''}`.replace(/^, |, $/g, ''),
-              res.city,
-              res.state,
-              res.pincode,
-              res.landmark,
-              res.fullFormatted
-            );
-            return;
-          }
-        } catch (e) {
-          console.error('Reverse geocode error in checkout:', e);
-        }
-
-        applyAddress(`GPS Location (${coords.latitude.toFixed(4)}, ${coords.longitude.toFixed(4)})`, 'Local City', 'Jharkhand', '832101', '');
-        return;
-      } catch (err: any) {
-        if (err?.code === 1) {
-          setErrorMessage('⚠️ Location permission was denied in your browser. Please allow location in browser settings or type address manually.');
-          setDetectingGps(false);
-          return;
-        }
+      } else {
+        setGpsSuccessMsg(`✓ Real Current Location Fetched (${loc.distanceKm} km from Apna Bazar): ${loc.fullFormatted}`);
+        setTimeout(() => setGpsSuccessMsg(null), 5000);
       }
+      setIsEditingAddress(true);
+    } catch {
+      setErrorMessage('Could not auto-detect location. Please select your location on the 10km Map.');
+    } finally {
+      setDetectingGps(false);
     }
-
-    // Tier 2: Real-time GeoIP Lookup
-    try {
-      const geoIpData = await api.getGeoIP();
-      if (geoIpData && geoIpData.lat && geoIpData.lon) {
-        try {
-          const res = await api.reverseGeocode(geoIpData.lat, geoIpData.lon);
-          if (res && res.fullFormatted) {
-            applyAddress(
-              `${res.plusCode || ''}, ${res.road || ''}, ${res.locality || ''}`.replace(/^, |, $/g, ''),
-              res.city || geoIpData.city,
-              res.state || geoIpData.state,
-              res.pincode || geoIpData.pincode,
-              res.landmark,
-              res.fullFormatted
-            );
-            return;
-          }
-        } catch {}
-        applyAddress('Live Area', geoIpData.city || 'Local Area', geoIpData.state || 'India', geoIpData.pincode || '832101', '');
-        return;
-      }
-    } catch {}
-
-    setErrorMessage('Could not auto-detect location. Please enter your address details below.');
-    setDetectingGps(false);
   };
 
   if (!isOpen) return null;
@@ -228,6 +178,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    if (isDeliveryBlocked) {
+      setErrorMessage(
+        '❌ Delivery Not Available Outside 10-KM Circle Area! सर्कल एरिया (10 KM Baharagora Hub) से बाहर डिलीवरी उपलब्ध नहीं है। कृपया "10km Real Map (Drop Pin)" पर क्लिक करके 10-KM सर्कल के अंदर का लोकेशन चुनें।'
+      );
+      return;
+    }
 
     if (!address.fullName || !address.phoneNumber || !address.streetAddress || !address.pincode) {
       setErrorMessage('Please fill in complete delivery address details.');
@@ -661,6 +618,29 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             </div>
           </div>
 
+          {isDeliveryBlocked && (
+            <div className="p-3.5 bg-red-50 border-2 border-red-300 rounded-2xl space-y-2 text-xs text-red-800 font-bold">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                <div>
+                  <p className="font-black text-red-700">
+                    ❌ Outside 10-KM Circle Area — Delivery Not Available!
+                  </p>
+                  <p className="text-[11px] font-semibold mt-0.5">
+                    सर्कल एरिया (10 KM Baharagora Hub) से बाहर डिलीवरी नहीं होगी। कृपया नीचे मैप बटन पर क्लिक करके 10-KM ग्रीन सर्कल के अंदर लोकेशन सेट करें।
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMapModalOpen(true)}
+                className="w-full py-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs cursor-pointer transition-colors"
+              >
+                🗺️ Select Location Inside 10-KM Circle on Map
+              </button>
+            </div>
+          )}
+
           {errorMessage && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700 font-semibold">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
@@ -671,14 +651,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           {/* Place Order Button */}
           <button
             type="submit"
-            disabled={isSubmitting || !selectedPaymentMethod}
+            disabled={isSubmitting || !selectedPaymentMethod || isDeliveryBlocked}
             className={`w-full py-4 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg transition-all ${
-              !selectedPaymentMethod
+              isDeliveryBlocked
+                ? 'bg-red-100 text-red-700 border-2 border-red-300 cursor-not-allowed'
+                : !selectedPaymentMethod
                 ? 'bg-slate-200 text-slate-500 cursor-not-allowed border border-slate-300'
                 : 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 shadow-amber-400/25 active:scale-98 cursor-pointer'
             }`}
           >
-            {isSubmitting ? (
+            {isDeliveryBlocked ? (
+              <span>🚫 Outside 10-KM Circle — Delivery Not Available</span>
+            ) : isSubmitting ? (
               <span>Placing Your Order...</span>
             ) : !selectedPaymentMethod ? (
               <span>👆 Choose COD or AB Coins Above →</span>
@@ -697,8 +681,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         <DeliveryRadiusModal
           isOpen={isMapModalOpen}
           onClose={() => setIsMapModalOpen(false)}
-          onSelectLocation={(locName, coords, dist) => {
+          onSelectLocation={(locName, _coords, dist) => {
             setIsMapModalOpen(false);
+            setIsOutsideCircle(false);
+            setErrorMessage(null);
+            try {
+              localStorage.setItem('ab_is_inside_10km', 'true');
+            } catch {}
             setAddress((prev) => ({
               ...prev,
               streetAddress: locName,
